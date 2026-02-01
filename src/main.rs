@@ -353,12 +353,12 @@ fn print_world(world: &World, x1: i32, y1: i32, x2: i32, y2: i32) {
 impl Substrate {
     fn to_char(&self) -> char {
         match self {
-            Substrate::Grass => 'G',
-            Substrate::Dirt => 'D',
-            Substrate::Stone => 'S',
-            Substrate::Mud => 'M',
-            Substrate::Water => 'W',
-            Substrate::Brush => 'B',
+            Substrate::Grass => 'g',
+            Substrate::Dirt => 'd',
+            Substrate::Stone => 's',
+            Substrate::Mud => 'm',
+            Substrate::Water => 'w',
+            Substrate::Brush => 'b',
         }
     }
 }
@@ -366,9 +366,9 @@ impl Substrate {
 impl Object {
     fn to_char(&self) -> char {
         match self {
-            Object::Rock => 'r',
+            Object::Rock => 'R',
             Object::Tree => 'T',
-            Object::Stick => 's',
+            Object::Stick => 'S',
         }
     }
 }

@@ -31,17 +31,17 @@ save_world(&world)?;
 - `/\` - Mountain
 - `##` - Ungenerated terrain
 
-## Tile Substrates
+## Tile Substrates (lowercase)
 
-- `G` - Grass
-- `D` - Dirt
-- `S` - Stone
-- `M` - Mud
-- `W` - Water
-- `B` - Brush
+- `g` - Grass
+- `d` - Dirt
+- `s` - Stone
+- `m` - Mud
+- `w` - Water
+- `b` - Brush
 
-## Tile Objects
+## Tile Objects (uppercase)
 
 - `T` - Tree
-- `r` - Rock
-- `s` - Stick
+- `R` - Rock
+- `S` - Stick
