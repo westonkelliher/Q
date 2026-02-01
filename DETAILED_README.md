@@ -279,7 +279,7 @@ generation/
   - `get_keys_pressed()`: Get currently pressed keys
   - `window_size()`: Get viewport dimensions
 - `Color`: RGBA color representation (f32 values 0.0-1.0)
-- `Key`: Input key enumeration (Arrow keys, WASD, Z/X for view switching, Escape, etc.)
+- `Key`: Input key enumeration (Arrow keys, WASD, Z/X for view switching, Minus/Equal for zoom, Escape, etc.)
 - `RenderError`: Error type with variants (InitializationFailed, RenderingFailed, Other)
 
 **Design**: The abstraction is designed to be simple enough for immediate-mode APIs (like macroquad) while being complete enough for ECS-based engines (like Bevy). This allows easy migration between backends.
@@ -337,17 +337,21 @@ generation/
 - **Position**: `x: f32, y: f32` - current camera position (smooth following)
 - **Target**: `target_x: f32, target_y: f32` - target position (land center)
 - **Selection**: `selected_land_x: i32, selected_land_y: i32` - currently selected land
-- **Tile Size**: Fixed at 48.0 pixels for terrain view
+- **Tile Size**: Base size 48.0 pixels (multiplied by zoom level)
+- **Zoom**: `zoom: f32` - zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out), range 0.5x to 3.0x
 
 **Key Methods**:
 
-- `new()`: Initialize camera at origin
-- `world_to_screen()`: Convert world coordinates to screen coordinates
+- `new()`: Initialize camera at origin with zoom 1.0
+- `world_to_screen()`: Convert world coordinates to screen coordinates (uses zoomed tile size)
 - `update()`: Smoothly interpolate camera toward target (follow speed: 8.0)
 - `move_selection()`: Move selection in discrete steps (one land per keypress)
 - `update_target()`: Update target position based on current selection
 - `set_selected_land()`: Set selected land (used when switching from land view)
 - `sync_position_from()`: Sync camera position from another camera (for view switching)
+- `get_tile_size()`: Get effective tile size (base size * zoom)
+- `zoom_in()`: Increase zoom level (multiplies by 1.15, max 3.0x)
+- `zoom_out()`: Decrease zoom level (divides by 1.15, min 0.5x)
 
 **Key Functions**:
 
@@ -356,7 +360,8 @@ generation/
   - Borders (2px) colored by edge biomes with shadow effect
   - Corners colored by corner biomes with shadow effect
   - Visualizes the 9-biome system and edge sharing between lands
-- `handle_input()`: Processes movement input, returns true if view should switch to land view
+- `handle_input()`: Processes movement and zoom input, returns true if view should switch to land view
+  - Handles Minus key for zoom out, Equal key for zoom in
 
 **Coordinate System**:
 
@@ -377,23 +382,29 @@ generation/
 - **Target**: `target_x: f32, target_y: f32` - target position (selected tile position)
 - **Land Selection**: `selected_land_x: i32, selected_land_y: i32` - currently viewed land
 - **Tile Selection**: `selected_tile_x: usize, selected_tile_y: usize` - selected tile within land (0-7)
-- **Tile Size**: Fixed at 64.0 pixels for land view
+- **Tile Size**: Base size 64.0 pixels (multiplied by zoom level, and by ADJACENT_SCALE when showing adjacent lands)
+- **Zoom**: `zoom: f32` - zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out), range 0.5x to 3.0x
 
 **Key Methods**:
 
-- `new()`: Initialize camera at origin with tile selection at center (4, 4)
-- `world_to_screen()`: Convert world coordinates to screen coordinates (for land center)
+- `new()`: Initialize camera at origin with tile selection at center (4, 4) and zoom 1.0
+- `world_to_screen()`: Convert world coordinates to screen coordinates (for land center, uses zoomed tile size)
 - `update()`: Smoothly interpolate camera toward target (follow speed: 8.0)
 - `move_selection()`: Move tile selection within land (clamped to 0-7 range)
 - `update_target()`: Update target position based on selected tile world position
 - `set_land()`: Set which land is being viewed (used when switching from terrain view)
 - `sync_position_from()`: Sync camera position from another camera (prevents snapping when switching views)
 - `get_selected_tile_world_pos()`: Get world position of selected tile
+- `get_tile_size()`: Get base tile size with zoom applied
+- `get_effective_tile_size()`: Get effective tile size (with zoom and adjacent scale applied)
+- `zoom_in()`: Increase zoom level (multiplies by 1.15, max 3.0x)
+- `zoom_out()`: Decrease zoom level (divides by 1.15, min 0.5x)
 
 **Key Functions**:
 
 - `render()`: Renders detailed 8x8 grid with tiles, grid overlay, and selection indicator
-- `handle_input()`: Processes movement input, returns true if view should switch to terrain view
+- `handle_input()`: Processes movement and zoom input, returns true if view should switch to terrain view
+  - Handles Minus key for zoom out, Equal key for zoom in
 
 **Coordinate System**:
 
@@ -428,6 +439,8 @@ generation/
 - WASD/Arrow keys: Move selection (discrete steps, view-dependent)
 - Z: Toggle between Terrain View and Land View
 - X: Toggle show adjacent lands (Land View only)
+- `-` (Minus): Zoom out (both views, independent zoom levels)
+- `=` (Equals): Zoom in (both views, independent zoom levels)
 - ESC: Exit
 
 ### `lib.rs` - Library Root
@@ -892,9 +905,11 @@ When modifying this codebase:
 - Initial generation: -10 to 10 (441 lands)
 - `BIOME_SCALE`: 0.1 (larger biome regions)
 - `SUBSTRATE_SCALE`: 0.4 (more variation per land)
-- Terrain view tile size: 48px
-- Land view tile size: 64px
+- Terrain view tile size: 48px (base, multiplied by zoom)
+- Land view tile size: 64px (base, multiplied by zoom)
 - Camera follow speed: 8.0
+- Zoom range: 0.5x to 3.0x (both views)
+- Zoom step: 1.15x per increment/decrement
 
 **Common Seeds**:
 - Test seed: `12347`
