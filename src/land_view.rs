@@ -1,6 +1,12 @@
 use crate::render::Renderer;
 use crate::types::World;
 
+/// Spacing between adjacent lands in pixels
+const LAND_SPACING: f32 = 30.0;
+
+/// Scale factor for tiles when showing adjacent lands (makes tiles smaller to fit more)
+const ADJACENT_SCALE: f32 = 0.65;
+
 /// Camera for land view - manages tile-level selection within a land
 pub struct LandCamera {
     /// Current camera position (for smooth following)
@@ -42,9 +48,27 @@ impl LandCamera {
         }
     }
 
-    /// Get tile size for land view
+    /// Get tile size for land view (base size)
     pub fn get_tile_size(&self) -> f32 {
         self.tile_size
+    }
+
+    /// Get effective tile size (scaled when showing adjacent lands)
+    pub fn get_effective_tile_size(&self) -> f32 {
+        if self.show_adjacent {
+            self.tile_size * ADJACENT_SCALE
+        } else {
+            self.tile_size
+        }
+    }
+
+    /// Get spacing between lands (only used when showing adjacent)
+    pub fn get_land_spacing(&self) -> f32 {
+        if self.show_adjacent {
+            LAND_SPACING
+        } else {
+            0.0
+        }
     }
 
     /// Convert world coordinates to screen coordinates (for land center)
@@ -140,7 +164,9 @@ pub fn render<R: Renderer>(
     camera: &LandCamera,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (screen_width, screen_height) = renderer.window_size();
-    let tile_size = camera.get_tile_size();
+    // Use effective tile size (scaled when showing adjacent lands)
+    let tile_size = camera.get_effective_tile_size();
+    let land_spacing = camera.get_land_spacing();
     
     // Get the selected land
     if let Some(land) = world.terrain.get(&(camera.selected_land_x, camera.selected_land_y)) {
@@ -202,20 +228,19 @@ pub fn render<R: Renderer>(
 
                 if let Some(adj_land) = world.terrain.get(&(adj_land_x, adj_land_y)) {
                     // Calculate screen position offset for this adjacent land
-                    // Each land is 8 tiles wide, so offset by tile_size * 8
-                    let offset_x = *dx as f32 * grid_width;
-                    let offset_y = *dy as f32 * grid_height;
+                    // Add spacing between lands: offset = (grid_width + spacing) * direction
+                    let offset_x = *dx as f32 * (grid_width + land_spacing);
+                    let offset_y = *dy as f32 * (grid_height + land_spacing);
                     
                     let adj_grid_start_x = grid_start_x + offset_x;
                     let adj_grid_start_y = grid_start_y + offset_y;
 
-                    // Render tiles for adjacent land (slightly dimmed)
+                    // Render tiles for adjacent land
                     for (tile_y, row) in adj_land.tiles.iter().enumerate() {
                         for (tile_x, tile) in row.iter().enumerate() {
                             let screen_x = adj_grid_start_x + tile_x as f32 * tile_size;
                             let screen_y = adj_grid_start_y + tile_y as f32 * tile_size;
                             
-                            // Draw tile with slight dimming effect
                             renderer.draw_tile(screen_x, screen_y, tile_size, &tile.substrate, &tile.objects);
                         }
                     }
