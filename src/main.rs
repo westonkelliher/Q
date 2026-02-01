@@ -3,7 +3,8 @@ mod generation;
 mod io;
 mod display;
 mod render;
-mod graphics;
+mod terrain_view;
+mod land_view;
 mod graphics_loop;
 
 use std::collections::HashMap;

@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Commit**: `3d3e3b9fcf891bd71e6d0d169672f5a960a2233b`  
+> **Commit**: `44efeee513ce85781000a70a94c41aa46aa5213a`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -52,8 +52,9 @@ src/
 ├── generation.rs    # World generation algorithms
 ├── io.rs            # File I/O and serialization
 ├── display.rs       # Text-based rendering
-├── graphics.rs      # Graphics rendering (camera, view modes)
-├── graphics_loop.rs # Main graphics loop
+├── terrain_view.rs  # Terrain view system (biome overview)
+├── land_view.rs     # Land view system (detailed 8x8 tile grid)
+├── graphics_loop.rs # Main graphics loop (coordinates views)
 ├── render/          # Renderer abstraction layer
 │   ├── mod.rs       # Renderer trait and types
 │   └── macroquad.rs # Macroquad renderer implementation
@@ -66,13 +67,14 @@ tests/
 
 ```
 main.rs → types, generation, io, display, graphics_loop
-lib.rs → types, generation, io, display, graphics, render, tests
+lib.rs → types, generation, io, display, terrain_view, land_view, render, tests
 types.rs → (no dependencies on other modules)
 generation.rs → types
 io.rs → types
 display.rs → types
-graphics.rs → render, types
-graphics_loop.rs → graphics, render::macroquad, types
+terrain_view.rs → render, types
+land_view.rs → render, types
+graphics_loop.rs → terrain_view, land_view, render::macroquad, types
 render/mod.rs → types
 render/macroquad.rs → render, types, macroquad
 tests.rs → types, generation, display
@@ -210,48 +212,104 @@ tests.rs → types, generation, display
 - **Biomes**: Forest (dark green), Meadow (light green/yellow), Lake (blue), Mountain (gray/white)
 - **Objects**: Rock (dark gray), Tree (green), Stick (brown)
 
-### `graphics.rs` - Graphics System
+### `terrain_view.rs` - Terrain View System
 
-**Purpose**: High-level graphics functions and camera management.
+**Purpose**: Self-contained terrain view system for biome overview rendering.
 
 **Key Types**:
 
-- `ViewMode`: Enum for view modes (`Terrain`, `Land`)
-- `Camera`: Camera/viewport state with selection tracking and smooth following
+- `TerrainCamera`: Camera/viewport state for terrain view with land-level selection
 
-**Camera System**:
+**TerrainCamera**:
 
-- **Discrete Selection**: Selection moves in discrete steps (one tile/land per keypress)
-- **Smooth Following**: Camera smoothly interpolates to follow the selection
-- **View Modes**:
-  - `Terrain`: Biome overview (one tile per land, 48px tiles)
-  - `Land`: Detailed 8x8 tile grid (64px tiles with grid overlay)
+- **Position**: `x: f32, y: f32` - current camera position (smooth following)
+- **Target**: `target_x: f32, target_y: f32` - target position (land center)
+- **Selection**: `selected_land_x: i32, selected_land_y: i32` - currently selected land
+- **Tile Size**: Fixed at 48.0 pixels for terrain view
+
+**Key Methods**:
+
+- `new()`: Initialize camera at origin
+- `world_to_screen()`: Convert world coordinates to screen coordinates
+- `update()`: Smoothly interpolate camera toward target (follow speed: 8.0)
+- `move_selection()`: Move selection in discrete steps (one land per keypress)
+- `update_target()`: Update target position based on current selection
+- `set_selected_land()`: Set selected land (used when switching from land view)
+- `sync_position_from()`: Sync camera position from another camera (for view switching)
 
 **Key Functions**:
 
-- `render_terrain_view()`: Renders biome overview with selection indicator
-- `render_land_view()`: Renders detailed 8x8 grid with tiles, grid overlay, and selection indicator
-- `handle_input()`: Processes input for view switching
-- `update_camera()`: Smoothly updates camera position (called each frame)
+- `render()`: Renders biome overview with selection indicator
+- `handle_input()`: Processes movement input, returns true if view should switch to land view
 
 **Coordinate System**:
 
-- **Terrain View**: Uses world coordinates directly (land positions)
-- **Land View**: Uses screen-space positioning for tiles (centered grid, direct pixel positioning) to avoid coordinate conversion issues
+- Uses world coordinates directly (land positions)
+- Camera tracks land centers at `(land_x, land_y)`
+
+### `land_view.rs` - Land View System
+
+**Purpose**: Self-contained land view system for detailed 8x8 tile grid rendering.
+
+**Key Types**:
+
+- `LandCamera`: Camera/viewport state for land view with tile-level selection
+
+**LandCamera**:
+
+- **Position**: `x: f32, y: f32` - current camera position (smooth following)
+- **Target**: `target_x: f32, target_y: f32` - target position (selected tile position)
+- **Land Selection**: `selected_land_x: i32, selected_land_y: i32` - currently viewed land
+- **Tile Selection**: `selected_tile_x: usize, selected_tile_y: usize` - selected tile within land (0-7)
+- **Tile Size**: Fixed at 64.0 pixels for land view
+
+**Key Methods**:
+
+- `new()`: Initialize camera at origin with tile selection at center (4, 4)
+- `world_to_screen()`: Convert world coordinates to screen coordinates (for land center)
+- `update()`: Smoothly interpolate camera toward target (follow speed: 8.0)
+- `move_selection()`: Move tile selection within land (clamped to 0-7 range)
+- `update_target()`: Update target position based on selected tile world position
+- `set_land()`: Set which land is being viewed (used when switching from terrain view)
+- `sync_position_from()`: Sync camera position from another camera (prevents snapping when switching views)
+- `get_selected_tile_world_pos()`: Get world position of selected tile
+
+**Key Functions**:
+
+- `render()`: Renders detailed 8x8 grid with tiles, grid overlay, and selection indicator
+- `handle_input()`: Processes movement input, returns true if view should switch to terrain view
+
+**Coordinate System**:
+
+- Uses screen-space positioning for tiles (centered grid, direct pixel positioning)
+- Land center is at `(land_x + 0.5, land_y + 0.5)` in world coordinates
+- Tiles are positioned directly in screen space relative to land center
 
 ### `graphics_loop.rs` - Graphics Loop
 
-**Purpose**: Main graphics loop that handles input, updates camera, and renders frames.
+**Purpose**: Main graphics loop that coordinates between terrain and land view systems.
+
+**Key Types**:
+
+- `ViewMode`: Enum for tracking active view (`Terrain`, `Land`)
+
+**Architecture**:
+
+- **Separate Cameras**: Maintains independent `TerrainCamera` and `LandCamera` instances
+- **View Coordination**: Routes input to appropriate view's `handle_input()` function
+- **View Switching**: When switching views, syncs camera positions to prevent snapping:
+  - Terrain → Land: Syncs land camera to land center `(land_x + 0.5, land_y + 0.5)`
+  - Land → Terrain: Syncs terrain camera to land center `(land_x, land_y)`
 
 **Features**:
 
 - Discrete movement handling (key_pressed, not key_down)
-- Camera smooth following
+- Camera smooth following (both cameras update each frame)
 - View mode switching (Z for Land view, X for Terrain view)
 - UI text display
 
 **Controls**:
-- WASD/Arrow keys: Move selection (discrete steps)
+- WASD/Arrow keys: Move selection (discrete steps, view-dependent)
 - Z: Switch to Land View
 - X: Switch to Terrain View
 - ESC: Exit
@@ -365,9 +423,9 @@ World
 - `save_world(world: &World) -> Result<(), Box<dyn std::error::Error>>`
 - `print_land(land: &Land)`
 - `print_world(world: &World, x1: i32, y1: i32, x2: i32, y2: i32)`
-- `render_terrain_view(renderer, world, camera)`
-- `render_land_view(renderer, world, camera)`
-- `Camera`, `ViewMode` types
+- `render_terrain_view(renderer, world, camera)` - from `terrain_view::render`
+- `render_land_view(renderer, world, camera)` - from `land_view::render`
+- `TerrainCamera`, `LandCamera` types
 
 ### Usage Pattern
 
@@ -452,6 +510,14 @@ Tests the library as an external user would use it.
 - Allows library to be used by other projects
 - Binary provides simple demo/CLI
 - Tests can import library easily
+
+### Why Separate Terrain and Land View Systems?
+
+- **Independence**: Each view system is self-contained with its own camera and state management
+- **Clarity**: Separates concerns - terrain view handles land-level selection, land view handles tile-level selection
+- **Maintainability**: Easier to modify one view without affecting the other
+- **Coordinate Systems**: Each view uses its own coordinate system optimized for its rendering needs
+- **Smooth Transitions**: View switching syncs camera positions to prevent visual snapping
 
 ---
 
@@ -608,7 +674,9 @@ When modifying this codebase:
 - Generation: `src/generation.rs`
 - I/O: `src/io.rs`
 - Display: `src/display.rs`
-- Graphics: `src/graphics.rs`, `src/graphics_loop.rs`
+- Terrain View: `src/terrain_view.rs`
+- Land View: `src/land_view.rs`
+- Graphics Loop: `src/graphics_loop.rs`
 - Renderer: `src/render/mod.rs`, `src/render/macroquad.rs`
 - Tests: `src/tests.rs`, `tests/integration_tests.rs`
 
