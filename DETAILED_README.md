@@ -160,9 +160,13 @@ generation/
 
 1. **`determine_biome(x, y, seed)`**
    - Uses separate Perlin noise functions for each biome type (Lake, Meadow, Plains, Forest, Mountain)
+   - Also samples a height Perlin function that influences biome selection
    - Each biome's Perlin uses a unique seed discriminator to ensure independent noise patterns
-   - Samples all 5 biome Perlin functions at the given coordinates
-   - Returns the biome with the highest noise value (competition-based selection)
+   - Samples all 5 biome Perlin functions and height at the given coordinates
+   - Calculates final values: base noise + biome bias + height adjustment
+     - Higher heights boost mountain likelihood
+     - Lower heights boost lake likelihood
+   - Returns the biome with the highest final value (competition-based selection)
    - Handles ties deterministically by preferring biomes in enum order
 
 2. **`calculate_land_biomes(land_x, land_y, seed)`**
@@ -504,29 +508,47 @@ generation/
 
 ### Biome Determination
 
-Each biome type has its own independent Perlin noise function. At each location, all 5 biome Perlin functions are sampled, and the biome with the highest noise value is selected. This creates natural competition between biomes rather than threshold-based assignment.
+Each biome type has its own independent Perlin noise function, plus a shared height Perlin function. At each location, all 5 biome Perlin functions and the height Perlin are sampled. The final biome value combines the base noise, biome-specific bias, and height adjustments (higher heights boost mountains, lower heights boost lakes). The biome with the highest final value is selected.
 
 ```rust
-// Create Perlin instances for each biome with unique seed offsets
+// Create Perlin instances for each biome and height with unique seed offsets
 lake_perlin = Perlin::new(seed + LAKE_DISCRIMINATOR)
 meadow_perlin = Perlin::new(seed + MEADOW_DISCRIMINATOR)
 plains_perlin = Perlin::new(seed + PLAINS_DISCRIMINATOR)
 forest_perlin = Perlin::new(seed + FOREST_DISCRIMINATOR)
 mountain_perlin = Perlin::new(seed + MOUNTAIN_DISCRIMINATOR)
+height_perlin = Perlin::new(seed + HEIGHT_DISCRIMINATOR)
 
-// Sample all biomes at location (x, y)
+// Sample all biomes and height at location (x, y)
 offset = seed_offset(seed, 0)
 lake_value = lake_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
 meadow_value = meadow_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
 plains_value = plains_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
 forest_value = forest_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
 mountain_value = mountain_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
+height = height_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
 
-// Select biome with highest value
-biome = argmax([lake_value, meadow_value, plains_value, forest_value, mountain_value])
+// Calculate final values: base noise + bias + height adjustment
+lake_final = lake_value + LAKE_BIAS + (-height * HEIGHT_INFLUENCE)      // Low height boosts lakes
+meadow_final = meadow_value + MEADOW_BIAS
+plains_final = plains_value + PLAINS_BIAS
+forest_final = forest_value + FOREST_BIAS
+mountain_final = mountain_value + MOUNTAIN_BIAS + (height * HEIGHT_INFLUENCE)  // High height boosts mountains
+
+// Select biome with highest final value
+biome = argmax([lake_final, meadow_final, plains_final, forest_final, mountain_final])
 ```
 
-**Note**: Each biome's Perlin uses a unique discriminator multiplier (1x, 2x, 3x, 4x, 5x of a base prime) to ensure independent noise patterns while maintaining determinism. The seed-based offset ensures that coordinate (0, 0) produces different biomes for different seeds.
+**Biome Biases**:
+- Lake: `0.05` (reduced since low height already boosts lakes)
+- Meadow: `0.0` (neutral)
+- Plains: `0.0` (neutral)
+- Forest: `0.1` (slight preference)
+- Mountain: `0.05` (reduced since high height already boosts mountains)
+
+**Height Influence**: `0.3` - Controls how much height affects biome selection. Higher values mean height has more impact.
+
+**Note**: Each biome's Perlin uses a unique discriminator multiplier (1x-5x of a base prime) and height uses 6x, ensuring independent noise patterns while maintaining determinism. The seed-based offset ensures that coordinate (0, 0) produces different biomes for different seeds.
 
 ### Tile Substrate Generation
 
