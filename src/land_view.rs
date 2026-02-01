@@ -274,7 +274,11 @@ pub fn handle_input(camera: &mut LandCamera, keys: &[crate::render::Key]) -> boo
                 camera.move_selection(1, 0);
             }
             crate::render::Key::X => {
-                // Switch to terrain view
+                // Toggle show adjacent lands
+                camera.show_adjacent = !camera.show_adjacent;
+            }
+            crate::render::Key::Z => {
+                // Switch to terrain view (Z toggles views)
                 return true;
             }
             _ => {}

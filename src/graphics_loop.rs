@@ -115,21 +115,6 @@ pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::
             }
             ViewMode::Land => {
                 land_view::render(&mut renderer, world, &land_camera)?;
-                
-                // Draw toggle button for showing adjacent lands
-                let button_x = 10.0;
-                let button_y = 10.0;
-                let button_width = 200.0;
-                let button_height = 40.0;
-                let button_text = if land_camera.show_adjacent {
-                    "Hide Adjacent Lands"
-                } else {
-                    "Show Adjacent Lands"
-                };
-                
-                if renderer.draw_button(button_x, button_y, button_width, button_height, button_text, land_camera.show_adjacent) {
-                    land_camera.show_adjacent = !land_camera.show_adjacent;
-                }
             }
         }
 
@@ -138,8 +123,12 @@ pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::
             ViewMode::Terrain => "Terrain View",
             ViewMode::Land => "Land View",
         };
+        let controls_text = match view_mode {
+            ViewMode::Terrain => "WASD/Arrows: Move | Z: Toggle View | ESC: Exit",
+            ViewMode::Land => "WASD/Arrows: Move | Z: Toggle View | X: Toggle Adjacent Lands | ESC: Exit",
+        };
         draw_text(
-            &format!("WASD/Arrows: Move | Z: Land View | X: Terrain View | ESC: Exit | Mode: {}", view_mode_text),
+            &format!("{} | Mode: {}", controls_text, view_mode_text),
             10.0,
             screen_height() - 20.0,
             20.0,

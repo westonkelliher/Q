@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Previous Commit**: `2230aa185a912cc099487d7e1c73e3f29aa4e7d1`  
+> **Previous Commit**: `19b4aea191477068d84eda4f47d236c04b173386`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -420,13 +420,13 @@ generation/
 
 - Discrete movement handling (key_pressed, not key_down)
 - Camera smooth following (both cameras update each frame)
-- View mode switching (Z for Land view, X for Terrain view)
+- View mode switching (Z toggles between views)
 - UI text display
 
 **Controls**:
 - WASD/Arrow keys: Move selection (discrete steps, view-dependent)
-- Z: Switch to Land View
-- X: Switch to Terrain View
+- Z: Toggle between Terrain View and Land View
+- X: Toggle show adjacent lands (Land View only)
 - ESC: Exit
 
 ### `lib.rs` - Library Root
