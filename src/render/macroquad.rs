@@ -1,0 +1,182 @@
+use macroquad::prelude::*;
+use crate::render::{Color, Key, RenderError, Renderer};
+use crate::types::{Biome, Object, Substrate};
+
+/// Macroquad-based implementation of the Renderer trait
+pub struct MacroquadRenderer {
+    initialized: bool,
+}
+
+impl MacroquadRenderer {
+    pub fn new() -> Self {
+        Self {
+            initialized: false,
+        }
+    }
+
+    /// Convert our Color type to macroquad's Color
+    fn to_mq_color(color: Color) -> macroquad::prelude::Color {
+        macroquad::prelude::Color::new(color.r, color.g, color.b, color.a)
+    }
+
+    /// Convert substrate to color
+    fn substrate_color(substrate: &Substrate) -> Color {
+        match substrate {
+            Substrate::Grass => Color::rgb(0.2, 0.8, 0.2),      // Green
+            Substrate::Dirt => Color::rgb(0.6, 0.4, 0.2),       // Brown
+            Substrate::Stone => Color::rgb(0.7, 0.7, 0.7),      // Gray
+            Substrate::Mud => Color::rgb(0.4, 0.3, 0.2),        // Dark brown
+            Substrate::Water => Color::rgb(0.2, 0.4, 0.9),      // Blue
+            Substrate::Brush => Color::rgb(0.6, 0.8, 0.3),      // Yellow-green
+        }
+    }
+
+    /// Convert biome to color
+    fn biome_color(biome: &Biome) -> Color {
+        match biome {
+            Biome::Forest => Color::rgb(0.1, 0.5, 0.1),         // Dark green
+            Biome::Meadow => Color::rgb(0.7, 0.9, 0.4),         // Light green/yellow
+            Biome::Lake => Color::rgb(0.2, 0.5, 0.9),           // Blue
+            Biome::Mountain => Color::rgb(0.8, 0.8, 0.85),      // Gray/white
+        }
+    }
+
+    /// Convert object to color
+    fn object_color(object: &Object) -> Color {
+        match object {
+            Object::Rock => Color::rgb(0.3, 0.3, 0.3),          // Dark gray
+            Object::Tree => Color::rgb(0.1, 0.6, 0.1),          // Green
+            Object::Stick => Color::rgb(0.5, 0.3, 0.1),         // Brown
+        }
+    }
+
+    /// Convert macroquad key to our Key enum
+    fn mq_key_to_key(mq_key: macroquad::prelude::KeyCode) -> Option<Key> {
+        match mq_key {
+            macroquad::prelude::KeyCode::Up => Some(Key::Up),
+            macroquad::prelude::KeyCode::Down => Some(Key::Down),
+            macroquad::prelude::KeyCode::Left => Some(Key::Left),
+            macroquad::prelude::KeyCode::Right => Some(Key::Right),
+            macroquad::prelude::KeyCode::Space => Some(Key::Space),
+            macroquad::prelude::KeyCode::Enter => Some(Key::Enter),
+            macroquad::prelude::KeyCode::Escape => Some(Key::Escape),
+            macroquad::prelude::KeyCode::Q => Some(Key::Q),
+            macroquad::prelude::KeyCode::W => Some(Key::W),
+            macroquad::prelude::KeyCode::A => Some(Key::A),
+            macroquad::prelude::KeyCode::S => Some(Key::S),
+            macroquad::prelude::KeyCode::D => Some(Key::D),
+            macroquad::prelude::KeyCode::Z => Some(Key::Z),
+            macroquad::prelude::KeyCode::X => Some(Key::X),
+            _ => None,
+        }
+    }
+}
+
+impl Default for MacroquadRenderer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Renderer for MacroquadRenderer {
+    fn init(&mut self) -> Result<(), RenderError> {
+        // Macroquad handles initialization automatically
+        // Window is created when macroquad::window::request_new_screen_size is called
+        // or when the first frame is rendered
+        self.initialized = true;
+        Ok(())
+    }
+
+    fn clear(&mut self, color: Color) {
+        clear_background(Self::to_mq_color(color));
+    }
+
+    fn draw_tile(&mut self, x: f32, y: f32, size: f32, substrate: &Substrate, objects: &[Object]) {
+        // Draw substrate as base rectangle
+        let substrate_color = Self::substrate_color(substrate);
+        draw_rectangle(x, y, size, size, Self::to_mq_color(substrate_color));
+
+        // Draw objects on top (smaller rectangles or circles)
+        if !objects.is_empty() {
+            // Draw first object (or indicator for multiple)
+            if objects.len() == 1 {
+                let obj_color = Self::object_color(&objects[0]);
+                // Draw object as a smaller rectangle in the center
+                let obj_size = size * 0.6;
+                let obj_x = x + (size - obj_size) / 2.0;
+                let obj_y = y + (size - obj_size) / 2.0;
+                draw_rectangle(obj_x, obj_y, obj_size, obj_size, Self::to_mq_color(obj_color));
+            } else {
+                // Multiple objects - draw indicator
+                let indicator_color = Color::rgb(0.9, 0.1, 0.1); // Red for multiple
+                let obj_size = size * 0.4;
+                let obj_x = x + (size - obj_size) / 2.0;
+                let obj_y = y + (size - obj_size) / 2.0;
+                draw_rectangle(obj_x, obj_y, obj_size, obj_size, Self::to_mq_color(indicator_color));
+            }
+        }
+
+        // Draw border
+        draw_rectangle_lines(x, y, size, size, 1.0, Self::to_mq_color(Color::rgb(0.1, 0.1, 0.1)));
+    }
+
+    fn draw_biome_overview(&mut self, x: f32, y: f32, size: f32, biome: &Biome) {
+        let biome_color = Self::biome_color(biome);
+        draw_rectangle(x, y, size, size, Self::to_mq_color(biome_color));
+        
+        // Draw subtle border
+        draw_rectangle_lines(x, y, size, size, 0.5, Self::to_mq_color(Color::rgb(0.2, 0.2, 0.2)));
+    }
+
+    fn present(&mut self) -> Result<(), RenderError> {
+        // Macroquad handles presentation automatically after each frame
+        // next_frame() is called in the main loop, not here
+        Ok(())
+    }
+
+    fn should_close(&self) -> bool {
+        // Check if escape is pressed
+        // Note: In macroquad, the window close is handled automatically
+        is_key_pressed(macroquad::prelude::KeyCode::Escape)
+    }
+
+    fn get_mouse_pos(&self) -> Option<(f32, f32)> {
+        Some((mouse_position().0, mouse_position().1))
+    }
+
+    fn get_keys_pressed(&self) -> Vec<Key> {
+        let mut keys = Vec::new();
+        
+        // Check all relevant keys (using is_key_down for continuous input)
+        let key_codes = [
+            macroquad::prelude::KeyCode::Up,
+            macroquad::prelude::KeyCode::Down,
+            macroquad::prelude::KeyCode::Left,
+            macroquad::prelude::KeyCode::Right,
+            macroquad::prelude::KeyCode::Space,
+            macroquad::prelude::KeyCode::Enter,
+            macroquad::prelude::KeyCode::Escape,
+            macroquad::prelude::KeyCode::Q,
+            macroquad::prelude::KeyCode::W,
+            macroquad::prelude::KeyCode::A,
+            macroquad::prelude::KeyCode::S,
+            macroquad::prelude::KeyCode::D,
+            macroquad::prelude::KeyCode::Z,
+            macroquad::prelude::KeyCode::X,
+        ];
+
+        for key_code in key_codes {
+            if is_key_down(key_code) {
+                if let Some(key) = Self::mq_key_to_key(key_code) {
+                    keys.push(key);
+                }
+            }
+        }
+
+        keys
+    }
+
+    fn window_size(&self) -> (f32, f32) {
+        (screen_width(), screen_height())
+    }
+}

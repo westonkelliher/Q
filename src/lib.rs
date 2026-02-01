@@ -2,6 +2,8 @@ pub mod types;
 pub mod generation;
 pub mod io;
 pub mod display;
+pub mod render;
+pub mod graphics;
 
 #[cfg(test)]
 mod tests;
@@ -11,3 +13,4 @@ pub use types::{Biome, Land, Object, Substrate, Tile, World};
 pub use generation::{determine_biome, generate_land_terrain, generate_world, initialize_world};
 pub use io::{load_world, save_world};
 pub use display::{print_land, print_world};
+pub use graphics::{Camera, render_land, render_tile, render_world, update_camera};
