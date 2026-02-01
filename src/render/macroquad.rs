@@ -121,30 +121,194 @@ impl Renderer for MacroquadRenderer {
             
             match object {
                 Object::Rock => {
-                    // Draw rock as a filled circle
-                    let obj_color = Self::object_color(object);
-                    draw_circle(center_x, center_y, obj_size / 2.0, Self::to_mq_color(obj_color));
+                    // Draw rock in Super Auto Pets style (from rock.svg)
+                    let scale = obj_size / 100.0;
+                    let offset_x = center_x - obj_size / 2.0;
+                    let offset_y = center_y - obj_size / 2.0;
+                    
+                    // Helper to convert SVG coords to screen coords
+                    let sx = |x: f32| offset_x + x * scale;
+                    let sy = |y: f32| offset_y + y * scale;
+                    
+                    // Rock colors
+                    let rock_base = Color::rgb(0.38, 0.38, 0.38);      // #606060
+                    let rock_highlight = Color::rgb(0.50, 0.50, 0.50); // #808080
+                    let rock_shadow = Color::rgb(0.25, 0.25, 0.25);    // #404040
+                    let black = Color::rgb(0.0, 0.0, 0.0);
+                    
+                    // Draw main rock body (irregular shape with overlapping ellipses)
+                    draw_ellipse(sx(50.0), sy(55.0), 35.0 * scale, 30.0 * scale, 0.0, Self::to_mq_color(rock_base));
+                    draw_ellipse_lines(sx(50.0), sy(55.0), 35.0 * scale, 30.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    
+                    draw_ellipse(sx(35.0), sy(50.0), 18.0 * scale, 20.0 * scale, 0.0, Self::to_mq_color(rock_base));
+                    draw_ellipse_lines(sx(35.0), sy(50.0), 18.0 * scale, 20.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    
+                    draw_ellipse(sx(65.0), sy(52.0), 15.0 * scale, 18.0 * scale, 0.0, Self::to_mq_color(rock_base));
+                    draw_ellipse_lines(sx(65.0), sy(52.0), 15.0 * scale, 18.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    
+                    draw_ellipse(sx(50.0), sy(35.0), 20.0 * scale, 18.0 * scale, 0.0, Self::to_mq_color(rock_base));
+                    draw_ellipse_lines(sx(50.0), sy(35.0), 20.0 * scale, 18.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    
+                    // Highlights (top left areas)
+                    draw_ellipse(sx(40.0), sy(40.0), 15.0 * scale, 12.0 * scale, 0.0, Self::to_mq_color(rock_highlight));
+                    draw_ellipse(sx(32.0), sy(48.0), 8.0 * scale, 10.0 * scale, 0.0, Self::to_mq_color(rock_highlight));
+                    
+                    // Shadows (bottom right areas)
+                    draw_ellipse(sx(58.0), sy(60.0), 18.0 * scale, 15.0 * scale, 0.0, Self::to_mq_color(rock_shadow));
+                    draw_ellipse(sx(65.0), sy(55.0), 10.0 * scale, 12.0 * scale, 0.0, Self::to_mq_color(rock_shadow));
                 }
                 Object::Tree => {
-                    // Draw tree as a triangle (simple tree shape)
-                    let obj_color = Self::object_color(object);
-                    let half_size = obj_size / 2.0;
-                    // Triangle points: top, bottom-left, bottom-right
-                    draw_triangle(
-                        Vec2::new(center_x, center_y - half_size), // Top
-                        Vec2::new(center_x - half_size, center_y + half_size), // Bottom-left
-                        Vec2::new(center_x + half_size, center_y + half_size), // Bottom-right
-                        Self::to_mq_color(obj_color),
+                    // Draw tree in Super Auto Pets style (from tree.svg)
+                    // Scale SVG coordinates (0-100) to fit in tile
+                    let scale = obj_size / 100.0;
+                    let offset_x = center_x - obj_size / 2.0;
+                    let offset_y = center_y - obj_size / 2.0;
+                    
+                    // Helper to convert SVG coords to screen coords
+                    let sx = |x: f32| offset_x + x * scale;
+                    let sy = |y: f32| offset_y + y * scale;
+                    
+                    // Trunk colors
+                    let trunk_base = Color::rgb(0.36, 0.25, 0.20);   // #5C4033
+                    let trunk_highlight = Color::rgb(0.42, 0.30, 0.23); // #6B4D3B
+                    let trunk_shadow = Color::rgb(0.29, 0.20, 0.16);    // #4A3329
+                    
+                    // Foliage colors
+                    let foliage_base = Color::rgb(0.18, 0.31, 0.09);    // #2D5016
+                    let foliage_highlight = Color::rgb(0.23, 0.42, 0.12); // #3A6B1E
+                    let foliage_shadow = Color::rgb(0.12, 0.23, 0.06);   // #1F3A0F
+                    
+                    // Draw trunk base
+                    draw_rectangle(
+                        sx(42.0), sy(55.0), 16.0 * scale, 30.0 * scale,
+                        Self::to_mq_color(trunk_base)
                     );
+                    draw_rectangle_lines(
+                        sx(42.0), sy(55.0), 16.0 * scale, 30.0 * scale,
+                        2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0))
+                    );
+                    
+                    // Trunk highlight (left side)
+                    draw_rectangle(
+                        sx(42.0), sy(55.0), 6.0 * scale, 30.0 * scale,
+                        Self::to_mq_color(trunk_highlight)
+                    );
+                    
+                    // Trunk shadow (right side)
+                    draw_rectangle(
+                        sx(52.0), sy(55.0), 6.0 * scale, 30.0 * scale,
+                        Self::to_mq_color(trunk_shadow)
+                    );
+                    
+                    // Main foliage circle
+                    draw_circle(sx(50.0), sy(45.0), 28.0 * scale, Self::to_mq_color(foliage_base));
+                    draw_circle_lines(sx(50.0), sy(45.0), 28.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    
+                    // Foliage highlight (top left)
+                    draw_circle(sx(42.0), sy(38.0), 15.0 * scale, Self::to_mq_color(foliage_highlight));
+                    
+                    // Foliage shadow (bottom right)
+                    draw_circle(sx(58.0), sy(52.0), 12.0 * scale, Self::to_mq_color(foliage_shadow));
+                    
+                    // Small foliage details
+                    draw_circle(sx(35.0), sy(50.0), 12.0 * scale, Self::to_mq_color(foliage_base));
+                    draw_circle_lines(sx(35.0), sy(50.0), 12.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    
+                    draw_circle(sx(65.0), sy(48.0), 10.0 * scale, Self::to_mq_color(foliage_base));
+                    draw_circle_lines(sx(65.0), sy(48.0), 10.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    
+                    draw_circle(sx(50.0), sy(25.0), 14.0 * scale, Self::to_mq_color(foliage_base));
+                    draw_circle_lines(sx(50.0), sy(25.0), 14.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    
+                    // Highlight on top foliage
+                    draw_circle(sx(48.0), sy(23.0), 6.0 * scale, Self::to_mq_color(foliage_highlight));
                 }
                 Object::Stick => {
-                    // Draw stick as a thin rectangle
-                    let obj_color = Self::object_color(object);
-                    let stick_width = obj_size * 0.2;
-                    let stick_height = obj_size * 0.8;
-                    let stick_x = center_x - stick_width / 2.0;
-                    let stick_y = center_y - stick_height / 2.0;
-                    draw_rectangle(stick_x, stick_y, stick_width, stick_height, Self::to_mq_color(obj_color));
+                    // Draw stick in Super Auto Pets style (from stick.svg)
+                    let scale = obj_size / 100.0;
+                    let offset_x = center_x - obj_size / 2.0;
+                    let offset_y = center_y - obj_size / 2.0;
+                    
+                    // Helper to convert SVG coords to screen coords
+                    let sx = |x: f32| offset_x + x * scale;
+                    let sy = |y: f32| offset_y + y * scale;
+                    
+                    // Stick colors
+                    let stick_base = Color::rgb(0.55, 0.44, 0.28);      // #8B6F47
+                    let stick_highlight = Color::rgb(0.65, 0.54, 0.37); // #A68A5E
+                    let stick_shadow = Color::rgb(0.42, 0.33, 0.22);    // #6B5537
+                    let black = Color::rgb(0.0, 0.0, 0.0);
+                    
+                    // Draw stick as angled line with thickness (25 degree rotation)
+                    let angle = 25.0_f32.to_radians();
+                    let stick_length = 70.0 * scale;
+                    let stick_width = 10.0 * scale;
+                    
+                    // Calculate stick endpoints (center at 35, 50 in SVG coords)
+                    let stick_center_x = sx(45.0);
+                    let stick_center_y = sy(50.0);
+                    
+                    let half_len = stick_length / 2.0;
+                    let start_x = stick_center_x - angle.cos() * half_len;
+                    let start_y = stick_center_y - angle.sin() * half_len;
+                    let end_x = stick_center_x + angle.cos() * half_len;
+                    let end_y = stick_center_y + angle.sin() * half_len;
+                    
+                    // Draw as thick line segments for base, highlight, and shadow
+                    // Base stick
+                    draw_line(start_x, start_y, end_x, end_y, stick_width, Self::to_mq_color(stick_base));
+                    
+                    // Highlight (left side) - draw thinner line offset to the left
+                    let offset_perp = stick_width * 0.25;
+                    let perp_x = -angle.sin();
+                    let perp_y = angle.cos();
+                    draw_line(
+                        start_x + perp_x * offset_perp, 
+                        start_y + perp_y * offset_perp,
+                        end_x + perp_x * offset_perp, 
+                        end_y + perp_y * offset_perp,
+                        stick_width * 0.35,
+                        Self::to_mq_color(stick_highlight)
+                    );
+                    
+                    // Shadow (right side)
+                    draw_line(
+                        start_x - perp_x * offset_perp, 
+                        start_y - perp_y * offset_perp,
+                        end_x - perp_x * offset_perp, 
+                        end_y - perp_y * offset_perp,
+                        stick_width * 0.35,
+                        Self::to_mq_color(stick_shadow)
+                    );
+                    
+                    // Draw outline by drawing thin black lines along edges
+                    draw_line(start_x, start_y, end_x, end_y, stick_width + 2.0 * scale, Self::to_mq_color(black));
+                    draw_line(start_x, start_y, end_x, end_y, stick_width, Self::to_mq_color(stick_base));
+                    
+                    // Re-draw highlights and shadows on top
+                    draw_line(
+                        start_x + perp_x * offset_perp, 
+                        start_y + perp_y * offset_perp,
+                        end_x + perp_x * offset_perp, 
+                        end_y + perp_y * offset_perp,
+                        stick_width * 0.35,
+                        Self::to_mq_color(stick_highlight)
+                    );
+                    draw_line(
+                        start_x - perp_x * offset_perp, 
+                        start_y - perp_y * offset_perp,
+                        end_x - perp_x * offset_perp, 
+                        end_y - perp_y * offset_perp,
+                        stick_width * 0.35,
+                        Self::to_mq_color(stick_shadow)
+                    );
+                    
+                    // Small knot details
+                    draw_ellipse(sx(45.0), sy(35.0), 4.0 * scale, 3.0 * scale, 0.0, Self::to_mq_color(stick_shadow));
+                    draw_ellipse_lines(sx(45.0), sy(35.0), 4.0 * scale, 3.0 * scale, 0.0, 1.5 * scale, Self::to_mq_color(black));
+                    
+                    draw_ellipse(sx(52.0), sy(60.0), 3.5 * scale, 3.0 * scale, 0.0, Self::to_mq_color(stick_shadow));
+                    draw_ellipse_lines(sx(52.0), sy(60.0), 3.5 * scale, 3.0 * scale, 0.0, 1.5 * scale, Self::to_mq_color(black));
                 }
             }
         }

@@ -1,0 +1,14 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Stick main body (angled) -->
+  <rect x="30" y="15" width="10" height="70" rx="5" fill="#8B6F47" stroke="#000" stroke-width="2" transform="rotate(25 35 50)"/>
+  
+  <!-- Highlight strip (left side) -->
+  <rect x="30" y="15" width="3.5" height="70" rx="2" fill="#A68A5E" stroke="none" transform="rotate(25 35 50)"/>
+  
+  <!-- Shadow strip (right side) -->
+  <rect x="36.5" y="15" width="3.5" height="70" rx="2" fill="#6B5537" stroke="none" transform="rotate(25 35 50)"/>
+  
+  <!-- Small branch knot detail -->
+  <ellipse cx="45" cy="35" rx="4" ry="3" fill="#6B5537" stroke="#000" stroke-width="1.5"/>
+  <ellipse cx="52" cy="60" rx="3.5" ry="3" fill="#6B5537" stroke="#000" stroke-width="1.5"/>
+</svg>

@@ -2,8 +2,8 @@
 
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
-> **Last Updated**: 2026-01-31  
-> **Previous Commit**: `99f2610fcbd03f83d216532dac093c818294c3e4`  
+> **Last Updated**: 2026-02-01  
+> **Previous Commit**: `f6c98e3db806b206dbd9e31789d38345941c6ae0`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -18,6 +18,7 @@ This document provides comprehensive technical context for LLMs working on this 
 8. [Design Decisions](#design-decisions)
 9. [Extension Points](#extension-points)
 10. [Common Patterns](#common-patterns)
+11. [Graphics Generation](#graphics-generation)
 
 ---
 
@@ -749,6 +750,102 @@ match save_world(&world) {
 
 ---
 
+## Graphics Generation
+
+This project uses SVG-based graphics with a consistent art style inspired by Super Auto Pets. Graphics are generated using a Claude command that enforces style guidelines.
+
+### SVG Draw Command
+
+The `.claude/commands/svg_draw.md` command provides instructions for LLMs to generate consistent SVG graphics:
+
+**Usage**: `/svg_draw [object_name]`
+
+**Style Requirements**:
+- Fixed viewBox: `0 0 100 100` (square canvas)
+- 3-color shading system:
+  - **Base**: Main fill color
+  - **Highlight**: 10-20% lighter for top/light-facing areas
+  - **Shadow**: 10-20% darker for bottom/shadow areas
+- Black outlines: All shapes get `stroke="#000" stroke-width="2"`
+- Allowed shapes: circles, ellipses, rounded rectangles, simple polygons/paths
+- No gradients, filters, or animations
+- Layer order: back-to-front rendering
+
+**Composition Guidelines**:
+- Object fills 70-90% of viewBox
+- Centered composition
+- Cute/rounded proportions
+- Simple facial features (white circles with black pupils, or dots)
+
+### Object Graphics
+
+Current object graphics are stored in `assets/` and rendered in `src/render/macroquad.rs`:
+
+#### Tree (`assets/tree.svg`)
+- Dark green foliage (#2D5016 base, #3A6B1E highlight, #1F3A0F shadow)
+- Brown trunk (#5C4033 base, #6B4D3B highlight, #4A3329 shadow)
+- Multiple overlapping circles for natural canopy shape
+- Vertical trunk with wood grain effect
+
+#### Rock (`assets/rock.svg`)
+- Gray irregular shape (#606060 base, #808080 highlight, #404040 shadow)
+- Multiple overlapping ellipses for lumpy appearance
+- Highlights on top-left, shadows on bottom-right
+
+#### Stick (`assets/stick.svg`)
+- Brown wooden stick (#8B6F47 base, #A68A5E highlight, #6B5537 shadow)
+- Angled at 25 degrees for natural look
+- Highlight/shadow strips along length
+- Small knot details
+
+### Rendering Implementation
+
+Graphics are rendered in `src/render/macroquad.rs` using the `draw_tile` method:
+
+1. **Coordinate Scaling**: SVG coordinates (0-100) are scaled to fit tile size
+2. **Helper Functions**: `sx()` and `sy()` convert SVG coords to screen coords
+3. **Layered Drawing**: Base shapes → highlights → shadows → outlines
+4. **Color Constants**: RGB values match SVG hex colors
+
+**Example Pattern**:
+```rust
+let scale = obj_size / 100.0;
+let sx = |x: f32| offset_x + x * scale;
+let sy = |y: f32| offset_y + y * scale;
+
+// Draw base shape
+draw_circle(sx(50.0), sy(50.0), 20.0 * scale, base_color);
+// Draw highlight
+draw_circle(sx(45.0), sy(45.0), 10.0 * scale, highlight_color);
+// Draw outline
+draw_circle_lines(sx(50.0), sy(50.0), 20.0 * scale, 2.0 * scale, black);
+```
+
+### Adding New Objects
+
+To add a new object with graphics:
+
+1. **Generate SVG**: Use `/svg_draw [object_name]` command
+2. **Save Asset**: Store SVG in `assets/[object_name].svg`
+3. **Add Object Type**: Add variant to `Object` enum in `src/types.rs`
+4. **Implement Rendering**: Add match arm in `MacroquadRenderer::draw_tile()`:
+   - Set up scale and coordinate helpers
+   - Define colors (base, highlight, shadow)
+   - Draw shapes in back-to-front order
+   - Apply outlines consistently
+5. **Update Generation**: Add spawning rules in `src/generation/objects.rs`
+
+### Style Consistency
+
+The Super Auto Pets-inspired style ensures:
+- **Recognizability**: Bold black outlines make objects clear at any scale
+- **Consistency**: 3-color shading pattern across all objects
+- **Simplicity**: Limited shape vocabulary (circles, ellipses, rectangles)
+- **LLM-Friendly**: Constrained format reduces generation errors
+- **Cute Aesthetic**: Rounded forms and simple proportions
+
+---
+
 ## Performance Considerations
 
 - **Generation**: O(n) where n = number of lands generated
@@ -787,6 +884,8 @@ When modifying this codebase:
 - Graphics Loop: `src/graphics_loop.rs`
 - Renderer: `src/render/mod.rs`, `src/render/macroquad.rs`
 - Tests: `src/tests.rs`, `tests/integration_tests.rs`
+- Assets: `assets/` (tree.svg, rock.svg, stick.svg)
+- Commands: `.claude/commands/svg_draw.md`
 
 **Key Constants** (defined in `generation/noise.rs`):
 - Tile grid size: 8x8
