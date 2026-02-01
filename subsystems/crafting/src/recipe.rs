@@ -140,6 +140,9 @@ pub struct RecipeOutput {
 /// Formula for calculating output quality from input qualities
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum QualityFormula {
+    /// Output = fixed quality regardless of inputs
+    /// Use for process-driven quality (e.g., hand-crafted = Crude, station-crafted = Common)
+    Fixed(Quality),
     /// Output = minimum quality of all inputs
     MinOfInputs,
     /// Output = average quality of all inputs (rounded down)

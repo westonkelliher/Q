@@ -3,7 +3,7 @@
 A crafting system with tag-based material compatibility, multi-component items, and full provenance tracking.
 
 > **Last Updated**: 2026-02-01  
-> **Previous Commit**: `f6720b6`  
+> **Previous Commit**: `22777f0`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Features
@@ -14,6 +14,64 @@ A crafting system with tag-based material compatibility, multi-component items, 
 - **Quality tiers**: Makeshift → Crude → Common → Uncommon → Rare → Epic → Legendary
 - **Lossless provenance tracking**: Full traceability of crafting chains for quests and lore
 - **LLM-friendly**: String-based IDs designed for content generation
+
+## Quality System
+
+Quality represents **craftsmanship and process**, not material superiority.
+
+### Quality Tiers
+
+**Makeshift** → **Crude** → **Common** → **Uncommon** → **Rare** → **Epic** → **Legendary**
+
+### Understanding Quality
+
+**Makeshift Quality** is special - it represents using **substitute items or alternate recipes** for early-game progression:
+- Using a `flint_blade` item **as** a knife (substitution, not crafting)
+- Using a `stone` item **as** a hammer
+- Using a `sharp_bone` **as** an awl
+
+Makeshift items are **hugely disadvantageous**:
+- ~25% normal durability (1/4th)
+- ~2x slower to use
+- May have reduced effectiveness
+
+**No item which is a material only is inherently Makeshift** - Makeshift applies to items used in substitute roles or crafted via alternate early-progression recipes. (Note: A tool can also be a material, so tools may be inherently Makeshift.)
+
+### Quality and Crafting Process
+
+Quality is determined by the **crafting process**, not the materials used.
+
+**General guidelines** (not hard rules):
+
+- **Crude Quality**: Typically hand-crafted items
+  - Generally: no crafting station, no tools
+  - Example: Hammering iron on a rock into a rough blade shape
+
+- **Common Quality**: Standard craftsmanship (the default)
+  - Generally: crafted at proper workstation + with proper tools
+  - Example: Iron sword forged at anvil with hammer
+  - Common metals like iron, steel, bronze, and copper typically default to Common quality
+
+- **Uncommon+ Quality**: Enhanced craftsmanship
+  - Achieved through special crafting processes
+  - Can be raised post-craft through various means
+
+### Materials vs. Quality
+
+Materials affect effectiveness and properties, NOT quality tier:
+- A steel sword may be functionally superior to an iron sword
+- But if both are properly crafted, both are Common quality
+
+Quality can be raised:
+- During crafting: Special recipes, blessed workstations, master craftsman skill
+- After crafting: Enchantments, tempering, polishing, magical enhancement
+
+### Recipe-Driven Quality
+
+Recipes encode quality through their requirements. Examples:
+- Hand-crafted recipes (no tool, no station) typically produce Crude quality
+- Standard recipes (tool + station) typically produce Common quality  
+- Special recipes (blessed tools, rare stations) may produce Uncommon+ quality
 
 ## Multi-Component Items: Key Concept
 
