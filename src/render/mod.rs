@@ -127,6 +127,7 @@ pub trait Renderer {
 
 // Re-export implementations
 pub mod macroquad;
+mod textures;
 
 // Future Bevy implementation
 // #[cfg(feature = "graphics-bevy")]

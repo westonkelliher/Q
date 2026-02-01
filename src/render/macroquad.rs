@@ -1,17 +1,48 @@
 use macroquad::prelude::*;
 use crate::render::{Color, Key, RenderError, Renderer};
+use crate::render::textures::{load_png_from_bytes, get_object_png};
 use crate::types::{Biome, Object, Substrate};
+use std::collections::HashMap;
 
 /// Macroquad-based implementation of the Renderer trait
 pub struct MacroquadRenderer {
     initialized: bool,
+    textures: HashMap<String, Texture2D>,
 }
 
 impl MacroquadRenderer {
     pub fn new() -> Self {
+        let mut textures = HashMap::new();
+        
+        // Try to load embedded PNG textures
+        for obj_name in ["rock", "tree", "stick"] {
+            if let Some(png_data) = get_object_png(obj_name) {
+                match load_png_from_bytes(png_data) {
+                    Ok(texture) => {
+                        textures.insert(obj_name.to_string(), texture);
+                        println!("Loaded texture: {}", obj_name);
+                    }
+                    Err(e) => {
+                        eprintln!("Warning: Failed to load {} texture: {}. Using geometric fallback.", obj_name, e);
+                    }
+                }
+            }
+        }
+        
         Self {
             initialized: false,
+            textures,
         }
+    }
+    
+    /// Get a texture for an object
+    fn get_texture(&self, object: &Object) -> Option<&Texture2D> {
+        let name = match object {
+            Object::Rock => "rock",
+            Object::Tree => "tree",
+            Object::Stick => "stick",
+        };
+        self.textures.get(name)
     }
 
     /// Convert our Color type to macroquad's Color
@@ -111,7 +142,7 @@ impl Renderer for MacroquadRenderer {
         let substrate_color = Self::substrate_color(substrate);
         draw_rectangle(x, y, size, size, Self::to_mq_color(substrate_color));
 
-        // Draw objects on top as simple geometric shapes
+        // Draw objects on top
         if !objects.is_empty() {
             // Show first object (for single or multiple objects)
             let object = &objects[0];
@@ -119,7 +150,23 @@ impl Renderer for MacroquadRenderer {
             let center_y = y + size / 2.0;
             let obj_size = size * 0.75; // 50% larger than before (was 0.5, now 0.75)
             
-            match object {
+            // Try to use texture first, fallback to geometric rendering
+            if let Some(texture) = self.get_texture(object) {
+                let texture_x = center_x - obj_size / 2.0;
+                let texture_y = center_y - obj_size / 2.0;
+                draw_texture_ex(
+                    texture,
+                    texture_x,
+                    texture_y,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(obj_size, obj_size)),
+                        ..Default::default()
+                    },
+                );
+            } else {
+                // Fallback to geometric rendering
+                match object {
                 Object::Rock => {
                     // Draw rock in Super Auto Pets style (from rock.svg)
                     let scale = obj_size / 100.0;
@@ -310,6 +357,7 @@ impl Renderer for MacroquadRenderer {
                     draw_ellipse(sx(52.0), sy(60.0), 3.5 * scale, 3.0 * scale, 0.0, Self::to_mq_color(stick_shadow));
                     draw_ellipse_lines(sx(52.0), sy(60.0), 3.5 * scale, 3.0 * scale, 0.0, 5.0 * scale, Self::to_mq_color(black));
                 }
+            }
             }
         }
 

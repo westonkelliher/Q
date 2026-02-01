@@ -44,5 +44,10 @@ Generate an SVG of "$ARGUMENTS" in Super Auto Pets style.
 
 ## Output
 
-Save the SVG to a file at `assets/$ARGUMENTS.svg` (create the directory if needed)
-Confirm the file was created with its path
+1. Save the SVG to a file at `assets/$ARGUMENTS.svg` (create the directory if needed)
+2. Convert the SVG to PNG using one of these commands (try in order):
+   - `sips -s format png -z 512 512 assets/$ARGUMENTS.svg --out assets/$ARGUMENTS.png` (macOS sips - BEST, preserves transparency)
+   - `convert -background none -size 512x512 assets/$ARGUMENTS.svg assets/$ARGUMENTS.png` (ImageMagick, if installed)
+   - `rsvg-convert -w 512 -h 512 assets/$ARGUMENTS.svg -o assets/$ARGUMENTS.png` (librsvg, if installed)
+   - **DO NOT USE qlmanage** - it adds white backgrounds instead of transparency
+3. Confirm both files were created with their paths
