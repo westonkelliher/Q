@@ -138,4 +138,164 @@ mod tests {
             }
         }
     }
+
+    /// Helper function to check if a substrate is valid for a given biome
+    fn is_valid_substrate_for_biome(substrate: &crate::types::Substrate, biome: &Biome) -> bool {
+        match biome {
+            Biome::Lake => {
+                matches!(substrate, crate::types::Substrate::Water)
+            }
+            Biome::Meadow => {
+                matches!(substrate, crate::types::Substrate::Dirt | 
+                                 crate::types::Substrate::Grass)
+            }
+            Biome::Forest => {
+                matches!(substrate, crate::types::Substrate::Dirt | 
+                                 crate::types::Substrate::Grass | 
+                                 crate::types::Substrate::Brush)
+            }
+            Biome::Mountain => {
+                matches!(substrate, crate::types::Substrate::Stone | 
+                                 crate::types::Substrate::Dirt)
+            }
+        }
+    }
+
+    #[test]
+    fn test_center_tiles_match_center_biome() {
+        let world = create_test_world();
+        
+        // Check multiple lands to ensure robustness
+        for land in world.terrain.values() {
+            // Check four center tiles: (3,3), (3,4), (4,3), (4,4)
+            let center_tiles = [
+                (3, 3),
+                (3, 4),
+                (4, 3),
+                (4, 4),
+            ];
+            
+            for (tile_x, tile_y) in center_tiles {
+                let tile = &land.tiles[tile_y][tile_x];
+                
+                // Verify substrate is valid for center biome
+                assert!(
+                    is_valid_substrate_for_biome(&tile.substrate, &land.center),
+                    "Tile ({}, {}) has substrate {:?} which is invalid for center biome {:?}",
+                    tile_x, tile_y, tile.substrate, land.center
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_corner_tiles_match_corner_biomes() {
+        let world = create_test_world();
+        
+        for land in world.terrain.values() {
+            // Check all four corners
+            let corners = [
+                ((0, 0), &land.top_left),
+                ((7, 0), &land.top_right),
+                ((0, 7), &land.bottom_left),
+                ((7, 7), &land.bottom_right),
+            ];
+            
+            for ((tile_x, tile_y), expected_biome) in corners {
+                let tile = &land.tiles[tile_y][tile_x];
+                
+                // Verify substrate is valid for the corner biome
+                assert!(
+                    is_valid_substrate_for_biome(&tile.substrate, expected_biome),
+                    "Corner tile ({}, {}) has substrate {:?} which is invalid for corner biome {:?}",
+                    tile_x, tile_y, tile.substrate, expected_biome
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_edge_center_tiles_match_edge_biomes() {
+        let world = create_test_world();
+        
+        for land in world.terrain.values() {
+            // Check center tiles of each edge (two tiles per edge)
+            // Top edge: row 0, cols 3-4
+            for tile_x in 3..=4 {
+                let tile = &land.tiles[0][tile_x];
+                assert!(
+                    is_valid_substrate_for_biome(&tile.substrate, &land.top),
+                    "Top edge tile ({}, 0) has substrate {:?} which is invalid for top biome {:?}",
+                    tile_x, tile.substrate, land.top
+                );
+            }
+            
+            // Bottom edge: row 7, cols 3-4
+            for tile_x in 3..=4 {
+                let tile = &land.tiles[7][tile_x];
+                assert!(
+                    is_valid_substrate_for_biome(&tile.substrate, &land.bottom),
+                    "Bottom edge tile ({}, 7) has substrate {:?} which is invalid for bottom biome {:?}",
+                    tile_x, tile.substrate, land.bottom
+                );
+            }
+            
+            // Left edge: col 0, rows 3-4
+            for tile_y in 3..=4 {
+                let tile = &land.tiles[tile_y][0];
+                assert!(
+                    is_valid_substrate_for_biome(&tile.substrate, &land.left),
+                    "Left edge tile (0, {}) has substrate {:?} which is invalid for left biome {:?}",
+                    tile_y, tile.substrate, land.left
+                );
+            }
+            
+            // Right edge: col 7, rows 3-4
+            for tile_y in 3..=4 {
+                let tile = &land.tiles[tile_y][7];
+                assert!(
+                    is_valid_substrate_for_biome(&tile.substrate, &land.right),
+                    "Right edge tile (7, {}) has substrate {:?} which is invalid for right biome {:?}",
+                    tile_y, tile.substrate, land.right
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_all_tiles_have_valid_substrates_for_their_biomes() {
+        use crate::generation::get_tile_biome;
+        use crate::generation::LandBiomes;
+        
+        let world = create_test_world();
+        
+        for (coord, land) in &world.terrain {
+            // Reconstruct LandBiomes from the land's biome fields
+            let biomes = LandBiomes {
+                center: land.center.clone(),
+                top: land.top.clone(),
+                bottom: land.bottom.clone(),
+                left: land.left.clone(),
+                right: land.right.clone(),
+                top_left: land.top_left.clone(),
+                top_right: land.top_right.clone(),
+                bottom_left: land.bottom_left.clone(),
+                bottom_right: land.bottom_right.clone(),
+            };
+            
+            // Check every tile
+            for tile_y in 0..8 {
+                for tile_x in 0..8 {
+                    let tile = &land.tiles[tile_y][tile_x];
+                    let expected_biome = get_tile_biome(&biomes, tile_x, tile_y);
+                    
+                    assert!(
+                        is_valid_substrate_for_biome(&tile.substrate, expected_biome),
+                        "Land {:?}, tile ({}, {}) has substrate {:?} which is invalid for biome {:?}",
+                        coord, tile_x, tile_y, tile.substrate, expected_biome
+                    );
+                }
+            }
+        }
+    }
 }

@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Commit**: `d81d211`  
+> **Commit**: `9574ce1`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -402,28 +402,22 @@ else => Mountain
 
 ### Tile Substrate Generation
 
-For each biome, thresholds are adjusted by `uniformity_factor`:
+Each biome generates specific substrates based on noise values:
 
-- **Lake**: `threshold = -0.2 + uniformity_factor`
-  - Below threshold → Water
-  - Above threshold but < `0.0 + uniformity_factor` → Mud
-  - Otherwise → Grass
+- **Lake**: Always Water (uniform appearance)
 
-- **Meadow**: `threshold = -0.3 - uniformity_factor`
+- **Meadow**: Uses noise threshold at -0.3
   - Below threshold → Dirt
   - Otherwise → Grass
 
-- **Forest**: Uses two thresholds
-  - `dirt_threshold = -0.4 - uniformity_factor`
-  - `brush_threshold = 0.2 + uniformity_factor`
-  - Below dirt_threshold → Dirt
-  - Between → Grass
-  - Above brush_threshold → Brush
+- **Forest**: Uses two noise thresholds
+  - Below -0.4 → Dirt
+  - Between -0.4 and 0.5 → Grass
+  - Above 0.5 → Brush
 
-- **Mountain**: `threshold = -0.2 - uniformity_factor`
+- **Mountain**: Uses noise threshold at 0.0
   - Below threshold → Stone
-  - Between threshold and 0.2 → Dirt
-  - Above 0.2 → Grass
+  - Otherwise → Dirt
 
 ### Object Generation
 

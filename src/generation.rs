@@ -139,9 +139,7 @@ pub fn generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed
             // Determine substrate based on biome
             let substrate = match biome {
                 Biome::Lake => {
-                    if noise_value < 0.3 { Substrate::Water }
-                    else if noise_value < 0.6 { Substrate::Mud }
-                    else { Substrate::Grass }
+                    Substrate::Water
                 }
                 Biome::Meadow => {
                     if noise_value < -0.3 { Substrate::Dirt }
@@ -154,8 +152,7 @@ pub fn generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed
                 }
                 Biome::Mountain => {
                     if noise_value < 0.0 { Substrate::Stone }
-                    else if noise_value < 0.4 { Substrate::Dirt }
-                    else { Substrate::Grass }
+                    else { Substrate::Dirt }
                 }
             };
             
