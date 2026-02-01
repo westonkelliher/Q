@@ -7,6 +7,10 @@ use ::noise::Perlin;
 use crate::types::{Biome, Substrate};
 use super::noise::{seed_offset, sample_noise, SUBSTRATE_SCALE};
 
+/// Seed offset for the substrate Perlin noise generator.
+/// Uses a prime to ensure substrate patterns differ from biome patterns.
+const SUBSTRATE_SEED_OFFSET: u64 = 999983;
+
 /// Discriminator values for per-biome noise offsets.
 /// Each biome gets a unique offset so their substrate patterns differ.
 const BIOME_DISCRIMINATOR_BASE: u64 = 7919; // Prime number
@@ -48,22 +52,58 @@ pub fn get_substrate_noise(
 /// | Mountain | Stone, Dirt             | < 0.6 → Stone, else Dirt   |
 pub fn substrate_for_biome(biome: &Biome, noise: f64) -> Substrate {
     match biome {
+        // Generates substrate for Lake biome.
         Biome::Lake => Substrate::Water,
         
+        // Generates substrate for Meadow biome.
         Biome::Meadow => {
             if noise < -0.8 { Substrate::Dirt }  // Very rare dirt patches
             else { Substrate::Grass }
         }
         
+        // Generates substrate for Forest biome.
         Biome::Forest => {
             if noise < -0.4 { Substrate::Dirt }
             else if noise < 0.2 { Substrate::Grass }
             else { Substrate::Brush }
         }
         
+        // Generates substrate for Mountain biome.
         Biome::Mountain => {
             if noise < 0.6 { Substrate::Stone }
             else { Substrate::Dirt }
         }
     }
+}
+
+/// Generates substrate for Lake biome at global coordinates.
+pub fn generate_lake_substrate(global_x: i32, global_y: i32, seed: u64) -> Substrate {
+    let substrate_perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let biome = Biome::Lake;
+    let noise = get_substrate_noise(&biome, global_x, global_y, &substrate_perlin, seed);
+    substrate_for_biome(&biome, noise)
+}
+
+/// Generates substrate for Meadow biome at global coordinates.
+pub fn generate_meadow_substrate(global_x: i32, global_y: i32, seed: u64) -> Substrate {
+    let substrate_perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let biome = Biome::Meadow;
+    let noise = get_substrate_noise(&biome, global_x, global_y, &substrate_perlin, seed);
+    substrate_for_biome(&biome, noise)
+}
+
+/// Generates substrate for Forest biome at global coordinates.
+pub fn generate_forest_substrate(global_x: i32, global_y: i32, seed: u64) -> Substrate {
+    let substrate_perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let biome = Biome::Forest;
+    let noise = get_substrate_noise(&biome, global_x, global_y, &substrate_perlin, seed);
+    substrate_for_biome(&biome, noise)
+}
+
+/// Generates substrate for Mountain biome at global coordinates.
+pub fn generate_mountain_substrate(global_x: i32, global_y: i32, seed: u64) -> Substrate {
+    let substrate_perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let biome = Biome::Mountain;
+    let noise = get_substrate_noise(&biome, global_x, global_y, &substrate_perlin, seed);
+    substrate_for_biome(&biome, noise)
 }

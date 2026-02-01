@@ -13,32 +13,30 @@ pub fn objects_for_biome(
     biome: &Biome,
     substrate: &Substrate,
     seed: u64,
-    land_x: i32,
-    land_y: i32,
-    tile_x: usize,
-    tile_y: usize,
+    global_x: i32,
+    global_y: i32,
 ) -> Vec<Object> {
     match biome {
-        Biome::Lake => generate_lake_objects(seed, land_x, land_y, tile_x, tile_y),
-        Biome::Meadow => generate_meadow_objects(substrate, seed, land_x, land_y, tile_x, tile_y),
-        Biome::Forest => generate_forest_objects(substrate, seed, land_x, land_y, tile_x, tile_y),
-        Biome::Mountain => generate_mountain_objects(substrate, seed, land_x, land_y, tile_x, tile_y),
+        // Generates objects for Lake biome.
+        Biome::Lake => generate_lake_objects(seed, global_x, global_y),
+        // Generates objects for Meadow biome.
+        Biome::Meadow => generate_meadow_objects(substrate, seed, global_x, global_y),
+        // Generates objects for Forest biome.
+        Biome::Forest => generate_forest_objects(substrate, seed, global_x, global_y),
+        // Generates objects for Mountain biome.
+        Biome::Mountain => generate_mountain_objects(substrate, seed, global_x, global_y),
     }
 }
 
 /// Generates objects for Lake biome.
-///
-/// Lake always places Rock when an object is placed (~7.5% of tiles).
 fn generate_lake_objects(
     seed: u64,
-    land_x: i32,
-    land_y: i32,
-    tile_x: usize,
-    tile_y: usize,
+    global_x: i32,
+    global_y: i32,
 ) -> Vec<Object> {
     const PLACEMENT_THRESHOLD: f64 = 0.075; // 7.5% of tiles
     
-    let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
+    let random_value = tile_random_value(seed, global_x, global_y);
     
     if random_value < PLACEMENT_THRESHOLD {
         vec![Object::Rock]
@@ -48,22 +46,17 @@ fn generate_lake_objects(
 }
 
 /// Generates objects for Meadow biome.
-///
-/// - Trees: 3-5% of grass/dirt tiles (trees cannot grow on stone)
-/// - Rocks/Sticks: ~5-8% of all tiles (Rock 80%, Stick 20%)
 fn generate_meadow_objects(
     substrate: &Substrate,
     seed: u64,
-    land_x: i32,
-    land_y: i32,
-    tile_x: usize,
-    tile_y: usize,
+    global_x: i32,
+    global_y: i32,
 ) -> Vec<Object> {
     const TREE_PLACEMENT_THRESHOLD: f64 = 0.04; // 4% average (middle of 3-5% range)
     const OTHER_PLACEMENT_THRESHOLD: f64 = 0.065; // 6.5% average (middle of 5-8% range)
     
-    let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
-    let object_type_value = tile_random_value(seed.wrapping_add(1), land_x, land_y, tile_x, tile_y);
+    let random_value = tile_random_value(seed, global_x, global_y);
+    let object_type_value = tile_random_value(seed.wrapping_add(1), global_x, global_y);
     
     // Check if tile is eligible for trees (grass or dirt only)
     let can_have_tree = matches!(substrate, Substrate::Grass | Substrate::Dirt);
@@ -86,29 +79,24 @@ fn generate_meadow_objects(
 }
 
 /// Generates objects for Forest biome.
-///
-/// - Trees: 40% of grass/brush/dirt tiles (trees cannot grow on stone)
-/// - Rocks/Sticks: ~8-12% of all tiles (Rock 75%, Stick 25%)
 fn generate_forest_objects(
     substrate: &Substrate,
     seed: u64,
-    land_x: i32,
-    land_y: i32,
-    tile_x: usize,
-    tile_y: usize,
+    global_x: i32,
+    global_y: i32,
 ) -> Vec<Object> {
     const TREE_PLACEMENT_THRESHOLD: f64 = 0.40; // 40% of eligible tiles
     const OTHER_PLACEMENT_THRESHOLD: f64 = 0.10; // 10% average (middle of 8-12% range)
     
-    let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
-    let object_type_value = tile_random_value(seed.wrapping_add(1), land_x, land_y, tile_x, tile_y);
+    let random_value = tile_random_value(seed, global_x, global_y);
+    let object_type_value = tile_random_value(seed.wrapping_add(1), global_x, global_y);
     
     // Check if tile is eligible for trees (grass, brush, or dirt only)
     let can_have_tree = matches!(substrate, Substrate::Grass | Substrate::Brush | Substrate::Dirt);
     
     // Use separate random values for trees vs rocks/sticks to allow independent placement
     let tree_value = random_value;
-    let rock_stick_value = tile_random_value(seed.wrapping_add(2), land_x, land_y, tile_x, tile_y);
+    let rock_stick_value = tile_random_value(seed.wrapping_add(2), global_x, global_y);
     
     // Try to place a tree if substrate is eligible
     if can_have_tree && tree_value < TREE_PLACEMENT_THRESHOLD {
@@ -128,21 +116,16 @@ fn generate_forest_objects(
 }
 
 /// Generates objects for Mountain biome.
-///
-/// - Rocks: 15-20% of all tiles (can spawn on stone or dirt)
-/// - Trees: 30-40% of dirt patches only (trees cannot grow on stone)
 fn generate_mountain_objects(
     substrate: &Substrate,
     seed: u64,
-    land_x: i32,
-    land_y: i32,
-    tile_x: usize,
-    tile_y: usize,
+    global_x: i32,
+    global_y: i32,
 ) -> Vec<Object> {
     const ROCK_PLACEMENT_THRESHOLD: f64 = 0.175; // 17.5% average (middle of 15-20% range)
     const TREE_PLACEMENT_THRESHOLD: f64 = 0.35; // 35% average (middle of 30-40% range)
     
-    let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
+    let random_value = tile_random_value(seed, global_x, global_y);
     
     // Check if tile is eligible for trees (dirt only in mountains)
     let can_have_tree = matches!(substrate, Substrate::Dirt);
@@ -182,6 +165,10 @@ pub fn add_sticks_near_trees(
             let has_tree = tiles[tile_y][tile_x].objects.iter().any(|obj| matches!(obj, crate::types::Object::Tree));
             
             if has_tree {
+                // Global coordinates of the tree tile
+                let tree_global_x = land_x * 8 + tile_x as i32;
+                let tree_global_y = land_y * 8 + tile_y as i32;
+                
                 // Check nearby tiles (within 1 tile radius, including diagonals)
                 for dy in -1i32..=1 {
                     for dx in -1i32..=1 {
@@ -202,18 +189,20 @@ pub fn add_sticks_near_trees(
                         
                         // Only add stick if tile doesn't already have objects
                         if nearby_tile.objects.is_empty() {
+                            // Global coordinates of the nearby tile
+                            let nearby_global_x = tree_global_x + dx;
+                            let nearby_global_y = tree_global_y + dy;
+                            
                             // Deterministically decide if this nearby tile should have a stick
                             // Include BOTH the tree's position AND the nearby tile's position in the seed
                             // This ensures each tree-tile pair has independent randomness
-                            let tree_offset = (tile_x as u64)
+                            let tree_offset = (tree_global_x as u64)
                                 .wrapping_mul(0x517CC1B727220A95)
-                                .wrapping_add((tile_y as u64).wrapping_mul(0x5D6DCB8D5C20A2AB));
+                                .wrapping_add((tree_global_y as u64).wrapping_mul(0x5D6DCB8D5C20A2AB));
                             let stick_value = tile_random_value(
                                 seed.wrapping_add(STICK_NEAR_TREE_SEED_OFFSET).wrapping_add(tree_offset),
-                                land_x,
-                                land_y,
-                                nearby_x as usize,
-                                nearby_y as usize,
+                                nearby_global_x,
+                                nearby_global_y,
                             );
                             
                             // 5% chance to place a stick near a tree (reduced from 15%)
@@ -232,14 +221,12 @@ pub fn add_sticks_near_trees(
 ///
 /// Uses a high-quality hash function (SplitMix64-inspired) with proper bit mixing to ensure
 /// deterministic placement with good statistical properties (no correlation patterns).
-fn tile_random_value(seed: u64, land_x: i32, land_y: i32, tile_x: usize, tile_y: usize) -> f64 {
-    // Combine seed with coordinates using XOR and golden ratio-derived constants
+fn tile_random_value(seed: u64, global_x: i32, global_y: i32) -> f64 {
+    // Combine seed with global coordinates using XOR and golden ratio-derived constants
     // XOR provides better mixing than addition (avoids correlation when coords change together)
     let mut hash = seed;
-    hash ^= (land_x as u64).wrapping_mul(0x9E3779B97F4A7C15); // golden ratio constant
-    hash ^= (land_y as u64).wrapping_mul(0xBF58476D1CE4E5B9);
-    hash ^= (tile_x as u64).wrapping_mul(0x94D049BB133111EB);
-    hash ^= (tile_y as u64).wrapping_mul(0xC6A4A7935BD1E995);
+    hash ^= (global_x as u64).wrapping_mul(0x9E3779B97F4A7C15); // golden ratio constant
+    hash ^= (global_y as u64).wrapping_mul(0xBF58476D1CE4E5B9);
     
     // SplitMix64-style mixing for excellent bit distribution
     hash ^= hash >> 30;
