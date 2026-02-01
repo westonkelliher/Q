@@ -2,8 +2,8 @@
 
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
-> **Last Updated**: 2026-02-01  
-> **Previous Commit**: `f6c98e3db806b206dbd9e31789d38345941c6ae0`  
+> **Last Updated**: 2026-01-31  
+> **Previous Commit**: `e93f0d92294059de10f0d0b93ee5094d20dbf9f7`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -779,7 +779,7 @@ The `.claude/commands/svg_draw.md` command provides instructions for LLMs to gen
   - **Base**: Main fill color
   - **Highlight**: 10-20% lighter for top/light-facing areas
   - **Shadow**: 10-20% darker for bottom/shadow areas
-- Black outlines: All shapes get `stroke="#000" stroke-width="2"`
+- Black outlines: All shapes get `stroke="#000" stroke-width="5"`
 - Allowed shapes: circles, ellipses, rounded rectangles, simple polygons/paths
 - No gradients, filters, or animations
 - Layer order: back-to-front rendering
@@ -831,7 +831,7 @@ draw_circle(sx(50.0), sy(50.0), 20.0 * scale, base_color);
 // Draw highlight
 draw_circle(sx(45.0), sy(45.0), 10.0 * scale, highlight_color);
 // Draw outline
-draw_circle_lines(sx(50.0), sy(50.0), 20.0 * scale, 2.0 * scale, black);
+draw_circle_lines(sx(50.0), sy(50.0), 20.0 * scale, 5.0 * scale, black);
 ```
 
 ### Adding New Objects
