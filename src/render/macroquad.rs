@@ -138,16 +138,16 @@ impl Renderer for MacroquadRenderer {
                     
                     // Draw main rock body (irregular shape with overlapping ellipses)
                     draw_ellipse(sx(50.0), sy(55.0), 35.0 * scale, 30.0 * scale, 0.0, Self::to_mq_color(rock_base));
-                    draw_ellipse_lines(sx(50.0), sy(55.0), 35.0 * scale, 30.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    draw_ellipse_lines(sx(50.0), sy(55.0), 35.0 * scale, 30.0 * scale, 0.0, 5.0 * scale, Self::to_mq_color(black));
                     
                     draw_ellipse(sx(35.0), sy(50.0), 18.0 * scale, 20.0 * scale, 0.0, Self::to_mq_color(rock_base));
-                    draw_ellipse_lines(sx(35.0), sy(50.0), 18.0 * scale, 20.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    draw_ellipse_lines(sx(35.0), sy(50.0), 18.0 * scale, 20.0 * scale, 0.0, 5.0 * scale, Self::to_mq_color(black));
                     
                     draw_ellipse(sx(65.0), sy(52.0), 15.0 * scale, 18.0 * scale, 0.0, Self::to_mq_color(rock_base));
-                    draw_ellipse_lines(sx(65.0), sy(52.0), 15.0 * scale, 18.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    draw_ellipse_lines(sx(65.0), sy(52.0), 15.0 * scale, 18.0 * scale, 0.0, 5.0 * scale, Self::to_mq_color(black));
                     
                     draw_ellipse(sx(50.0), sy(35.0), 20.0 * scale, 18.0 * scale, 0.0, Self::to_mq_color(rock_base));
-                    draw_ellipse_lines(sx(50.0), sy(35.0), 20.0 * scale, 18.0 * scale, 0.0, 2.0 * scale, Self::to_mq_color(black));
+                    draw_ellipse_lines(sx(50.0), sy(35.0), 20.0 * scale, 18.0 * scale, 0.0, 5.0 * scale, Self::to_mq_color(black));
                     
                     // Highlights (top left areas)
                     draw_ellipse(sx(40.0), sy(40.0), 15.0 * scale, 12.0 * scale, 0.0, Self::to_mq_color(rock_highlight));
@@ -185,7 +185,7 @@ impl Renderer for MacroquadRenderer {
                     );
                     draw_rectangle_lines(
                         sx(42.0), sy(55.0), 16.0 * scale, 30.0 * scale,
-                        2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0))
+                        5.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0))
                     );
                     
                     // Trunk highlight (left side)
@@ -202,7 +202,7 @@ impl Renderer for MacroquadRenderer {
                     
                     // Main foliage circle
                     draw_circle(sx(50.0), sy(45.0), 28.0 * scale, Self::to_mq_color(foliage_base));
-                    draw_circle_lines(sx(50.0), sy(45.0), 28.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    draw_circle_lines(sx(50.0), sy(45.0), 28.0 * scale, 5.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
                     
                     // Foliage highlight (top left)
                     draw_circle(sx(42.0), sy(38.0), 15.0 * scale, Self::to_mq_color(foliage_highlight));
@@ -212,13 +212,13 @@ impl Renderer for MacroquadRenderer {
                     
                     // Small foliage details
                     draw_circle(sx(35.0), sy(50.0), 12.0 * scale, Self::to_mq_color(foliage_base));
-                    draw_circle_lines(sx(35.0), sy(50.0), 12.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    draw_circle_lines(sx(35.0), sy(50.0), 12.0 * scale, 5.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
                     
                     draw_circle(sx(65.0), sy(48.0), 10.0 * scale, Self::to_mq_color(foliage_base));
-                    draw_circle_lines(sx(65.0), sy(48.0), 10.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    draw_circle_lines(sx(65.0), sy(48.0), 10.0 * scale, 5.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
                     
                     draw_circle(sx(50.0), sy(25.0), 14.0 * scale, Self::to_mq_color(foliage_base));
-                    draw_circle_lines(sx(50.0), sy(25.0), 14.0 * scale, 2.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
+                    draw_circle_lines(sx(50.0), sy(25.0), 14.0 * scale, 5.0 * scale, Self::to_mq_color(Color::rgb(0.0, 0.0, 0.0)));
                     
                     // Highlight on top foliage
                     draw_circle(sx(48.0), sy(23.0), 6.0 * scale, Self::to_mq_color(foliage_highlight));
@@ -282,7 +282,7 @@ impl Renderer for MacroquadRenderer {
                     );
                     
                     // Draw outline by drawing thin black lines along edges
-                    draw_line(start_x, start_y, end_x, end_y, stick_width + 2.0 * scale, Self::to_mq_color(black));
+                    draw_line(start_x, start_y, end_x, end_y, stick_width + 5.0 * scale, Self::to_mq_color(black));
                     draw_line(start_x, start_y, end_x, end_y, stick_width, Self::to_mq_color(stick_base));
                     
                     // Re-draw highlights and shadows on top
@@ -305,10 +305,10 @@ impl Renderer for MacroquadRenderer {
                     
                     // Small knot details
                     draw_ellipse(sx(45.0), sy(35.0), 4.0 * scale, 3.0 * scale, 0.0, Self::to_mq_color(stick_shadow));
-                    draw_ellipse_lines(sx(45.0), sy(35.0), 4.0 * scale, 3.0 * scale, 0.0, 1.5 * scale, Self::to_mq_color(black));
+                    draw_ellipse_lines(sx(45.0), sy(35.0), 4.0 * scale, 3.0 * scale, 0.0, 5.0 * scale, Self::to_mq_color(black));
                     
                     draw_ellipse(sx(52.0), sy(60.0), 3.5 * scale, 3.0 * scale, 0.0, Self::to_mq_color(stick_shadow));
-                    draw_ellipse_lines(sx(52.0), sy(60.0), 3.5 * scale, 3.0 * scale, 0.0, 1.5 * scale, Self::to_mq_color(black));
+                    draw_ellipse_lines(sx(52.0), sy(60.0), 3.5 * scale, 3.0 * scale, 0.0, 5.0 * scale, Self::to_mq_color(black));
                 }
             }
         }
