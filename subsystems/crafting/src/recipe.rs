@@ -1,4 +1,4 @@
-use crate::ids::{ItemId, MaterialTag, RecipeId};
+use crate::ids::{ItemId, MaterialTag, RecipeId, WorldObjectTag};
 use crate::item_def::ToolType;
 use crate::quality::Quality;
 use crate::world_object::WorldObjectKind;
@@ -19,10 +19,21 @@ pub struct Construction {
     pub tool: Option<ToolRequirement>,
     
     /// World object required (resource node or crafting station)
-    pub world_object: Option<WorldObjectKind>,
+    pub world_object: Option<WorldObjectRequirement>,
     
     /// Material inputs consumed
     pub material_inputs: Vec<MaterialInput>,
+}
+
+/// A world object requirement for a construction
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct WorldObjectRequirement {
+    /// Specific world object kind required, OR use required_tags for any matching
+    pub kind: Option<WorldObjectKind>,
+    
+    /// Required tags - world object must have ALL these tags
+    /// e.g., ["high_heat"] matches forge, kiln, bonfire
+    pub required_tags: Vec<WorldObjectTag>,
 }
 
 /// Requirement for a tool in a construction

@@ -1,5 +1,4 @@
-use crate::ids::{ItemInstanceId, RecipeId};
-use crate::world_object::WorldObjectKind;
+use crate::ids::{ItemInstanceId, RecipeId, WorldObjectInstanceId};
 
 /// Tracks how an item was created - immediate inputs only
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -13,8 +12,8 @@ pub struct Provenance {
     /// Tool used (if any) - reference, not consumed
     pub tool_used: Option<ItemInstanceId>,
     
-    /// World object used (if any)
-    pub world_object_used: Option<WorldObjectKind>,
+    /// World object instance used (if any) - the kind is determined by the recipe
+    pub world_object_used: Option<WorldObjectInstanceId>,
     
     /// When this was crafted (Unix timestamp)
     pub crafted_at: i64,
