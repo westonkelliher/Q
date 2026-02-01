@@ -56,6 +56,8 @@ pub enum Key {
     D,
     Z,
     X,
+    Minus,
+    Equal,
     Other(char),
 }
 

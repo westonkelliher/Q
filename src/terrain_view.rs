@@ -15,8 +15,11 @@ pub struct TerrainCamera {
     pub selected_land_x: i32,
     pub selected_land_y: i32,
     
-    /// Tile size for terrain view (fixed)
+    /// Tile size for terrain view (base size)
     tile_size: f32,
+    
+    /// Zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out)
+    zoom: f32,
 }
 
 impl TerrainCamera {
@@ -29,18 +32,34 @@ impl TerrainCamera {
             selected_land_x: 0,
             selected_land_y: 0,
             tile_size: 48.0,
+            zoom: 1.0,
         }
     }
 
-    /// Get tile size for terrain view
+    /// Get tile size for terrain view (with zoom applied)
     pub fn get_tile_size(&self) -> f32 {
-        self.tile_size
+        self.tile_size * self.zoom
+    }
+    
+    /// Zoom in (increase zoom level)
+    pub fn zoom_in(&mut self) {
+        const ZOOM_STEP: f32 = 1.15;
+        const MAX_ZOOM: f32 = 3.0;
+        self.zoom = (self.zoom * ZOOM_STEP).min(MAX_ZOOM);
+    }
+    
+    /// Zoom out (decrease zoom level)
+    pub fn zoom_out(&mut self) {
+        const ZOOM_STEP: f32 = 1.15;
+        const MIN_ZOOM: f32 = 0.5;
+        self.zoom = (self.zoom / ZOOM_STEP).max(MIN_ZOOM);
     }
 
     /// Convert world coordinates to screen coordinates
     pub fn world_to_screen(&self, world_x: f32, world_y: f32, screen_width: f32, screen_height: f32) -> (f32, f32) {
-        let screen_x = (world_x - self.x) * self.tile_size + screen_width / 2.0;
-        let screen_y = (world_y - self.y) * self.tile_size + screen_height / 2.0;
+        let tile_size = self.get_tile_size();
+        let screen_x = (world_x - self.x) * tile_size + screen_width / 2.0;
+        let screen_y = (world_y - self.y) * tile_size + screen_height / 2.0;
         (screen_x, screen_y)
     }
 
@@ -168,6 +187,14 @@ pub fn handle_input(camera: &mut TerrainCamera, keys: &[crate::render::Key]) -> 
             crate::render::Key::Z => {
                 // Switch to land view
                 return true;
+            }
+            crate::render::Key::Minus => {
+                // Zoom out
+                camera.zoom_out();
+            }
+            crate::render::Key::Equal => {
+                // Zoom in
+                camera.zoom_in();
             }
             _ => {}
         }

@@ -46,6 +46,8 @@ pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::
             (KeyCode::D, Key::D),
             (KeyCode::Z, Key::Z),
             (KeyCode::X, Key::X),
+            (KeyCode::Minus, Key::Minus),
+            (KeyCode::Equal, Key::Equal),
         ];
         
         for (mq_key, our_key) in key_codes {
@@ -124,8 +126,8 @@ pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::
             ViewMode::Land => "Land View",
         };
         let controls_text = match view_mode {
-            ViewMode::Terrain => "WASD/Arrows: Move | Z: Toggle View | ESC: Exit",
-            ViewMode::Land => "WASD/Arrows: Move | Z: Toggle View | X: Toggle Adjacent Lands | ESC: Exit",
+            ViewMode::Terrain => "WASD/Arrows: Move | Z: Toggle View | -/=: Zoom | ESC: Exit",
+            ViewMode::Land => "WASD/Arrows: Move | Z: Toggle View | X: Toggle Adjacent Lands | -/=: Zoom | ESC: Exit",
         };
         draw_text(
             &format!("{} | Mode: {}", controls_text, view_mode_text),
