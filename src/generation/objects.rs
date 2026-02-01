@@ -3,33 +3,10 @@
 //! Objects (trees, rocks, sticks) are spawned pseudo-randomly with biome-specific
 //! placement rates. Trees cannot grow on stone substrate.
 
-use crate::types::{Biome, Object, Substrate};
-
-/// Generates objects for a tile based on its biome, substrate, and a pseudo-random value.
-///
-/// This function dispatches to biome-specific generation functions that implement
-/// substrate-aware placement rules.
-pub fn objects_for_biome(
-    biome: &Biome,
-    substrate: &Substrate,
-    seed: u64,
-    global_x: i32,
-    global_y: i32,
-) -> Vec<Object> {
-    match biome {
-        // Generates objects for Lake biome.
-        Biome::Lake => generate_lake_objects(seed, global_x, global_y),
-        // Generates objects for Meadow biome.
-        Biome::Meadow => generate_meadow_objects(substrate, seed, global_x, global_y),
-        // Generates objects for Forest biome.
-        Biome::Forest => generate_forest_objects(substrate, seed, global_x, global_y),
-        // Generates objects for Mountain biome.
-        Biome::Mountain => generate_mountain_objects(substrate, seed, global_x, global_y),
-    }
-}
+use crate::types::{Object, Substrate};
 
 /// Generates objects for Lake biome.
-fn generate_lake_objects(
+pub fn generate_lake_objects(
     seed: u64,
     global_x: i32,
     global_y: i32,
@@ -46,7 +23,7 @@ fn generate_lake_objects(
 }
 
 /// Generates objects for Meadow biome.
-fn generate_meadow_objects(
+pub fn generate_meadow_objects(
     substrate: &Substrate,
     seed: u64,
     global_x: i32,
@@ -79,7 +56,7 @@ fn generate_meadow_objects(
 }
 
 /// Generates objects for Forest biome.
-fn generate_forest_objects(
+pub fn generate_forest_objects(
     substrate: &Substrate,
     seed: u64,
     global_x: i32,
@@ -116,7 +93,7 @@ fn generate_forest_objects(
 }
 
 /// Generates objects for Mountain biome.
-fn generate_mountain_objects(
+pub fn generate_mountain_objects(
     substrate: &Substrate,
     seed: u64,
     global_x: i32,

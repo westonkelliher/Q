@@ -8,11 +8,10 @@
 //! # Architecture
 //!
 //! ```text
-//! mod.rs          - Public API: generate_world, initialize_world
-//! ├── noise.rs    - Noise utilities, seed offsets, constants
-//! ├── biome.rs    - Biome determination and tile-to-biome mapping
-//! ├── substrate.rs - Substrate rules per biome
-//! └── objects.rs  - Object spawning rules per biome
+//! mod.rs       - Public API: generate_world, tile generation per biome
+//! ├── noise.rs - Noise utilities, seed offsets, constants
+//! ├── biome.rs - Biome determination and tile-to-biome mapping
+//! └── objects.rs - Object spawning rules per biome
 //! ```
 //!
 //! # Coordinate Systems
@@ -24,84 +23,78 @@
 
 mod noise;
 mod biome;
-mod substrate;
 mod objects;
 
 use ::noise::Perlin;
-use crate::types::{Land, Tile, World};
+use crate::types::{Biome, Land, Substrate, Tile, World};
+use noise::{seed_offset, sample_noise, SUBSTRATE_SCALE};
 
 // Re-export public items
 pub use biome::{LandBiomes, calculate_land_biomes, determine_biome, get_tile_biome};
 
-/// Generates substrate for Lake biome at global coordinates.
-fn generate_lake_substrate(global_x: i32, global_y: i32, seed: u64) -> crate::types::Substrate {
-    substrate::generate_lake_substrate(global_x, global_y, seed)
-}
+/// Seed offset for the substrate Perlin noise generator.
+/// Uses a prime to ensure substrate patterns differ from biome patterns.
+const SUBSTRATE_SEED_OFFSET: u64 = 999983;
 
-/// Generates substrate for Meadow biome at global coordinates.
-fn generate_meadow_substrate(global_x: i32, global_y: i32, seed: u64) -> crate::types::Substrate {
-    substrate::generate_meadow_substrate(global_x, global_y, seed)
-}
-
-/// Generates substrate for Forest biome at global coordinates.
-fn generate_forest_substrate(global_x: i32, global_y: i32, seed: u64) -> crate::types::Substrate {
-    substrate::generate_forest_substrate(global_x, global_y, seed)
-}
-
-/// Generates substrate for Mountain biome at global coordinates.
-fn generate_mountain_substrate(global_x: i32, global_y: i32, seed: u64) -> crate::types::Substrate {
-    substrate::generate_mountain_substrate(global_x, global_y, seed)
-}
+/// Discriminator values for per-biome noise offsets.
+/// Each biome gets a unique offset so their substrate patterns differ.
+const 
+BIOME_DISCRIMINATOR_BASE: u64 = 7919; // Prime number
 
 /// Generates a tile for Lake biome.
-fn generate_lake_tile(
-    global_x: i32,
-    global_y: i32,
-    seed: u64,
-) -> Tile {
-    let substrate = generate_lake_substrate(global_x, global_y, seed);
-    let objects = objects::objects_for_biome(
-        &crate::types::Biome::Lake, &substrate, seed, global_x, global_y
-    );
+fn generate_lake_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
+    let substrate = Substrate::Water;
+    let objects = objects::generate_lake_objects(seed, global_x, global_y);
     Tile { substrate, objects }
 }
 
 /// Generates a tile for Meadow biome.
-fn generate_meadow_tile(
-    global_x: i32,
-    global_y: i32,
-    seed: u64,
-) -> Tile {
-    let substrate = generate_meadow_substrate(global_x, global_y, seed);
-    let objects = objects::objects_for_biome(
-        &crate::types::Biome::Meadow, &substrate, seed, global_x, global_y
-    );
+fn generate_meadow_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
+    let perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let offset = seed_offset(seed, BIOME_DISCRIMINATOR_BASE); // Meadow discriminator = 1 * BASE
+    let noise = sample_noise(&perlin, global_x as f64, global_y as f64, SUBSTRATE_SCALE, offset);
+    
+    let substrate = if noise < -0.8 { 
+        Substrate::Dirt 
+    } else { 
+        Substrate::Grass 
+    };
+    
+    let objects = objects::generate_meadow_objects(&substrate, seed, global_x, global_y);
     Tile { substrate, objects }
 }
 
 /// Generates a tile for Forest biome.
-fn generate_forest_tile(
-    global_x: i32,
-    global_y: i32,
-    seed: u64,
-) -> Tile {
-    let substrate = generate_forest_substrate(global_x, global_y, seed);
-    let objects = objects::objects_for_biome(
-        &crate::types::Biome::Forest, &substrate, seed, global_x, global_y
-    );
+fn generate_forest_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
+    let perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let offset = seed_offset(seed, 2 * BIOME_DISCRIMINATOR_BASE); // Forest discriminator = 2 * BASE
+    let noise = sample_noise(&perlin, global_x as f64, global_y as f64, SUBSTRATE_SCALE, offset);
+    
+    let substrate = if noise < -0.4 {
+        Substrate::Dirt
+    } else if noise < 0.2 {
+        Substrate::Grass
+    } else {
+        Substrate::Brush
+    };
+    
+    let objects = objects::generate_forest_objects(&substrate, seed, global_x, global_y);
     Tile { substrate, objects }
 }
 
 /// Generates a tile for Mountain biome.
-fn generate_mountain_tile(
-    global_x: i32,
-    global_y: i32,
-    seed: u64,
-) -> Tile {
-    let substrate = generate_mountain_substrate(global_x, global_y, seed);
-    let objects = objects::objects_for_biome(
-        &crate::types::Biome::Mountain, &substrate, seed, global_x, global_y
-    );
+fn generate_mountain_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
+    let perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let offset = seed_offset(seed, 3 * BIOME_DISCRIMINATOR_BASE); // Mountain discriminator = 3 * BASE
+    let noise = sample_noise(&perlin, global_x as f64, global_y as f64, SUBSTRATE_SCALE, offset);
+    
+    let substrate = if noise < 0.6 {
+        Substrate::Stone
+    } else {
+        Substrate::Dirt
+    };
+    
+    let objects = objects::generate_mountain_objects(&substrate, seed, global_x, global_y);
     Tile { substrate, objects }
 }
 
@@ -119,14 +112,10 @@ pub fn generate_land_terrain(
     // First pass: Generate all tiles with substrate and initial objects
     let mut tiles = std::array::from_fn(|tile_y| {
         std::array::from_fn(|tile_x| {
-            use crate::types::Biome;
             let biome = get_tile_biome(biomes, tile_x, tile_y);
-            
-            // Global tile coordinates for substrate (cross-boundary continuity)
             let global_x = land_x * 8 + tile_x as i32;
             let global_y = land_y * 8 + tile_y as i32;
             
-            // Dispatch to biome-specific tile generation functions
             match biome {
                 Biome::Lake => generate_lake_tile(global_x, global_y, seed),
                 Biome::Meadow => generate_meadow_tile(global_x, global_y, seed),
