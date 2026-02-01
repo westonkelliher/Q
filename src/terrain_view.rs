@@ -118,8 +118,23 @@ pub fn render<R: Renderer>(
                 let world_y = y as f32;
                 let (screen_x, screen_y) = camera.world_to_screen(world_x, world_y, screen_width, screen_height);
                 
-                // Draw single square per land using center biome for color
-                renderer.draw_biome_overview(screen_x, screen_y, tile_size, &land.center);
+                // Draw single square per land with center biome color and colored borders from edge/corner biomes
+                let border_width = 2.0; // Borders to show biome transitions
+                renderer.draw_biome_overview_with_borders(
+                    screen_x,
+                    screen_y,
+                    tile_size,
+                    &land.center,
+                    &land.top,
+                    &land.bottom,
+                    &land.left,
+                    &land.right,
+                    &land.top_left,
+                    &land.top_right,
+                    &land.bottom_left,
+                    &land.bottom_right,
+                    border_width,
+                );
             }
         }
     }

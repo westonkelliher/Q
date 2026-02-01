@@ -75,6 +75,25 @@ pub trait Renderer {
     /// Draw a biome overview tile at the given position with the specified size
     fn draw_biome_overview(&mut self, x: f32, y: f32, size: f32, biome: &Biome);
 
+    /// Draw a biome overview tile with colored borders based on edge/corner biomes
+    /// The center area uses the center biome, borders use edge biomes, corners use corner biomes
+    fn draw_biome_overview_with_borders(
+        &mut self,
+        x: f32,
+        y: f32,
+        size: f32,
+        center: &Biome,
+        top: &Biome,
+        bottom: &Biome,
+        left: &Biome,
+        right: &Biome,
+        top_left: &Biome,
+        top_right: &Biome,
+        bottom_left: &Biome,
+        bottom_right: &Biome,
+        border_width: f32,
+    );
+
     /// Draw a selection indicator (highlight) at the given position and size
     fn draw_selection_indicator(&mut self, x: f32, y: f32, size: f32);
 

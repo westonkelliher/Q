@@ -41,6 +41,21 @@ impl MacroquadRenderer {
         }
     }
 
+    /// Create a natural shadow color using shifting approach
+    /// Darkens colors and applies blue shift through cascading color shifts
+    fn shadow_color(color: Color) -> Color {
+        // Apply shifting: darken and shift colors toward blue
+        let shadow_r = color.r * 0.7;
+        let shadow_g = color.g * 0.72 + color.r * 0.05;
+        let shadow_b = color.b * 0.75 + color.g * 0.05; // Higher blue component creates the blue shift
+            
+        Color::rgb(
+            shadow_r.min(1.0),
+            shadow_g.min(1.0),
+            shadow_b.min(1.0),
+        )
+    }
+
     /// Convert object to color
     fn object_color(object: &Object) -> Color {
         match object {
@@ -126,6 +141,60 @@ impl Renderer for MacroquadRenderer {
         
         // Draw subtle border
         draw_rectangle_lines(x, y, size, size, 0.5, Self::to_mq_color(Color::rgb(0.2, 0.2, 0.2)));
+    }
+
+    fn draw_biome_overview_with_borders(
+        &mut self,
+        x: f32,
+        y: f32,
+        size: f32,
+        center: &Biome,
+        top: &Biome,
+        bottom: &Biome,
+        left: &Biome,
+        right: &Biome,
+        top_left: &Biome,
+        top_right: &Biome,
+        bottom_left: &Biome,
+        bottom_right: &Biome,
+        border_width: f32,
+    ) {
+        // Draw center biome as the main rectangle
+        let center_color = Self::biome_color(center);
+        draw_rectangle(x, y, size, size, Self::to_mq_color(center_color));
+        
+        // Apply natural shadow effect to border colors (darker, blue-shifted)
+        // This makes grid lines distinguishable while showing biome transitions
+        
+        // Draw borders using edge biome colors with shadow effect
+        // Top edge
+        let top_color = Self::shadow_color(Self::biome_color(top));
+        draw_rectangle(x, y, size, border_width, Self::to_mq_color(top_color));
+        
+        // Bottom edge
+        let bottom_color = Self::shadow_color(Self::biome_color(bottom));
+        draw_rectangle(x, y + size - border_width, size, border_width, Self::to_mq_color(bottom_color));
+        
+        // Left edge
+        let left_color = Self::shadow_color(Self::biome_color(left));
+        draw_rectangle(x, y, border_width, size, Self::to_mq_color(left_color));
+        
+        // Right edge
+        let right_color = Self::shadow_color(Self::biome_color(right));
+        draw_rectangle(x + size - border_width, y, border_width, size, Self::to_mq_color(right_color));
+        
+        // Draw corners using corner biome colors with shadow effect (overlay on top of edges)
+        let top_left_color = Self::shadow_color(Self::biome_color(top_left));
+        draw_rectangle(x, y, border_width, border_width, Self::to_mq_color(top_left_color));
+        
+        let top_right_color = Self::shadow_color(Self::biome_color(top_right));
+        draw_rectangle(x + size - border_width, y, border_width, border_width, Self::to_mq_color(top_right_color));
+        
+        let bottom_left_color = Self::shadow_color(Self::biome_color(bottom_left));
+        draw_rectangle(x, y + size - border_width, border_width, border_width, Self::to_mq_color(bottom_left_color));
+        
+        let bottom_right_color = Self::shadow_color(Self::biome_color(bottom_right));
+        draw_rectangle(x + size - border_width, y + size - border_width, border_width, border_width, Self::to_mq_color(bottom_right_color));
     }
 
     fn draw_selection_indicator(&mut self, x: f32, y: f32, size: f32) {
