@@ -1,6 +1,6 @@
 ---
 description: Draw an object as SVG in Super Auto Pets style
-model: sonnet
+model: opus
 ---
 
 # Draw: $ARGUMENTS
@@ -44,4 +44,5 @@ Generate an SVG of "$ARGUMENTS" in Super Auto Pets style.
 
 ## Output
 
-Return ONLY the SVG code in a code block. No explanation before or after.
+Save the SVG to a file at `assets/$ARGUMENTS.svg` (create the directory if needed)
+Confirm the file was created with its path
