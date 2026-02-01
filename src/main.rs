@@ -31,14 +31,14 @@ fn window_conf() -> Conf {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command line arguments
     let args: Vec<String> = std::env::args().collect();
-    let mut use_graphics = false;
+    let mut use_text_mode = false; // Graphics mode is default
     let mut seed = 12347u64; // Default seed
     
     // Parse arguments
     for i in 1..args.len() {
         match args[i].as_str() {
-            "--graphics" | "-g" => {
-                use_graphics = true;
+            "--text" | "-t" | "--print" | "-p" => {
+                use_text_mode = true;
             }
             arg => {
                 // Try to parse as seed if it's a number
@@ -61,14 +61,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     generate_world(&mut world, seed, 11, -5, 15, 5);
     println!("World now has {} lands", world.terrain.len());
     
-    if use_graphics {
-        println!("\nStarting graphics mode...");
-        println!("Controls: WASD/Arrows to move, Z/X to zoom, ESC to exit");
-        graphics_loop::run_graphics_loop(&world).await?;
-    } else {
+    if use_text_mode {
         println!("\nPrinting world overview (showing -5 to 5):");
         println!("(Areas with ⬛ are ungenerated, other areas show biomes)");
-        println!("(Use --graphics or -g flag to enable graphics mode)");
         print_world(&world, -5, -5, 5, 5);
         
         println!("\nShowing sample lands:");
@@ -81,6 +76,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(land) = world.terrain.get(&(2, -1)) {
             print_land(land);
         }
+    } else {
+        println!("\nStarting graphics mode...");
+        println!("Controls: WASD/Arrows to move, Z to toggle view, X to toggle adjacent lands, ESC to exit");
+        graphics_loop::run_graphics_loop(&world).await?;
     }
     
     println!("\nSaving world...");
