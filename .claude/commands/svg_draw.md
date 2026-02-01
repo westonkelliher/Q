@@ -13,7 +13,7 @@ Generate an SVG of "$ARGUMENTS" in Super Auto Pets style.
    - **Base**: Main fill color
    - **Highlight**: 10-20% lighter, used for top/light-facing areas
    - **Shadow**: 10-20% darker, used for bottom/shadow areas
-3. **Outlines**: Every visible shape gets `stroke="#000" stroke-width="2"`
+3. **Outlines**: Every visible shape gets `stroke="#000" stroke-width="3"`
 4. **Shapes**: Use only:
    - `<circle>` and `<ellipse>` for rounded forms
    - `<rect rx="...">` with rounded corners
@@ -35,9 +35,9 @@ Generate an SVG of "$ARGUMENTS" in Super Auto Pets style.
 ```svg
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <!-- Back layers first -->
-  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#8B4513" stroke="#000" stroke-width="2"/>
+  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#8B4513" stroke="#000" stroke-width="3"/>
   <!-- Front layers last -->
-  <circle cx="50" cy="45" rx="25" fill="#A0522D" stroke="#000" stroke-width="2"/>
+  <circle cx="50" cy="45" rx="25" fill="#A0522D" stroke="#000" stroke-width="3"/>
 </svg>
 ```
 
