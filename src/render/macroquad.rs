@@ -22,12 +22,12 @@ impl MacroquadRenderer {
     /// Convert substrate to color
     fn substrate_color(substrate: &Substrate) -> Color {
         match substrate {
-            Substrate::Grass => Color::rgb(0.2, 0.8, 0.2),      // Green
+            Substrate::Grass => Color::rgb(0.7, 0.9, 0.4),      // Light green/yellow (same as meadow)
             Substrate::Dirt => Color::rgb(0.6, 0.4, 0.2),       // Brown
             Substrate::Stone => Color::rgb(0.7, 0.7, 0.7),      // Gray
             Substrate::Mud => Color::rgb(0.4, 0.3, 0.2),        // Dark brown
             Substrate::Water => Color::rgb(0.2, 0.4, 0.9),      // Blue
-            Substrate::Brush => Color::rgb(0.6, 0.8, 0.3),      // Yellow-green
+            Substrate::Brush => Color::rgb(0.5, 0.75, 0.2),    // More saturated yellow-green
         }
     }
 

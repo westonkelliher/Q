@@ -2,8 +2,8 @@
 
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
-> **Last Updated**: 2026-01-31
-> **Previous Commit**: `41a5b9b`
+> **Last Updated**: 2026-01-31  
+> **Previous Commit**: `aa62f174`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -183,41 +183,46 @@ generation/
 | Biome    | Substrates         | Noise Thresholds                      |
 |----------|-------------------|---------------------------------------|
 | Lake     | Water only        | (always)                              |
-| Meadow   | Dirt, Grass       | < -0.3 → Dirt, else Grass             |
-| Forest   | Dirt, Grass, Brush| < -0.4 → Dirt, < 0.5 → Grass, else Brush |
+| Meadow   | Dirt, Grass       | < -0.8 → Dirt (rare), else Grass     |
+| Forest   | Dirt, Grass, Brush| < -0.4 → Dirt, < 0.2 → Grass, else Brush (increased brush) |
 | Mountain | Stone, Dirt       | < 0.6 → Stone, else Dirt              |
 
 **Global Continuity**: Substrate noise uses global tile coordinates (`land * 8 + tile`), ensuring patterns blend seamlessly across land boundaries.
 
 #### `generation/objects.rs` - Object Generation
 
-**Purpose**: Object spawning rules per biome with pseudo-random sparse placement.
+**Purpose**: Object spawning rules per biome with substrate-aware placement and biome-specific rates.
 
 **Key Functions**:
-- `objects_for_biome(biome, seed, land_x, land_y, tile_x, tile_y) -> Vec<Object>`: Spawns objects using deterministic pseudo-random placement
+- `objects_for_biome(biome, substrate, seed, land_x, land_y, tile_x, tile_y) -> Vec<Object>`: Dispatches to biome-specific generation functions
+- `generate_lake_objects(...)`: Generates objects for Lake biome
+- `generate_meadow_objects(substrate, ...)`: Generates objects for Meadow biome with substrate awareness
+- `generate_forest_objects(substrate, ...)`: Generates objects for Forest biome with substrate awareness
+- `generate_mountain_objects(substrate, ...)`: Generates objects for Mountain biome with substrate awareness
 - `add_sticks_near_trees(tiles, seed, land_x, land_y)`: Adds sticks deterministically near trees in a second pass
 - `tile_random_value(seed, land_x, land_y, tile_x, tile_y) -> f64`: Generates deterministic pseudo-random value for a tile using SplitMix64-style hashing
 
 **Object Placement**:
-- Objects are placed sparsely: 5-10% of tiles have an object (7.5% threshold)
+- **Substrate-aware**: Trees cannot grow on Stone substrate
+- **Biome-specific rates**: Each biome has its own object placement thresholds
 - Placement uses high-quality SplitMix64-inspired hash function (no correlation patterns)
 - Deterministic: same seed produces same object placement
-- **Sticks near trees**: After initial placement, sticks are deterministically added near trees (within 1 tile radius, 15% chance per nearby empty tile, with tree position included in seed for independent randomness)
+- **Sticks near trees**: After initial placement, sticks are deterministically added near trees (within 1 tile radius, 5% chance per nearby empty tile, with tree position included in seed for independent randomness)
 
 **Object Rules**:
-| Biome    | Object Type                | Notes                                  |
-|----------|---------------------------|----------------------------------------|
-| Lake     | Rock                      | Always Rock when object is placed      |
-| Meadow   | Rock or Stick             | Rock 80%, Stick 20%                    |
-| Forest   | Tree, Rock, or Stick      | Tree 50%, Rock 40%, Stick 10%          |
-| Mountain | Rock or Tree              | Rock 70%, Tree 30%                     |
+| Biome    | Object Placement                                         | Rules                                                            |
+|----------|---------------------------------------------------------|------------------------------------------------------------------|
+| Lake     | ~7.5% rocks                                              | Always Rock when placed                                          |
+| Meadow   | Trees: 3-5% of grass/dirt tiles<br>Rocks/Sticks: ~5-8% | Trees only on Grass/Dirt<br>Rock (80%), Stick (20%) otherwise   |
+| Forest   | Trees: 40% of grass/brush/dirt<br>Rocks/Sticks: ~8-12%  | Trees only on Grass/Brush/Dirt<br>Rock (75%), Stick (25%) otherwise |
+| Mountain | Rocks: 15-20% of all tiles<br>Trees: 30-40% of dirt    | Trees only on Dirt<br>Rocks can spawn on Stone or Dirt          |
 
 **Stick Placement Near Trees**:
 - After initial object generation, a second pass adds sticks near trees
 - Checks all tiles within 1 tile radius (including diagonals) of each tree
 - Only places sticks on tiles that don't already have objects
 - Uses deterministic random value with seed offset `2000003` for consistency
-- 15% probability per nearby empty tile
+- 5% probability per nearby empty tile (reduced from 15%)
 
 #### `generation/mod.rs` - Public API
 
@@ -226,8 +231,8 @@ generation/
 1. **`generate_land_terrain(land_x, land_y, biomes, seed, substrate_perlin)`**
    - Generates 8x8 tile grid using the biome at each tile position
    - Substrate uses global Perlin for cross-boundary continuity
-   - Objects use pseudo-random sparse placement (5-10% of tiles)
-   - Two-pass generation: first pass places initial objects, second pass adds sticks near trees deterministically
+   - Objects use substrate-aware, biome-specific placement rates
+   - Two-pass generation: first pass places initial objects (substrate-aware), second pass adds sticks near trees deterministically
 
 2. **`generate_world(world, seed, x1, y1, x2, y2)`**
    - Creates biome Perlin and substrate Perlin from seed
@@ -510,14 +515,14 @@ Each biome generates specific substrates based on noise values:
 
 - **Lake**: Always Water (uniform appearance)
 
-- **Meadow**: Uses noise threshold at -0.3
-  - Below threshold → Dirt
-  - Otherwise → Grass
+- **Meadow**: Uses noise threshold at -0.8
+  - Below threshold → Dirt (very rare)
+  - Otherwise → Grass (almost entirely grass)
 
 - **Forest**: Uses two noise thresholds
   - Below -0.4 → Dirt
-  - Between -0.4 and 0.5 → Grass
-  - Above 0.5 → Brush
+  - Between -0.4 and 0.2 → Grass
+  - Above 0.2 → Brush (increased likelihood)
 
 - **Mountain**: Uses noise threshold at 0.6
   - Below threshold → Stone (primary, ~80% of tiles)
@@ -525,18 +530,19 @@ Each biome generates specific substrates based on noise values:
 
 ### Object Generation
 
-Objects are placed pseudo-randomly with sparse distribution (5-10% of tiles):
+Objects are placed pseudo-randomly with biome-specific rates and substrate-aware placement:
 
 - **Placement**: SplitMix64-inspired hash function seeded by world seed and tile coordinates (excellent statistical properties, no correlation patterns)
-- **Sparsity**: 7.5% threshold (middle of 5-10% range)
+- **Substrate-aware**: Trees cannot grow on Stone substrate
+- **Biome-specific rates**: Each biome has different placement thresholds (see Object Rules table)
 - **No Noise**: Completely pseudo-random placement (no noise patterns)
-- **Sticks Near Trees**: After initial placement, sticks are deterministically added near trees (within 1 tile radius, 15% chance per nearby empty tile, each tree-tile pair has independent randomness)
+- **Sticks Near Trees**: After initial placement, sticks are deterministically added near trees (within 1 tile radius, 5% chance per nearby empty tile, each tree-tile pair has independent randomness)
 
 **Object Types by Biome**:
-- **Lake**: Rock (always Rock when object is placed)
-- **Meadow**: Rock (80%) or Stick (20%)
-- **Forest**: Tree (50%), Rock (40%), or Stick (10%)
-- **Mountain**: Rock (70%) or Tree (30%)
+- **Lake**: Rock (~7.5% of tiles)
+- **Meadow**: Trees (3-5% on grass/dirt), Rock (80%) or Stick (20%) on ~5-8% of tiles
+- **Forest**: Trees (40% on grass/brush/dirt), Rock (75%) or Stick (25%) on ~8-12% of tiles
+- **Mountain**: Rocks (15-20% of all tiles), Trees (30-40% on dirt patches only)
 
 ---
 

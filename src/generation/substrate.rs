@@ -43,21 +43,21 @@ pub fn get_substrate_noise(
 /// | Biome    | Substrates              | Noise Thresholds           |
 /// |----------|-------------------------|----------------------------|
 /// | Lake     | Water only              | (always)                   |
-/// | Meadow   | Dirt, Grass             | < -0.3 → Dirt, else Grass  |
-/// | Forest   | Dirt, Grass, Brush      | < -0.4 → Dirt, < 0.5 → Grass, else Brush |
+/// | Meadow   | Dirt, Grass             | < -0.8 → Dirt (rare), else Grass  |
+/// | Forest   | Dirt, Grass, Brush      | < -0.4 → Dirt, < 0.2 → Grass, else Brush |
 /// | Mountain | Stone, Dirt             | < 0.6 → Stone, else Dirt   |
 pub fn substrate_for_biome(biome: &Biome, noise: f64) -> Substrate {
     match biome {
         Biome::Lake => Substrate::Water,
         
         Biome::Meadow => {
-            if noise < -0.3 { Substrate::Dirt }
+            if noise < -0.8 { Substrate::Dirt }  // Very rare dirt patches
             else { Substrate::Grass }
         }
         
         Biome::Forest => {
             if noise < -0.4 { Substrate::Dirt }
-            else if noise < 0.5 { Substrate::Grass }
+            else if noise < 0.2 { Substrate::Grass }
             else { Substrate::Brush }
         }
         

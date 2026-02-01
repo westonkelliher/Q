@@ -1,77 +1,163 @@
-//! Object generation based on biome type.
+//! Object generation based on biome type and substrate.
 //!
-//! Objects (trees, rocks, sticks) are spawned pseudo-randomly with sparse placement.
-//! 5-10% of tiles will have an object, determined deterministically by tile coordinates and seed.
+//! Objects (trees, rocks, sticks) are spawned pseudo-randomly with biome-specific
+//! placement rates. Trees cannot grow on stone substrate.
 
-use crate::types::{Biome, Object};
+use crate::types::{Biome, Object, Substrate};
 
-/// Probability threshold for object placement (7.5% - middle of 5-10% range).
-const OBJECT_PLACEMENT_THRESHOLD: f64 = 0.075;
-
-/// Generates objects for a tile based on its biome and a pseudo-random value.
+/// Generates objects for a tile based on its biome, substrate, and a pseudo-random value.
 ///
-/// Objects are placed sparsely (5-10% of tiles) using completely pseudo-random placement.
-/// When an object is placed, the biome determines which type of object appears.
-///
-/// # Object Rules by Biome
-///
-/// | Biome    | Object Type                |
-/// |----------|----------------------------|
-/// | Lake     | Rock                       |
-/// | Meadow   | Rock (80%) or Stick (20%) |
-/// | Forest   | Tree (50%), Rock (40%), or Stick (10%) |
-/// | Mountain | Rock (70%) or Tree (30%)  |
+/// This function dispatches to biome-specific generation functions that implement
+/// substrate-aware placement rules.
 pub fn objects_for_biome(
     biome: &Biome,
+    substrate: &Substrate,
     seed: u64,
     land_x: i32,
     land_y: i32,
     tile_x: usize,
     tile_y: usize,
 ) -> Vec<Object> {
-    // Generate deterministic pseudo-random value for this tile
+    match biome {
+        Biome::Lake => generate_lake_objects(seed, land_x, land_y, tile_x, tile_y),
+        Biome::Meadow => generate_meadow_objects(substrate, seed, land_x, land_y, tile_x, tile_y),
+        Biome::Forest => generate_forest_objects(substrate, seed, land_x, land_y, tile_x, tile_y),
+        Biome::Mountain => generate_mountain_objects(substrate, seed, land_x, land_y, tile_x, tile_y),
+    }
+}
+
+/// Generates objects for Lake biome.
+///
+/// Lake always places Rock when an object is placed (~7.5% of tiles).
+fn generate_lake_objects(
+    seed: u64,
+    land_x: i32,
+    land_y: i32,
+    tile_x: usize,
+    tile_y: usize,
+) -> Vec<Object> {
+    const PLACEMENT_THRESHOLD: f64 = 0.075; // 7.5% of tiles
+    
     let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
     
-    // Check if this tile should have an object (5-10% chance)
-    if random_value >= OBJECT_PLACEMENT_THRESHOLD {
-        return Vec::new();
+    if random_value < PLACEMENT_THRESHOLD {
+        vec![Object::Rock]
+    } else {
+        Vec::new()
     }
+}
+
+/// Generates objects for Meadow biome.
+///
+/// - Trees: 3-5% of grass/dirt tiles (trees cannot grow on stone)
+/// - Rocks/Sticks: ~5-8% of all tiles (Rock 80%, Stick 20%)
+fn generate_meadow_objects(
+    substrate: &Substrate,
+    seed: u64,
+    land_x: i32,
+    land_y: i32,
+    tile_x: usize,
+    tile_y: usize,
+) -> Vec<Object> {
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.04; // 4% average (middle of 3-5% range)
+    const OTHER_PLACEMENT_THRESHOLD: f64 = 0.065; // 6.5% average (middle of 5-8% range)
     
-    // Generate a second random value to determine object type
+    let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
     let object_type_value = tile_random_value(seed.wrapping_add(1), land_x, land_y, tile_x, tile_y);
     
-    // Place one object based on biome
-    let object = match biome {
-        Biome::Lake => Object::Rock,
-        
-        Biome::Meadow => {
-            if object_type_value < 0.8 {
-                Object::Rock
-            } else {
-                Object::Stick
-            }
-        }
-        
-        Biome::Forest => {
-            if object_type_value < 0.5 {
-                Object::Tree
-            } else if object_type_value < 0.9 {
-                Object::Rock
-            } else {
-                Object::Stick
-            }
-        }
-        
-        Biome::Mountain => {
-            if object_type_value < 0.7 {
-                Object::Rock
-            } else {
-                Object::Tree
-            }
-        }
-    };
+    // Check if tile is eligible for trees (grass or dirt only)
+    let can_have_tree = matches!(substrate, Substrate::Grass | Substrate::Dirt);
     
-    vec![object]
+    // Try to place a tree first if substrate is eligible
+    if can_have_tree && random_value < TREE_PLACEMENT_THRESHOLD {
+        return vec![Object::Tree];
+    }
+    
+    // Otherwise, try to place rock or stick
+    if random_value < OTHER_PLACEMENT_THRESHOLD {
+        if object_type_value < 0.8 {
+            vec![Object::Rock]
+        } else {
+            vec![Object::Stick]
+        }
+    } else {
+        Vec::new()
+    }
+}
+
+/// Generates objects for Forest biome.
+///
+/// - Trees: 40% of grass/brush/dirt tiles (trees cannot grow on stone)
+/// - Rocks/Sticks: ~8-12% of all tiles (Rock 75%, Stick 25%)
+fn generate_forest_objects(
+    substrate: &Substrate,
+    seed: u64,
+    land_x: i32,
+    land_y: i32,
+    tile_x: usize,
+    tile_y: usize,
+) -> Vec<Object> {
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.40; // 40% of eligible tiles
+    const OTHER_PLACEMENT_THRESHOLD: f64 = 0.10; // 10% average (middle of 8-12% range)
+    
+    let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
+    let object_type_value = tile_random_value(seed.wrapping_add(1), land_x, land_y, tile_x, tile_y);
+    
+    // Check if tile is eligible for trees (grass, brush, or dirt only)
+    let can_have_tree = matches!(substrate, Substrate::Grass | Substrate::Brush | Substrate::Dirt);
+    
+    // Use separate random values for trees vs rocks/sticks to allow independent placement
+    let tree_value = random_value;
+    let rock_stick_value = tile_random_value(seed.wrapping_add(2), land_x, land_y, tile_x, tile_y);
+    
+    // Try to place a tree if substrate is eligible
+    if can_have_tree && tree_value < TREE_PLACEMENT_THRESHOLD {
+        return vec![Object::Tree];
+    }
+    
+    // Try to place rock or stick (independent of tree placement)
+    if rock_stick_value < OTHER_PLACEMENT_THRESHOLD {
+        if object_type_value < 0.75 {
+            vec![Object::Rock]
+        } else {
+            vec![Object::Stick]
+        }
+    } else {
+        Vec::new()
+    }
+}
+
+/// Generates objects for Mountain biome.
+///
+/// - Rocks: 15-20% of all tiles (can spawn on stone or dirt)
+/// - Trees: 30-40% of dirt patches only (trees cannot grow on stone)
+fn generate_mountain_objects(
+    substrate: &Substrate,
+    seed: u64,
+    land_x: i32,
+    land_y: i32,
+    tile_x: usize,
+    tile_y: usize,
+) -> Vec<Object> {
+    const ROCK_PLACEMENT_THRESHOLD: f64 = 0.175; // 17.5% average (middle of 15-20% range)
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.35; // 35% average (middle of 30-40% range)
+    
+    let random_value = tile_random_value(seed, land_x, land_y, tile_x, tile_y);
+    
+    // Check if tile is eligible for trees (dirt only in mountains)
+    let can_have_tree = matches!(substrate, Substrate::Dirt);
+    
+    // Try to place a tree first if substrate is dirt
+    if can_have_tree && random_value < TREE_PLACEMENT_THRESHOLD {
+        return vec![Object::Tree];
+    }
+    
+    // Otherwise, try to place rock (rocks can spawn on stone or dirt)
+    if random_value < ROCK_PLACEMENT_THRESHOLD {
+        vec![Object::Rock]
+    } else {
+        Vec::new()
+    }
 }
 
 /// Adds sticks deterministically near trees in a land.
@@ -79,6 +165,7 @@ pub fn objects_for_biome(
 /// For each tile containing a tree, checks nearby tiles (within 1 tile radius)
 /// and deterministically places sticks on some of them based on a deterministic
 /// random value. Sticks are only added to tiles that don't already have objects.
+/// Reduced likelihood: 5% chance per nearby empty tile (down from 15%).
 pub fn add_sticks_near_trees(
     tiles: &mut [[crate::types::Tile; 8]; 8],
     seed: u64,
@@ -129,8 +216,8 @@ pub fn add_sticks_near_trees(
                                 nearby_y as usize,
                             );
                             
-                            // 15% chance to place a stick near a tree
-                            if stick_value < 0.15 {
+                            // 5% chance to place a stick near a tree (reduced from 15%)
+                            if stick_value < 0.05 {
                                 nearby_tile.objects.push(crate::types::Object::Stick);
                             }
                         }

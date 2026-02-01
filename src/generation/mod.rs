@@ -64,9 +64,9 @@ pub fn generate_land_terrain(
             );
             let substrate = substrate::substrate_for_biome(biome, substrate_noise);
             
-            // Generate objects (pseudo-random sparse placement)
+            // Generate objects (pseudo-random sparse placement, substrate-aware)
             let objects = objects::objects_for_biome(
-                biome, seed, land_x, land_y, tile_x, tile_y
+                biome, &substrate, seed, land_x, land_y, tile_x, tile_y
             );
             
             Tile { substrate, objects }
