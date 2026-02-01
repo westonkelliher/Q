@@ -16,6 +16,9 @@ pub use instance::{ComponentInstance, ItemInstance};
 pub use item_def::{ComponentSlot, ItemCategories, ItemDefinition, Property, ToolType};
 pub use provenance::{ConsumedInput, Provenance};
 pub use quality::Quality;
-pub use recipe::{Construction, MaterialInput, QualityFormula, Recipe, RecipeOutput, ToolRequirement, WorldObjectRequirement};
+pub use recipe::{
+    ComponentRequirement, Construction, MaterialInput, ProvenanceRequirements,
+    QualityFormula, Recipe, RecipeOutput, ToolRequirement, WorldObjectRequirement,
+};
 pub use registry::Registry;
 pub use world_object::WorldObjectKind;

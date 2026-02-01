@@ -3,7 +3,7 @@
 A crafting system with tag-based material compatibility, multi-component items, and full provenance tracking.
 
 > **Last Updated**: 2026-02-01  
-> **Previous Commit**: `0f88afd`  
+> **Previous Commit**: `af4070d`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Features
@@ -46,13 +46,32 @@ ItemInstance ─┬─> ComponentInstance (slot → material)
 
 ### Requirements (for recipes)
 
-**MaterialInput**: Specifies what materials a recipe consumes
+**MaterialInput**: Specifies what materials a recipe consumes, with optional recursive provenance requirements
 ```rust
 MaterialInput {
-    item_id: Option<ItemId>,        // specific item, OR
-    required_tags: Vec<MaterialTag>, // any item with ALL these tags
+    item_id: Option<ItemId>,              // specific item, OR
+    required_tags: Vec<MaterialTag>,      // any item with ALL these tags
     quantity: u32,
     min_quality: Option<Quality>,
+    component_reqs: Vec<ComponentRequirement>,      // requirements on item's components
+    provenance_reqs: Option<Box<ProvenanceRequirements>>,  // recursive!
+}
+```
+
+**ComponentRequirement**: Requirements on a specific component of a multi-part item
+```rust
+ComponentRequirement {
+    slot_name: String,                      // e.g., "blade"
+    required_material_tags: Vec<MaterialTag>, // e.g., ["manasteel"]
+}
+```
+
+**ProvenanceRequirements**: Recursive requirements on how an item was made
+```rust
+ProvenanceRequirements {
+    consumed_inputs: Vec<MaterialInput>,  // requirements on consumed materials
+    tool: Option<MaterialInput>,          // requirements on tool used (recursive!)
+    world_object: Option<MaterialInput>,  // requirements on world object used (recursive!)
 }
 ```
 
@@ -100,6 +119,154 @@ Storing full recursive history would duplicate data. Storing immediate inputs al
 
 ### Why Separate Tags for Materials and World Objects?
 Different namespaces prevent confusion (a `metal` material tag vs a `metal` world object tag could mean different things).
+
+---
+
+## Translating Natural Language to MaterialInput
+
+Recipe requirements are often expressed in natural language. Here's how to translate them into `MaterialInput` structures.
+
+### Grammar Pattern
+
+Natural language requirements follow this pattern:
+```
+[item] (whose [source] came from [item] (that was [verb] with [tool/material]))
+```
+
+Each nested clause maps to a level of `ProvenanceRequirements`.
+
+### Translation Rules
+
+| Natural Language | Code Structure |
+|-----------------|----------------|
+| "a heart" | `required_tags: vec![MaterialTag("heart")]` |
+| "whose source..." | `provenance_reqs: Some(Box::new(...))` |
+| "came from [X]" (world object) | `world_object: Some(MaterialInput { ... })` |
+| "made with [X]" (consumed) | `consumed_inputs: vec![MaterialInput { ... }]` |
+| "using [tool]" | `tool: Some(MaterialInput { ... })` |
+| "whose [slot] is [material]" | `component_reqs: vec![ComponentRequirement { slot_name, required_material_tags }]` |
+
+### Example: Complex Provenance Requirement
+
+**Natural language**: 
+> "A heart, whose source carcass came from a wolf slain with a weapon whose blade is manasteel."
+
+**Parse tree**:
+```
+A heart
+└── whose source carcass came from
+    └── a wolf
+        └── slain with
+            └── a weapon
+                └── whose blade is manasteel
+```
+
+**Translation**:
+```rust
+MaterialInput {
+    // "A heart"
+    required_tags: vec![MaterialTag("heart".into())],
+    quantity: 1,
+    
+    // "whose source carcass came from..."
+    provenance_reqs: Some(Box::new(ProvenanceRequirements {
+        // "came from" a world object (the placed carcass)
+        world_object: Some(MaterialInput {
+            // "a wolf" (wolf_carcass)
+            required_tags: vec![MaterialTag("wolf_carcass".into())],
+            
+            // "slain with..."
+            provenance_reqs: Some(Box::new(ProvenanceRequirements {
+                // "slain with a weapon"
+                tool: Some(MaterialInput {
+                    required_tags: vec![MaterialTag("weapon".into())],
+                    
+                    // "whose blade is manasteel"
+                    component_reqs: vec![
+                        ComponentRequirement {
+                            slot_name: "blade".into(),
+                            required_material_tags: vec![MaterialTag("manasteel".into())],
+                        }
+                    ],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })),
+            ..Default::default()
+        }),
+        ..Default::default()
+    })),
+    ..Default::default()
+}
+```
+
+### More Examples
+
+**"Iron ore"** (simple):
+```rust
+MaterialInput {
+    required_tags: vec![MaterialTag("iron_ore".into())],
+    quantity: 1,
+    ..Default::default()
+}
+```
+
+**"A gem polished with a rare or better tool"**:
+```rust
+MaterialInput {
+    required_tags: vec![MaterialTag("gem".into())],
+    provenance_reqs: Some(Box::new(ProvenanceRequirements {
+        tool: Some(MaterialInput {
+            min_quality: Some(Quality::Rare),
+            ..Default::default()
+        }),
+        ..Default::default()
+    })),
+    ..Default::default()
+}
+```
+
+**"Leather from a beast killed at a sacrificial altar"**:
+```rust
+MaterialInput {
+    required_tags: vec![MaterialTag("leather".into())],
+    provenance_reqs: Some(Box::new(ProvenanceRequirements {
+        consumed_inputs: vec![
+            MaterialInput {
+                required_tags: vec![MaterialTag("hide".into())],
+                provenance_reqs: Some(Box::new(ProvenanceRequirements {
+                    world_object: Some(MaterialInput {
+                        required_tags: vec![MaterialTag("beast_carcass".into())],
+                        provenance_reqs: Some(Box::new(ProvenanceRequirements {
+                            world_object: Some(MaterialInput {
+                                required_tags: vec![MaterialTag("sacrificial_altar".into())],
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }
+        ],
+        ..Default::default()
+    })),
+    ..Default::default()
+}
+```
+
+### Translation Checklist
+
+1. **Identify the base item** → `required_tags` or `item_id`
+2. **Find "whose/from/with" clauses** → each creates a `ProvenanceRequirements` level
+3. **Determine relationship type**:
+   - "made from/using [material]" → `consumed_inputs`
+   - "made with [tool]" → `tool`
+   - "at/from [place/object]" → `world_object`
+4. **Check for component requirements** → "whose [slot] is [material]" → `component_reqs`
+5. **Recurse** for nested clauses
 
 ---
 
