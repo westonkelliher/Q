@@ -1,6 +1,34 @@
 use noise::{NoiseFn, Perlin};
 use crate::types::{Biome, Land, Object, Substrate, Tile, World};
 
+/// Get substrate noise value for a specific biome at global tile coordinates.
+/// Each biome has its own noise function (via unique offset) so substrate patterns
+/// are different per biome, but globally continuous across land boundaries.
+fn get_substrate_noise(biome: &Biome, global_tile_x: i32, global_tile_y: i32, perlin: &Perlin, seed: u64) -> f64 {
+    // Each biome gets a unique offset derived from its type and the world seed
+    // This ensures different biomes have different substrate patterns
+    let biome_offset: u64 = match biome {
+        Biome::Lake => 0,
+        Biome::Meadow => 1,
+        Biome::Forest => 2,
+        Biome::Mountain => 3,
+    };
+    
+    // Create seed-based offsets unique to this biome
+    let combined_seed = seed.wrapping_add(biome_offset.wrapping_mul(7919)); // 7919 is prime
+    let offset_x = ((combined_seed.wrapping_mul(1103515245).wrapping_add(12345)) % 1000000) as f64 / 1000.0;
+    let offset_y = ((combined_seed.wrapping_mul(2147483647).wrapping_add(54321)) % 1000000) as f64 / 1000.0;
+    
+    // Scale factor for feature size - higher value = more variance per land
+    // With scale=0.4, a single 8x8 land spans ~3.2 noise units, giving good substrate variation
+    let scale = 0.4;
+    
+    let noise_x = (global_tile_x as f64) * scale + offset_x;
+    let noise_y = (global_tile_y as f64) * scale + offset_y;
+    
+    perlin.get([noise_x, noise_y])
+}
+
 pub fn determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome {
     // Create a seed-based offset to ensure (0, 0) isn't always the same biome
     // Use a simple hash-like function to derive offset from seed
@@ -119,22 +147,31 @@ pub fn get_tile_biome(biomes: &LandBiomes, tile_x: usize, tile_y: usize) -> &Bio
 /// Generate terrain tiles for a land based on its 9 biomes.
 /// Uses simple zone-based generation: center biome for center tiles,
 /// edge biomes for edge tiles, corner biomes for corner tiles.
-pub fn generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed: u64) -> [[Tile; 8]; 8] {
-    // Create a Perlin noise generator for this specific land
-    let land_seed = seed
+/// 
+/// The substrate_perlin should be a globally-seeded Perlin noise generator
+/// to ensure substrate patterns are continuous across land boundaries.
+pub fn generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed: u64, substrate_perlin: &Perlin) -> [[Tile; 8]; 8] {
+    // Create a separate Perlin for object generation (can be land-specific since objects
+    // don't need to blend across boundaries)
+    let object_seed = seed
         .wrapping_add((land_x as u64).wrapping_mul(73856093))
         .wrapping_add((land_y as u64).wrapping_mul(19349663));
-    let perlin = Perlin::new(land_seed as u32);
+    let object_perlin = Perlin::new(object_seed as u32);
     
     std::array::from_fn(|tile_y| {
         std::array::from_fn(|tile_x| {
             // Get the biome for this specific tile
             let biome = get_tile_biome(biomes, tile_x, tile_y);
             
-            // Generate noise for variation
-            let noise_x = (land_x as f64) + (tile_x as f64) * 0.125;
-            let noise_y = (land_y as f64) + (tile_y as f64) * 0.125;
-            let noise_value = perlin.get([noise_x * 0.5, noise_y * 0.5]);
+            // Calculate global tile coordinates for substrate noise
+            // Land (0,0) has tiles (0,0) to (7,7)
+            // Land (1,0) has tiles (8,0) to (15,7)
+            // etc.
+            let global_tile_x = land_x * 8 + tile_x as i32;
+            let global_tile_y = land_y * 8 + tile_y as i32;
+            
+            // Get biome-specific substrate noise (globally continuous)
+            let noise_value = get_substrate_noise(biome, global_tile_x, global_tile_y, substrate_perlin, seed);
             
             // Determine substrate based on biome
             let substrate = match biome {
@@ -156,25 +193,29 @@ pub fn generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed
                 }
             };
             
-            // Generate objects based on biome
+            // Generate objects based on biome (using land-specific noise)
+            let obj_noise_x = (land_x as f64) + (tile_x as f64) * 0.125;
+            let obj_noise_y = (land_y as f64) + (tile_y as f64) * 0.125;
+            let obj_noise_value = object_perlin.get([obj_noise_x * 0.5, obj_noise_y * 0.5]);
+            
             let mut objects = Vec::new();
             match biome {
                 Biome::Lake => {
-                    if noise_value > 0.7 { objects.push(Object::Rock); }
+                    if obj_noise_value > 0.7 { objects.push(Object::Rock); }
                 }
                 Biome::Meadow => {
-                    if noise_value > 0.5 { objects.push(Object::Rock); }
-                    if noise_value > 0.8 { objects.push(Object::Stick); }
+                    if obj_noise_value > 0.5 { objects.push(Object::Rock); }
+                    if obj_noise_value > 0.8 { objects.push(Object::Stick); }
                 }
                 Biome::Forest => {
-                    if noise_value > 0.0 { objects.push(Object::Tree); }
-                    if noise_value > 0.6 { objects.push(Object::Rock); }
-                    if noise_value > 0.8 { objects.push(Object::Stick); }
+                    if obj_noise_value > 0.0 { objects.push(Object::Tree); }
+                    if obj_noise_value > 0.6 { objects.push(Object::Rock); }
+                    if obj_noise_value > 0.8 { objects.push(Object::Stick); }
                 }
                 Biome::Mountain => {
-                    if noise_value > 0.2 { objects.push(Object::Rock); }
-                    if noise_value > 0.6 { objects.push(Object::Rock); }
-                    if noise_value > 0.9 { objects.push(Object::Tree); }
+                    if obj_noise_value > 0.2 { objects.push(Object::Rock); }
+                    if obj_noise_value > 0.6 { objects.push(Object::Rock); }
+                    if obj_noise_value > 0.9 { objects.push(Object::Tree); }
                 }
             }
             
@@ -185,13 +226,17 @@ pub fn generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed
 
 pub fn generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y2: i32) {
     // Create a seeded Perlin noise generator for biome determination
-    let perlin = Perlin::new(seed as u32);
+    let biome_perlin = Perlin::new(seed as u32);
+    
+    // Create a separate Perlin for substrate generation (different seed for variety)
+    // Using a transformed seed ensures substrate patterns differ from biome patterns
+    let substrate_perlin = Perlin::new(seed.wrapping_add(999983) as u32); // 999983 is prime
     
     // Generate terrain for the specified range
     for x in x1..=x2 {
         for y in y1..=y2 {
-            let biomes = calculate_land_biomes(x, y, &perlin, seed);
-            let tiles = generate_land_terrain(x, y, &biomes, seed);
+            let biomes = calculate_land_biomes(x, y, &biome_perlin, seed);
+            let tiles = generate_land_terrain(x, y, &biomes, seed, &substrate_perlin);
             
             let land = Land {
                 tiles,
