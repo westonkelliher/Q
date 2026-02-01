@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Commit**: `44efeee513ce85781000a70a94c41aa46aa5213a`  
+> **Commit**: `d81d211`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -26,15 +26,16 @@ This document provides comprehensive technical context for LLMs working on this 
 **Q** is a procedural world generation system that creates infinite, deterministic 2D worlds using Perlin noise. The world is organized hierarchically:
 
 - **World**: Top-level container with a name and terrain map
-- **Land**: 8x8 grid of tiles at coordinates (x, y), each with a biome
+- **Land**: 8x8 grid of tiles at coordinates (x, y), with 9 biomes arranged in a 3x3 pattern
 - **Tile**: Individual cell with a substrate type and optional objects
 
 ### Key Characteristics
 
 - **Deterministic**: Same seed produces identical worlds
 - **Incremental**: Generate terrain on-demand for specific coordinate ranges
-- **Neighbor-aware**: Terrain generation considers adjacent biomes for natural transitions
-- **Biome-based**: Each land has a primary biome that influences tile generation
+- **9-Biome System**: Each land contains 9 biomes (center, 4 edges, 4 corners) using biome sub-coordinates
+- **Edge Sharing**: Adjacent lands automatically share edge biomes through deterministic biome sub-coordinate system
+- **Biome-based**: Tile generation uses zone-based mapping (center/edge/corner) to determine biome per tile
 
 ---
 
@@ -94,7 +95,7 @@ tests.rs → types, generation
 - `Object`: Placed items (Rock, Tree, Stick)
 - `Tile`: Combines substrate + objects
 - `Biome`: Land classification (Forest, Meadow, Lake, Mountain)
-- `Land`: 8x8 tile grid + biome
+- `Land`: 8x8 tile grid + 9 biomes (center, top, bottom, left, right, top_left, top_right, bottom_left, bottom_right)
 - `World`: Container with name + terrain HashMap
 
 **Important Details**:
@@ -120,17 +121,33 @@ tests.rs → types, generation
    - Noise sampled at `[(x * 0.1) + offset_x, (y * 0.1) + offset_y]` where offsets are derived from seed
    - Thresholds: `<-0.3` Lake, `-0.3..0` Meadow, `0..0.4` Forest, `>=0.4` Mountain
 
-2. **`generate_land_terrain(land_x, land_y, biome, world, seed)`**
-   - Generates 8x8 tile grid for a land
-   - **Neighbor-aware**: Checks 4 adjacent lands to count matching biomes
-   - Uses `uniformity_factor = matching_neighbors * 0.2` to adjust thresholds
+2. **`calculate_land_biomes(land_x, land_y, perlin, seed)`**
+   - Calculates 9 biomes for a land using biome sub-coordinate system
+   - **Formula**: For land (lx, ly), biome coords are:
+     - X: `(2*lx - 1)`, `(2*lx)`, `(2*lx + 1)` → left, center, right
+     - Y: `(2*ly - 1)`, `(2*ly)`, `(2*ly + 1)` → top, center, bottom
+   - Returns `LandBiomes` struct with all 9 biomes
+   - **Edge Sharing**: Adjacent lands share edge biomes automatically (e.g., land (1,0) left edge matches land (0,0) right edge)
+
+3. **`get_tile_biome(biomes, tile_x, tile_y)`**
+   - Maps 8x8 tile coordinates to one of 9 biomes
+   - **Simple zone-based mapping**:
+     - Corners (1 tile each): (0,0), (7,0), (0,7), (7,7)
+     - Edges (6 tiles each): row 0 cols 1-6, row 7 cols 1-6, col 0 rows 1-6, col 7 rows 1-6
+     - Center (36 tiles): rows 1-6, cols 1-6
+
+4. **`generate_land_terrain(land_x, land_y, biomes, seed)`**
+   - Generates 8x8 tile grid for a land using 9-biome system
+   - Uses `get_tile_biome()` to determine biome for each tile
    - Creates per-land Perlin generator with seed derived from coordinates
    - Samples noise at fine-grained level for tile variation
+   - **Simplified**: No longer checks neighbors (edge sharing handled by biome sub-coordinates)
 
-3. **`generate_world(world, seed, x1, y1, x2, y2)`**
+5. **`generate_world(world, seed, x1, y1, x2, y2)`**
    - Generates terrain for coordinate range [x1..=x2, y1..=y2]
    - Creates master Perlin generator from seed
-   - Calls `determine_biome` then `generate_land_terrain` for each coordinate
+   - Calls `calculate_land_biomes` then `generate_land_terrain` for each coordinate
+   - Assigns all 9 biome fields to `Land` struct
 
 4. **`initialize_world(world, seed)`**
    - Convenience function: generates [-10, -10] to [10, 10] (441 lands)
@@ -228,11 +245,28 @@ tests.rs → types, generation
 - Input handling (keyboard and mouse)
 - Multi-object rendering: Shows red indicator (40% size) when tile has multiple objects, vs 60% sized single object
 - Window size querying
+- **Shadow color function**: Natural shadow effect using cascading color shifts (darkens and blue-shifts)
+- **Biome border rendering**: Colored borders showing biome transitions using edge/corner biomes
 
 **Color Schemes**:
 - **Substrates**: Grass (green), Dirt (brown), Stone (gray), Mud (dark brown), Water (blue), Brush (yellow-green)
 - **Biomes**: Forest (dark green), Meadow (light green/yellow), Lake (blue), Mountain (gray/white)
 - **Objects**: Rock (dark gray), Tree (green), Stick (brown)
+
+**Shadow Color Algorithm**:
+- `shadow_color(color)`: Creates natural shadow effect using cascading color shifts
+  - Red: `color.r * 0.6`
+  - Green: `color.g * 0.6 + r * 0.05` (shifted by red)
+  - Blue: `color.b * 0.65 + g * 0.05` (shifted by green, higher multiplier preserves blue)
+  - Creates darker, blue-shifted shadows that preserve original color character
+
+**Renderer Methods**:
+- `draw_biome_overview()`: Draws single biome square
+- `draw_biome_overview_with_borders()`: Draws biome square with colored borders
+  - Center area uses center biome color
+  - Borders (2px) use edge biomes with shadow effect
+  - Corners use corner biomes with shadow effect
+  - Shows biome transitions between adjacent lands
 
 ### `terrain_view.rs` - Terrain View System
 
@@ -261,7 +295,11 @@ tests.rs → types, generation
 
 **Key Functions**:
 
-- `render()`: Renders biome overview with selection indicator
+- `render()`: Renders biome overview with colored borders showing biome transitions
+  - Each land displays as single square with center biome color
+  - Borders (2px) colored by edge biomes with shadow effect
+  - Corners colored by corner biomes with shadow effect
+  - Visualizes the 9-biome system and edge sharing between lands
 - `handle_input()`: Processes movement input, returns true if view should switch to land view
 
 **Coordinate System**:
