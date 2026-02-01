@@ -46,6 +46,7 @@ mod tests {
         let mut has_meadow = false;
         let mut has_lake = false;
         let mut has_mountain = false;
+        let mut has_plains = false;
         
         for land in world.terrain.values() {
             match land.center {
@@ -53,11 +54,12 @@ mod tests {
                 Biome::Meadow => has_meadow = true,
                 Biome::Lake => has_lake = true,
                 Biome::Mountain => has_mountain = true,
+                Biome::Plains => has_plains = true,
             }
         }
         
         // With a seed, we should have at least some variety
-        assert!(has_forest || has_meadow || has_lake || has_mountain);
+        assert!(has_forest || has_meadow || has_lake || has_mountain || has_plains);
     }
 
     #[test]
@@ -155,6 +157,10 @@ mod tests {
                 matches!(substrate, crate::types::Substrate::Water)
             }
             Biome::Meadow => {
+                matches!(substrate, crate::types::Substrate::Dirt | 
+                                 crate::types::Substrate::Grass)
+            }
+            Biome::Plains => {
                 matches!(substrate, crate::types::Substrate::Dirt | 
                                  crate::types::Substrate::Grass)
             }

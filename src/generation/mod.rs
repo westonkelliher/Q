@@ -154,11 +154,9 @@ pub fn generate_land_terrain(
 ///
 /// Coordinates are inclusive: generates from (x1, y1) to (x2, y2).
 pub fn generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y2: i32) {
-    let biome_perlin = Perlin::new(seed as u32);
-    
     for x in x1..=x2 {
         for y in y1..=y2 {
-            let biomes = calculate_land_biomes(x, y, &biome_perlin, seed);
+            let biomes = calculate_land_biomes(x, y, seed);
             let tiles = generate_land_terrain(x, y, &biomes, seed);
             
             let land = Land {

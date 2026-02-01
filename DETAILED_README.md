@@ -158,12 +158,14 @@ generation/
 
 **Key Functions**:
 
-1. **`determine_biome(x, y, perlin, seed)`**
-   - Uses Perlin noise with seed-based offset
-   - Thresholds: `<-0.3` Lake, `-0.3..-0.1` Meadow, `-0.1..0.2` Plains, `0.2..0.4` Forest, `>=0.4` Mountain
-   - Plains biome represents mostly dirt terrain with sparse vegetation
+1. **`determine_biome(x, y, seed)`**
+   - Uses separate Perlin noise functions for each biome type (Lake, Meadow, Plains, Forest, Mountain)
+   - Each biome's Perlin uses a unique seed discriminator to ensure independent noise patterns
+   - Samples all 5 biome Perlin functions at the given coordinates
+   - Returns the biome with the highest noise value (competition-based selection)
+   - Handles ties deterministically by preferring biomes in enum order
 
-2. **`calculate_land_biomes(land_x, land_y, perlin, seed)`**
+2. **`calculate_land_biomes(land_x, land_y, seed)`**
    - Calculates 9 biomes using biome sub-coordinate formula:
      - X: `(2*lx - 1)`, `(2*lx)`, `(2*lx + 1)` → left, center, right
      - Y: `(2*ly - 1)`, `(2*ly)`, `(2*ly + 1)` → top, center, bottom
@@ -233,15 +235,15 @@ generation/
 
 **Key Functions**:
 
-1. **`generate_land_terrain(land_x, land_y, biomes, seed, substrate_perlin)`**
+1. **`generate_land_terrain(land_x, land_y, biomes, seed)`**
    - Generates 8x8 tile grid using the biome at each tile position
-   - Substrate uses global Perlin for cross-boundary continuity
+   - Substrate uses global Perlin for cross-boundary continuity (created internally per biome)
    - Objects use substrate-aware, biome-specific placement rates
    - Two-pass generation: first pass places initial objects (substrate-aware), second pass adds sticks near trees deterministically
 
 2. **`generate_world(world, seed, x1, y1, x2, y2)`**
-   - Creates biome Perlin and substrate Perlin from seed
    - Iterates coordinate range, calling `calculate_land_biomes` then `generate_land_terrain`
+   - Biome Perlin instances are created internally by `determine_biome()` as needed
 
 3. **`initialize_world(world, seed)`**
    - Convenience: generates [-10, -10] to [10, 10] (441 lands)
@@ -502,18 +504,29 @@ generation/
 
 ### Biome Determination
 
+Each biome type has its own independent Perlin noise function. At each location, all 5 biome Perlin functions are sampled, and the biome with the highest noise value is selected. This creates natural competition between biomes rather than threshold-based assignment.
+
 ```rust
-offset_x = hash_function(seed) * 1000.0
-offset_y = hash_function(seed) * 1000.0
-noise_value = perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
-if noise_value < -0.3 => Lake
-else if noise_value < -0.1 => Meadow
-else if noise_value < 0.2 => Plains
-else if noise_value < 0.4 => Forest
-else => Mountain
+// Create Perlin instances for each biome with unique seed offsets
+lake_perlin = Perlin::new(seed + LAKE_DISCRIMINATOR)
+meadow_perlin = Perlin::new(seed + MEADOW_DISCRIMINATOR)
+plains_perlin = Perlin::new(seed + PLAINS_DISCRIMINATOR)
+forest_perlin = Perlin::new(seed + FOREST_DISCRIMINATOR)
+mountain_perlin = Perlin::new(seed + MOUNTAIN_DISCRIMINATOR)
+
+// Sample all biomes at location (x, y)
+offset = seed_offset(seed, 0)
+lake_value = lake_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
+meadow_value = meadow_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
+plains_value = plains_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
+forest_value = forest_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
+mountain_value = mountain_perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
+
+// Select biome with highest value
+biome = argmax([lake_value, meadow_value, plains_value, forest_value, mountain_value])
 ```
 
-**Note**: The seed-based offset ensures that coordinate (0, 0) produces different biomes for different seeds, rather than always being the same biome.
+**Note**: Each biome's Perlin uses a unique discriminator multiplier (1x, 2x, 3x, 4x, 5x of a base prime) to ensure independent noise patterns while maintaining determinism. The seed-based offset ensures that coordinate (0, 0) produces different biomes for different seeds.
 
 ### Tile Substrate Generation
 
@@ -596,10 +609,10 @@ World
 - `Biome`, `Land`, `Object`, `Substrate`, `Tile`, `World`
 
 **Functions**:
-- `determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome`
-- `calculate_land_biomes(land_x: i32, land_y: i32, perlin: &Perlin, seed: u64) -> LandBiomes`
+- `determine_biome(x: i32, y: i32, seed: u64) -> Biome`
+- `calculate_land_biomes(land_x: i32, land_y: i32, seed: u64) -> LandBiomes`
 - `get_tile_biome(biomes: &LandBiomes, tile_x: usize, tile_y: usize) -> &Biome`
-- `generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed: u64, substrate_perlin: &Perlin) -> [[Tile; 8]; 8]`
+- `generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed: u64) -> [[Tile; 8]; 8]`
 - `generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y2: i32)`
 - `initialize_world(world: &mut World, seed: u64)`
 - `load_world(path: &str) -> Result<World, Box<dyn std::error::Error>>`
@@ -721,8 +734,9 @@ Tests the library as an external user would use it.
 1. Add variant to `Biome` enum in `types.rs`
 2. Add `to_char()` representation
 3. Update `generation/biome.rs`:
-   - Add threshold constant
-   - Add case in `determine_biome()`
+   - Add discriminator constant (next available multiplier of `BIOME_PERLIN_DISCRIMINATOR_BASE`)
+   - Create Perlin instance for the new biome in `determine_biome()`
+   - Add sampling and comparison logic in `determine_biome()` to include the new biome in the competition
 4. Update `generation/mod.rs`:
    - Add discriminator multiplier (next available: 4 * BIOME_DISCRIMINATOR_BASE for Plains)
    - Add `generate_<biome>_tile()` function with substrate generation logic

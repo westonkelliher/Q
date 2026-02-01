@@ -33,33 +33,65 @@ pub struct LandBiomes {
     pub bottom_right: Biome,
 }
 
-/// Noise thresholds for biome determination.
-/// Perlin noise returns values roughly in [-1.0, 1.0].
-const LAKE_THRESHOLD: f64 = -0.3;
-const MEADOW_THRESHOLD: f64 = -0.1;
-const PLAINS_THRESHOLD: f64 = 0.2;
-const FOREST_THRESHOLD: f64 = 0.4;
-// Above FOREST_THRESHOLD = Mountain
+/// Base discriminator for biome Perlin noise generators.
+/// Uses a prime number to ensure unique seed offsets for each biome.
+const BIOME_PERLIN_DISCRIMINATOR_BASE: u64 = 10007; // Prime number
+
+/// Discriminator multipliers for each biome's Perlin noise.
+/// Each biome gets a unique discriminator to ensure independent noise patterns.
+const LAKE_DISCRIMINATOR: u64 = 1 * BIOME_PERLIN_DISCRIMINATOR_BASE;
+const MEADOW_DISCRIMINATOR: u64 = 2 * BIOME_PERLIN_DISCRIMINATOR_BASE;
+const PLAINS_DISCRIMINATOR: u64 = 3 * BIOME_PERLIN_DISCRIMINATOR_BASE;
+const FOREST_DISCRIMINATOR: u64 = 4 * BIOME_PERLIN_DISCRIMINATOR_BASE;
+const MOUNTAIN_DISCRIMINATOR: u64 = 5 * BIOME_PERLIN_DISCRIMINATOR_BASE;
 
 /// Determines which biome exists at a given biome-coordinate.
 ///
+/// Uses separate Perlin noise functions for each biome type. Samples all 5
+/// biome Perlin functions at the location and returns the biome with the
+/// highest noise value. This creates natural competition between biomes
+/// rather than threshold-based assignment.
+///
 /// Note: These are biome coordinates, not land coordinates.
 /// Use `calculate_land_biomes` to get the 9 biomes for a land.
-pub fn determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome {
-    let offset = seed_offset(seed, 0);
-    let noise_value = sample_noise(perlin, x as f64, y as f64, BIOME_SCALE, offset);
+pub fn determine_biome(x: i32, y: i32, seed: u64) -> Biome {
+    // Create Perlin instances for each biome with unique seed offsets
+    let lake_perlin = Perlin::new((seed.wrapping_add(LAKE_DISCRIMINATOR)) as u32);
+    let meadow_perlin = Perlin::new((seed.wrapping_add(MEADOW_DISCRIMINATOR)) as u32);
+    let plains_perlin = Perlin::new((seed.wrapping_add(PLAINS_DISCRIMINATOR)) as u32);
+    let forest_perlin = Perlin::new((seed.wrapping_add(FOREST_DISCRIMINATOR)) as u32);
+    let mountain_perlin = Perlin::new((seed.wrapping_add(MOUNTAIN_DISCRIMINATOR)) as u32);
     
-    if noise_value < LAKE_THRESHOLD {
-        Biome::Lake
-    } else if noise_value < MEADOW_THRESHOLD {
-        Biome::Meadow
-    } else if noise_value < PLAINS_THRESHOLD {
-        Biome::Plains
-    } else if noise_value < FOREST_THRESHOLD {
-        Biome::Forest
-    } else {
-        Biome::Mountain
+    // Sample all biome Perlin functions at this location
+    let offset = seed_offset(seed, 0);
+    let lake_value = sample_noise(&lake_perlin, x as f64, y as f64, BIOME_SCALE, offset);
+    let meadow_value = sample_noise(&meadow_perlin, x as f64, y as f64, BIOME_SCALE, offset);
+    let plains_value = sample_noise(&plains_perlin, x as f64, y as f64, BIOME_SCALE, offset);
+    let forest_value = sample_noise(&forest_perlin, x as f64, y as f64, BIOME_SCALE, offset);
+    let mountain_value = sample_noise(&mountain_perlin, x as f64, y as f64, BIOME_SCALE, offset);
+    
+    // Find the biome with the highest noise value
+    // In case of ties, prefer biomes in enum order (Lake < Meadow < Plains < Forest < Mountain)
+    let mut max_value = lake_value;
+    let mut selected_biome = Biome::Lake;
+    
+    if meadow_value > max_value {
+        max_value = meadow_value;
+        selected_biome = Biome::Meadow;
     }
+    if plains_value > max_value {
+        max_value = plains_value;
+        selected_biome = Biome::Plains;
+    }
+    if forest_value > max_value {
+        max_value = forest_value;
+        selected_biome = Biome::Forest;
+    }
+    if mountain_value > max_value {
+        selected_biome = Biome::Mountain;
+    }
+    
+    selected_biome
 }
 
 /// Calculates all 9 biomes for a land using biome sub-coordinates.
@@ -84,7 +116,7 @@ pub fn determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome {
 /// Y coords: -11, -10, -9
 /// center biome coord = (-8, -10)
 /// ```
-pub fn calculate_land_biomes(land_x: i32, land_y: i32, perlin: &Perlin, seed: u64) -> LandBiomes {
+pub fn calculate_land_biomes(land_x: i32, land_y: i32, seed: u64) -> LandBiomes {
     let x_left   = 2 * land_x - 1;
     let x_center = 2 * land_x;
     let x_right  = 2 * land_x + 1;
@@ -94,15 +126,15 @@ pub fn calculate_land_biomes(land_x: i32, land_y: i32, perlin: &Perlin, seed: u6
     let y_bottom = 2 * land_y + 1;
     
     LandBiomes {
-        top_left:     determine_biome(x_left,   y_top,    perlin, seed),
-        top:          determine_biome(x_center, y_top,    perlin, seed),
-        top_right:    determine_biome(x_right,  y_top,    perlin, seed),
-        left:         determine_biome(x_left,   y_center, perlin, seed),
-        center:       determine_biome(x_center, y_center, perlin, seed),
-        right:        determine_biome(x_right,  y_center, perlin, seed),
-        bottom_left:  determine_biome(x_left,   y_bottom, perlin, seed),
-        bottom:       determine_biome(x_center, y_bottom, perlin, seed),
-        bottom_right: determine_biome(x_right,  y_bottom, perlin, seed),
+        top_left:     determine_biome(x_left,   y_top,    seed),
+        top:          determine_biome(x_center, y_top,    seed),
+        top_right:    determine_biome(x_right,  y_top,    seed),
+        left:         determine_biome(x_left,   y_center, seed),
+        center:       determine_biome(x_center, y_center, seed),
+        right:        determine_biome(x_right,  y_center, seed),
+        bottom_left:  determine_biome(x_left,   y_bottom, seed),
+        bottom:       determine_biome(x_center, y_bottom, seed),
+        bottom_right: determine_biome(x_right,  y_bottom, seed),
     }
 }
 
