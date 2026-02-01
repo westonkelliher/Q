@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Previous Commit**: `03bf88f`  
+> **Previous Commit**: `ce8fb8c`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -288,7 +288,7 @@ generation/
 - Selection indicator rendering (bright yellow-orange border with corner markers)
 - Grid overlay rendering for Land view
 - Input handling (keyboard and mouse)
-- Multi-object rendering: Shows red indicator (40% size) when tile has multiple objects, vs 60% sized single object
+- Object rendering: Geometric shapes for different object types (circle for Rock, triangle for Tree, thin rectangle for Stick)
 - Window size querying
 - **Shadow color function**: Natural shadow effect using cascading color shifts (darkens and blue-shifts)
 - **Biome border rendering**: Colored borders showing biome transitions using edge/corner biomes
@@ -306,6 +306,11 @@ generation/
   - Creates darker, blue-shifted shadows that preserve original color character
 
 **Renderer Methods**:
+- `draw_tile()`: Draws a single tile with substrate and objects
+  - Substrate rendered as base rectangle
+  - Objects rendered as geometric shapes: Rock (circle), Tree (triangle), Stick (thin rectangle)
+  - Objects are 50% of tile size, centered on tile
+  - When multiple objects are present, only the first object is displayed
 - `draw_biome_overview()`: Draws single biome square
 - `draw_biome_overview_with_borders()`: Draws biome square with colored borders
   - Center area uses center biome color
@@ -741,20 +746,6 @@ match save_world(&world) {
 - **Serialization**: Entire world loaded/saved at once (consider streaming for very large worlds)
 - **Lookup**: HashMap access is O(1) average case
 
----
-
-## Future Improvements
-
-Potential enhancements (not yet implemented):
-
-1. **Caching**: Cache generated lands to avoid regeneration
-2. **Streaming**: Stream large worlds instead of loading all at once
-3. **Compression**: Compress saved worlds
-4. **Multi-threading**: Parallel generation for large regions
-5. **Biome Transitions**: Smooth transitions at land boundaries
-6. **Climate Zones**: Temperature/precipitation affecting biomes
-7. **Structures**: Villages, dungeons, etc.
-8. **Resources**: Mineable resources, harvestable plants
 
 ---
 
@@ -769,7 +760,8 @@ When modifying this codebase:
 5. **Document Changes**: Update this file if architecture changes significantly
 6. **Check Serialization**: Ensure new types are serializable if they're part of World
 7. **Consider Performance**: Large worlds can be memory-intensive
-8. **Update Commit Hash Before Committing**: When the Director (user) asks for a commit, update the commit hash in this file (at the top) to reference the previous commit hash BEFORE making the commit. This ensures the documentation references the commit that existed before the changes being committed.
+8. **Update this file before committing**: So that it remains accurate and consistent.
+9. **Update Commit Hash Before Committing**: When the Director (user) asks for a commit, update the commit hash in this file (at the top) to reference the previous commit hash BEFORE making the commit. This ensures the documentation references the commit that existed before the changes being committed.
 
 ---
 

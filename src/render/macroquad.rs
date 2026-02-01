@@ -111,23 +111,41 @@ impl Renderer for MacroquadRenderer {
         let substrate_color = Self::substrate_color(substrate);
         draw_rectangle(x, y, size, size, Self::to_mq_color(substrate_color));
 
-        // Draw objects on top (smaller rectangles or circles)
+        // Draw objects on top as simple geometric shapes
         if !objects.is_empty() {
-            // Draw first object (or indicator for multiple)
-            if objects.len() == 1 {
-                let obj_color = Self::object_color(&objects[0]);
-                // Draw object as a smaller rectangle in the center
-                let obj_size = size * 0.6;
-                let obj_x = x + (size - obj_size) / 2.0;
-                let obj_y = y + (size - obj_size) / 2.0;
-                draw_rectangle(obj_x, obj_y, obj_size, obj_size, Self::to_mq_color(obj_color));
-            } else {
-                // Multiple objects - draw indicator
-                let indicator_color = Color::rgb(0.9, 0.1, 0.1); // Red for multiple
-                let obj_size = size * 0.4;
-                let obj_x = x + (size - obj_size) / 2.0;
-                let obj_y = y + (size - obj_size) / 2.0;
-                draw_rectangle(obj_x, obj_y, obj_size, obj_size, Self::to_mq_color(indicator_color));
+            // Show first object (for single or multiple objects)
+            let object = &objects[0];
+            let center_x = x + size / 2.0;
+            let center_y = y + size / 2.0;
+            let obj_size = size * 0.5;
+            
+            match object {
+                Object::Rock => {
+                    // Draw rock as a filled circle
+                    let obj_color = Self::object_color(object);
+                    draw_circle(center_x, center_y, obj_size / 2.0, Self::to_mq_color(obj_color));
+                }
+                Object::Tree => {
+                    // Draw tree as a triangle (simple tree shape)
+                    let obj_color = Self::object_color(object);
+                    let half_size = obj_size / 2.0;
+                    // Triangle points: top, bottom-left, bottom-right
+                    draw_triangle(
+                        Vec2::new(center_x, center_y - half_size), // Top
+                        Vec2::new(center_x - half_size, center_y + half_size), // Bottom-left
+                        Vec2::new(center_x + half_size, center_y + half_size), // Bottom-right
+                        Self::to_mq_color(obj_color),
+                    );
+                }
+                Object::Stick => {
+                    // Draw stick as a thin rectangle
+                    let obj_color = Self::object_color(object);
+                    let stick_width = obj_size * 0.2;
+                    let stick_height = obj_size * 0.8;
+                    let stick_x = center_x - stick_width / 2.0;
+                    let stick_y = center_y - stick_height / 2.0;
+                    draw_rectangle(stick_x, stick_y, stick_width, stick_height, Self::to_mq_color(obj_color));
+                }
             }
         }
 
