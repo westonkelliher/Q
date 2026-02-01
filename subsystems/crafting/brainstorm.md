@@ -60,16 +60,38 @@ Certain materials grant special qualities to crafted items:
 
 ## Content Categories
 
-### Items to Include
-- Weapons
-- Tools
-- Crafting stations
-- Armor
-- Materials (hide, flint, reagents like eyeballs, etc.)
-- Consumables
-- Other standard RPG items
+### Initial Content Set: 100 Items
 
 **Inspiration Source**: Old School RuneScape
+
+**Category Distribution:**
+
+| Category | Count | Notes |
+|----------|-------|-------|
+| Resource Nodes | 12 | Mining nodes, trees, harvestable plants |
+| Creatures | 8 | Common to special beasts (sources for materials) |
+| Raw Materials | 25 | Ores, logs, fibers, creature parts, herbs |
+| Processed Materials | 20 | Bars, refined wood, textiles, components, reagents |
+| Crafting Stations | 8 | Basic to special (infrastructure for crafting) |
+| Tools | 10 | Item definitions with component slots |
+| Weapons | 8 | Item definitions with component slots |
+| Armor | 6 | Item definitions with component slots |
+| Consumables | 3 | Food and potions |
+| **TOTAL** | **100** | |
+
+**Quality Tier Distribution (for crafted items):**
+- Crude: ~8 items (basic tools, simple weapons)
+- Common: ~8 items (iron tier equipment)
+- Uncommon: ~5 items (steel tier equipment)
+- Rare: ~3 items (mithril tier, special crafting)
+- Epic: ~2 items (manasteel components, enchanted)
+- Legendary: ~1 item (complex provenance showcase)
+
+**Key Design Principle:**
+- No generic versions (no "normal_wood", only oak/willow/yew/elder)
+- Item definitions have component slots (one `sword` definition, not `bronze_sword` vs `iron_sword`)
+- Material choice creates variety (sword with bronze blade vs steel blade)
+- Creatures enable provenance tracking ("slain with X" requirements)
 
 ## Scope & Boundaries
 
@@ -183,3 +205,14 @@ This allows for:
 - Keep crafting subsystem independent
 - Clear interfaces for other systems to query crafting data
 - Don't implement features that belong in other subsystems
+
+---
+
+## Item Content
+
+See [items_list.md](./items_list.md) for the complete 100-item catalog, including:
+- Complete item list with descriptions
+- Component slot definitions for all multi-component items
+- Complex provenance examples (7 legendary items)
+- Crafting chains and material dependencies
+

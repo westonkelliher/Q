@@ -87,6 +87,11 @@ pub struct MaterialInput {
     pub quantity: u32,
     pub min_quality: Option<Quality>,
     
+    /// For multi-component outputs: which component slot this input fills.
+    /// If None, this input is consumed but doesn't fill a specific slot
+    /// (e.g., fuel for smelting, or simple single-material items).
+    pub fills_slot: Option<String>,
+    
     /// Requirements on specific components of this item (for multi-part items)
     /// e.g., require the "blade" component to be made of "manasteel"
     pub component_reqs: Vec<ComponentRequirement>,

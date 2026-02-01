@@ -28,17 +28,27 @@ pub struct ItemDefinition {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ComponentSlot {
     pub name: String,           // e.g., "blade", "handle", "pommel"
-    pub required_tags: Vec<MaterialTag>, // material must have ALL these tags
-    pub optional_tags: Vec<MaterialTag>, // bonus if material has these
+    /// Material must have ALL of these tags (AND logic)
+    /// Use for strict requirements like "must be magical AND metal"
+    pub required_tags: Vec<MaterialTag>,
+    /// Material must have at least ONE of these tags (OR logic)
+    /// Use for alternatives like "wood OR leather OR bone"
+    /// If empty, only required_tags are checked
+    pub accepted_tags: Vec<MaterialTag>,
+    /// Bonus properties if material has these tags (doesn't affect matching)
+    pub optional_tags: Vec<MaterialTag>,
 }
 
 /// Categories an item can belong to (non-exclusive)
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ItemCategories {
     pub is_material: bool,
     pub is_tool: bool,
+    pub is_weapon: bool,
+    pub is_armor: bool,
     pub is_placeable: bool,
     pub is_consumable: bool,
+    pub is_creature: bool,
 }
 
 /// Type of tool

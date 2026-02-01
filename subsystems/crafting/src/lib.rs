@@ -6,6 +6,7 @@ pub mod recipe;
 pub mod instance;
 pub mod provenance;
 pub mod registry;
+pub mod content;
 
 // Re-export commonly used types
 pub use ids::{

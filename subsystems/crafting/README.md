@@ -3,7 +3,7 @@
 A crafting system with tag-based material compatibility, multi-component items, and full provenance tracking.
 
 > **Last Updated**: 2026-02-01  
-> **Previous Commit**: `af4070d`  
+> **Previous Commit**: `f6720b6`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Features
@@ -15,15 +15,87 @@ A crafting system with tag-based material compatibility, multi-component items, 
 - **Lossless provenance tracking**: Full traceability of crafting chains for quests and lore
 - **LLM-friendly**: String-based IDs designed for content generation
 
+## Multi-Component Items: Key Concept
+
+**You define ONE item with component slots, not separate items per material.**
+
+For example, you define a single `sword` item with component slots. Different swords are created by choosing different materials for each component:
+
+```rust
+// ONE item definition
+ItemDefinition {
+    id: "sword",
+    name: "Sword",
+    component_slots: vec![
+        ComponentSlot {
+            name: "blade",
+            required_tags: vec![MaterialTag("metal")],
+        },
+        ComponentSlot {
+            name: "handle",
+            required_tags: vec![MaterialTag("wood"), MaterialTag("leather")],
+        },
+        ComponentSlot {
+            name: "pommel",
+            required_tags: vec![MaterialTag("metal"), MaterialTag("gem")],
+        },
+    ],
+    // ...
+}
+
+// Many instances from the SAME definition
+Instance 1: blade=bronze_bar, handle=oak_wood, pommel=iron_bar
+Instance 2: blade=steel_bar, handle=leather_wrap, pommel=ruby_gem
+Instance 3: blade=manasteel_bar, handle=ebony_wood, pommel=diamond_gem
+```
+
+**There is no `bronze_sword` item definition** - only a `sword` crafted with bronze components.
+
+This means:
+- **Fewer item definitions** → easier content management
+- **More variety** → material combinations create unique instances
+- **Material matters** → different materials grant different properties
+- **Provenance tracking** → can query "show me all swords with manasteel blades"
+
+**Simple items** (like `iron_ore` or `health_potion`) have no component slots - they're just single-material items.
+
+## Everything is an Item: Key Concept
+
+**All game objects in this system are items** - ores, tools, weapons, crafting stations, carcasses, and resource nodes.
+
+Some items are **placeable** (`is_placeable: true`). When placed in the world, they become **world object instances**. This includes:
+
+- **Crafting stations**: A `forge` is an item. Craft it, place it, then use the placed instance to smelt ores.
+- **Resource nodes**: A `copper_boulder` is an item definition. Instances exist as placed world objects that can be mined.
+- **Carcasses**: A `wolf_carcass` is an item. When a wolf dies, a carcass item instance is placed in the world and can be harvested.
+
+```
+ItemDefinition (forge)
+    ↓ craft
+ItemInstance (a specific forge you made)
+    ↓ place in world
+WorldObjectInstance (the forge at position X,Y - referenced by WorldObjectInstanceId)
+    ↓ use for smelting
+Provenance records which WorldObjectInstanceId was used
+```
+
+This means:
+- **Recipes can output anything** - a recipe can produce a sword, a bronze_bar, or a forge
+- **Crafting stations are craftable** - you craft a forge item, then place it
+- **World objects have provenance** - you can track who built a forge and what materials they used
+- **Carcasses track kill context** - a wolf_carcass knows what weapon killed it and where
+
+The `WorldObjectKind` enum (`ResourceNode` or `CraftingStation`) categorizes placed items. The ID (e.g., `CraftingStationId("forge")`) matches the `ItemId` of the placed item.
+
 ## Architecture
 
 ```
-ItemDefinition  ─┬─> ComponentSlot ─> MaterialTag
-                 └─> ItemCategories (material, tool, placeable, consumable)
+ItemDefinition  ─┬─> ComponentSlot ─> MaterialTag (required_tags AND, accepted_tags OR)
+                 └─> ItemCategories (material, tool, weapon, armor, placeable, consumable, creature)
 
 Recipe ─> Construction ─┬─> ToolRequirement
                         ├─> WorldObjectRequirement (kind OR tags)
-                        └─> MaterialInput (item_id OR tags)
+                        └─> MaterialInput (item_id OR tags, fills_slot for components)
 
 ItemInstance ─┬─> ComponentInstance (slot → material)
               └─> Provenance (recipe, consumed inputs, tool, world object instance)
@@ -53,10 +125,24 @@ MaterialInput {
     required_tags: Vec<MaterialTag>,      // any item with ALL these tags
     quantity: u32,
     min_quality: Option<Quality>,
+    fills_slot: Option<String>,           // which component slot this input fills (for multi-part outputs)
     component_reqs: Vec<ComponentRequirement>,      // requirements on item's components
     provenance_reqs: Option<Box<ProvenanceRequirements>>,  // recursive!
 }
 ```
+
+**ComponentSlot**: Defines a slot in a multi-part item that must be filled with a material
+```rust
+ComponentSlot {
+    name: String,                    // e.g., "blade", "handle", "pommel"
+    required_tags: Vec<MaterialTag>, // material must have ALL these tags (AND logic)
+    accepted_tags: Vec<MaterialTag>, // material must have at least ONE of these (OR logic)
+    optional_tags: Vec<MaterialTag>, // bonus properties if material has these
+}
+```
+
+Use `required_tags` for strict requirements (e.g., must be `magical` AND `metal`).
+Use `accepted_tags` for alternatives (e.g., handle can be `wood` OR `leather` OR `bone`).
 
 **ComponentRequirement**: Requirements on a specific component of a multi-part item
 ```rust
