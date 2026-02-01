@@ -117,7 +117,7 @@ impl Renderer for MacroquadRenderer {
             let object = &objects[0];
             let center_x = x + size / 2.0;
             let center_y = y + size / 2.0;
-            let obj_size = size * 0.5;
+            let obj_size = size * 0.75; // 50% larger than before (was 0.5, now 0.75)
             
             match object {
                 Object::Rock => {
