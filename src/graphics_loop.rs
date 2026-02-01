@@ -1,6 +1,6 @@
-use crate::graphics::{render_world, update_camera, Camera};
+use crate::graphics::{handle_input, render_land_view, render_terrain_view, Camera, ViewMode};
 use crate::render::macroquad::MacroquadRenderer;
-use crate::render::{Color, Renderer};
+use crate::render::{Color, Key, Renderer};
 use crate::types::World;
 use macroquad::prelude::*;
 
@@ -11,20 +11,68 @@ pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::
     renderer.init()?;
 
     let mut camera = Camera::new();
-    
-    // Initial view bounds (can be adjusted)
-    let view_x1 = -10;
-    let view_y1 = -10;
-    let view_x2 = 10;
-    let view_y2 = 10;
+    camera.update_target(); // Initialize target position
 
     loop {
-        // Handle input
-        let keys = renderer.get_keys_pressed();
-        
-        // Update camera based on input
         let delta_time = get_frame_time();
-        update_camera(&mut camera, &keys, delta_time);
+        
+        // Check for discrete key presses (not held keys)
+        let mut keys_pressed_this_frame = Vec::new();
+        let key_codes = [
+            (KeyCode::Up, Key::Up),
+            (KeyCode::Down, Key::Down),
+            (KeyCode::Left, Key::Left),
+            (KeyCode::Right, Key::Right),
+            (KeyCode::W, Key::W),
+            (KeyCode::A, Key::A),
+            (KeyCode::S, Key::S),
+            (KeyCode::D, Key::D),
+            (KeyCode::Z, Key::Z),
+            (KeyCode::X, Key::X),
+        ];
+        
+        for (mq_key, our_key) in key_codes {
+            if is_key_pressed(mq_key) {
+                keys_pressed_this_frame.push(our_key);
+            }
+        }
+        
+        // Handle discrete movement
+        for key in &keys_pressed_this_frame {
+            match key {
+                Key::Up | Key::W => {
+                    match camera.view_mode {
+                        ViewMode::Terrain => camera.move_terrain_selection(0, -1),
+                        ViewMode::Land => camera.move_land_selection(0, -1),
+                    }
+                }
+                Key::Down | Key::S => {
+                    match camera.view_mode {
+                        ViewMode::Terrain => camera.move_terrain_selection(0, 1),
+                        ViewMode::Land => camera.move_land_selection(0, 1),
+                    }
+                }
+                Key::Left | Key::A => {
+                    match camera.view_mode {
+                        ViewMode::Terrain => camera.move_terrain_selection(-1, 0),
+                        ViewMode::Land => camera.move_land_selection(-1, 0),
+                    }
+                }
+                Key::Right | Key::D => {
+                    match camera.view_mode {
+                        ViewMode::Terrain => camera.move_terrain_selection(1, 0),
+                        ViewMode::Land => camera.move_land_selection(1, 0),
+                    }
+                }
+                _ => {}
+            }
+        }
+        
+        // Handle view switching and other input
+        handle_input(&mut camera, &keys_pressed_this_frame);
+
+        // Smoothly update camera position
+        camera.update(delta_time);
 
         // Check for exit
         if renderer.should_close() {
@@ -34,20 +82,23 @@ pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::
         // Clear screen
         renderer.clear(Color::rgb(0.1, 0.1, 0.15)); // Dark blue-gray background
 
-        // Render world
-        render_world(
-            &mut renderer,
-            world,
-            &camera,
-            view_x1,
-            view_y1,
-            view_x2,
-            view_y2,
-        )?;
+        // Render based on view mode
+        match camera.view_mode {
+            ViewMode::Terrain => {
+                render_terrain_view(&mut renderer, world, &camera)?;
+            }
+            ViewMode::Land => {
+                render_land_view(&mut renderer, world, &camera)?;
+            }
+        }
 
         // Draw UI text
+        let view_mode_text = match camera.view_mode {
+            ViewMode::Terrain => "Terrain View",
+            ViewMode::Land => "Land View",
+        };
         draw_text(
-            "WASD/Arrows: Move | Z/X: Zoom | ESC: Exit",
+            &format!("WASD/Arrows: Move | Z: Land View | X: Terrain View | ESC: Exit | Mode: {}", view_mode_text),
             10.0,
             screen_height() - 20.0,
             20.0,

@@ -128,6 +128,65 @@ impl Renderer for MacroquadRenderer {
         draw_rectangle_lines(x, y, size, size, 0.5, Self::to_mq_color(Color::rgb(0.2, 0.2, 0.2)));
     }
 
+    fn draw_selection_indicator(&mut self, x: f32, y: f32, size: f32) {
+        // Draw a bright yellow/orange border to indicate selection
+        let indicator_color = Color::rgb(1.0, 0.8, 0.0); // Bright yellow-orange
+        let border_width = 3.0;
+        
+        // Draw border lines (thicker than normal)
+        draw_rectangle_lines(x, y, size, size, border_width, Self::to_mq_color(indicator_color));
+        
+        // Draw corner indicators for extra visibility
+        let corner_size = size * 0.15;
+        let corner_thickness = 2.0;
+        
+        // Top-left corner
+        draw_line(x, y, x + corner_size, y, corner_thickness, Self::to_mq_color(indicator_color));
+        draw_line(x, y, x, y + corner_size, corner_thickness, Self::to_mq_color(indicator_color));
+        
+        // Top-right corner
+        draw_line(x + size - corner_size, y, x + size, y, corner_thickness, Self::to_mq_color(indicator_color));
+        draw_line(x + size, y, x + size, y + corner_size, corner_thickness, Self::to_mq_color(indicator_color));
+        
+        // Bottom-left corner
+        draw_line(x, y + size - corner_size, x, y + size, corner_thickness, Self::to_mq_color(indicator_color));
+        draw_line(x, y + size, x + corner_size, y + size, corner_thickness, Self::to_mq_color(indicator_color));
+        
+        // Bottom-right corner
+        draw_line(x + size - corner_size, y + size, x + size, y + size, corner_thickness, Self::to_mq_color(indicator_color));
+        draw_line(x + size, y + size - corner_size, x + size, y + size, corner_thickness, Self::to_mq_color(indicator_color));
+    }
+
+    fn draw_grid(&mut self, x: f32, y: f32, width: f32, height: f32, rows: usize, cols: usize) {
+        let grid_color = Color::rgb(0.3, 0.3, 0.3); // Dark gray grid lines
+        let line_width = 1.0;
+        
+        let cell_width = width / cols as f32;
+        let cell_height = height / rows as f32;
+        
+        // Draw vertical lines
+        for i in 0..=cols {
+            let line_x = x + i as f32 * cell_width;
+            draw_line(
+                line_x, y,
+                line_x, y + height,
+                line_width,
+                Self::to_mq_color(grid_color)
+            );
+        }
+        
+        // Draw horizontal lines
+        for i in 0..=rows {
+            let line_y = y + i as f32 * cell_height;
+            draw_line(
+                x, line_y,
+                x + width, line_y,
+                line_width,
+                Self::to_mq_color(grid_color)
+            );
+        }
+    }
+
     fn present(&mut self) -> Result<(), RenderError> {
         // Macroquad handles presentation automatically after each frame
         // next_frame() is called in the main loop, not here

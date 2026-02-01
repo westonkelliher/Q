@@ -75,6 +75,15 @@ pub trait Renderer {
     /// Draw a biome overview tile at the given position with the specified size
     fn draw_biome_overview(&mut self, x: f32, y: f32, size: f32, biome: &Biome);
 
+    /// Draw a selection indicator (highlight) at the given position and size
+    fn draw_selection_indicator(&mut self, x: f32, y: f32, size: f32);
+
+    /// Draw a grid overlay
+    /// x, y: top-left corner of the grid
+    /// width, height: total size of the grid area
+    /// rows, cols: number of grid cells
+    fn draw_grid(&mut self, x: f32, y: f32, width: f32, height: f32, rows: usize, cols: usize);
+
     /// Present the rendered frame to the screen
     fn present(&mut self) -> Result<(), RenderError>;
 
