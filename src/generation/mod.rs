@@ -41,6 +41,7 @@ const SUBSTRATE_SEED_OFFSET: u64 = 999983;
 ///
 /// Uses the biome at each tile position to determine substrate and objects.
 /// Substrate noise is globally continuous; object noise is land-local.
+/// After initial object placement, adds sticks deterministically near trees.
 pub fn generate_land_terrain(
     land_x: i32,
     land_y: i32,
@@ -48,7 +49,8 @@ pub fn generate_land_terrain(
     seed: u64,
     substrate_perlin: &Perlin,
 ) -> [[Tile; 8]; 8] {
-    std::array::from_fn(|tile_y| {
+    // First pass: Generate all tiles with substrate and initial objects
+    let mut tiles = std::array::from_fn(|tile_y| {
         std::array::from_fn(|tile_x| {
             let biome = get_tile_biome(biomes, tile_x, tile_y);
             
@@ -69,7 +71,12 @@ pub fn generate_land_terrain(
             
             Tile { substrate, objects }
         })
-    })
+    });
+    
+    // Second pass: Add sticks deterministically near trees
+    objects::add_sticks_near_trees(&mut tiles, seed, land_x, land_y);
+    
+    tiles
 }
 
 /// Generates world terrain for a rectangular region of lands.

@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Previous Commit**: `e93f0d92294059de10f0d0b93ee5094d20dbf9f7`  
+> **Previous Commit**: `3fb6e74`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -193,20 +193,29 @@ generation/
 
 **Key Functions**:
 - `objects_for_biome(biome, seed, land_x, land_y, tile_x, tile_y) -> Vec<Object>`: Spawns objects using deterministic pseudo-random placement
-- `tile_random_value(seed, land_x, land_y, tile_x, tile_y) -> f64`: Generates deterministic pseudo-random value for a tile
+- `add_sticks_near_trees(tiles, seed, land_x, land_y)`: Adds sticks deterministically near trees in a second pass
+- `tile_random_value(seed, land_x, land_y, tile_x, tile_y) -> f64`: Generates deterministic pseudo-random value for a tile using SplitMix64-style hashing
 
 **Object Placement**:
 - Objects are placed sparsely: 5-10% of tiles have an object (7.5% threshold)
-- Placement is completely pseudo-random (no noise patterns)
+- Placement uses high-quality SplitMix64-inspired hash function (no correlation patterns)
 - Deterministic: same seed produces same object placement
+- **Sticks near trees**: After initial placement, sticks are deterministically added near trees (within 1 tile radius, 15% chance per nearby empty tile, with tree position included in seed for independent randomness)
 
 **Object Rules**:
 | Biome    | Object Type                | Notes                                  |
 |----------|---------------------------|----------------------------------------|
 | Lake     | Rock                      | Always Rock when object is placed      |
-| Meadow   | Rock or Stick             | 50/50 random distribution              |
-| Forest   | Tree, Rock, or Stick      | Tree 50%, Rock 25%, Stick 25%          |
+| Meadow   | Rock or Stick             | Rock 80%, Stick 20%                    |
+| Forest   | Tree, Rock, or Stick      | Tree 50%, Rock 40%, Stick 10%          |
 | Mountain | Rock or Tree              | Rock 70%, Tree 30%                     |
+
+**Stick Placement Near Trees**:
+- After initial object generation, a second pass adds sticks near trees
+- Checks all tiles within 1 tile radius (including diagonals) of each tree
+- Only places sticks on tiles that don't already have objects
+- Uses deterministic random value with seed offset `2000003` for consistency
+- 15% probability per nearby empty tile
 
 #### `generation/mod.rs` - Public API
 
@@ -216,6 +225,7 @@ generation/
    - Generates 8x8 tile grid using the biome at each tile position
    - Substrate uses global Perlin for cross-boundary continuity
    - Objects use pseudo-random sparse placement (5-10% of tiles)
+   - Two-pass generation: first pass places initial objects, second pass adds sticks near trees deterministically
 
 2. **`generate_world(world, seed, x1, y1, x2, y2)`**
    - Creates biome Perlin and substrate Perlin from seed
@@ -492,14 +502,15 @@ Each biome generates specific substrates based on noise values:
 
 Objects are placed pseudo-randomly with sparse distribution (5-10% of tiles):
 
-- **Placement**: Deterministic hash function seeded by world seed and tile coordinates
+- **Placement**: SplitMix64-inspired hash function seeded by world seed and tile coordinates (excellent statistical properties, no correlation patterns)
 - **Sparsity**: 7.5% threshold (middle of 5-10% range)
 - **No Noise**: Completely pseudo-random placement (no noise patterns)
+- **Sticks Near Trees**: After initial placement, sticks are deterministically added near trees (within 1 tile radius, 15% chance per nearby empty tile, each tree-tile pair has independent randomness)
 
 **Object Types by Biome**:
 - **Lake**: Rock (always Rock when object is placed)
-- **Meadow**: Rock (50%) or Stick (50%)
-- **Forest**: Tree (50%), Rock (25%), or Stick (25%)
+- **Meadow**: Rock (80%) or Stick (20%)
+- **Forest**: Tree (50%), Rock (40%), or Stick (10%)
 - **Mountain**: Rock (70%) or Tree (30%)
 
 ---
