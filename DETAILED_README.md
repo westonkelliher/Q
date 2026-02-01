@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Previous Commit**: `1d7bde1f3ebfe8ebaa74bd6fea0227ef7635b1d7`  
+> **Previous Commit**: `2230aa185a912cc099487d7e1c73e3f29aa4e7d1`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -182,7 +182,7 @@ generation/
 | Lake     | Water only        | (always)                              |
 | Meadow   | Dirt, Grass       | < -0.3 → Dirt, else Grass             |
 | Forest   | Dirt, Grass, Brush| < -0.4 → Dirt, < 0.5 → Grass, else Brush |
-| Mountain | Stone, Dirt       | < 0.0 → Stone, else Dirt              |
+| Mountain | Stone, Dirt       | < 0.6 → Stone, else Dirt              |
 
 **Global Continuity**: Substrate noise uses global tile coordinates (`land * 8 + tile`), ensuring patterns blend seamlessly across land boundaries.
 
@@ -470,9 +470,9 @@ Each biome generates specific substrates based on noise values:
   - Between -0.4 and 0.5 → Grass
   - Above 0.5 → Brush
 
-- **Mountain**: Uses noise threshold at 0.0
-  - Below threshold → Stone
-  - Otherwise → Dirt
+- **Mountain**: Uses noise threshold at 0.6
+  - Below threshold → Stone (primary, ~80% of tiles)
+  - Otherwise → Dirt (~20% of tiles)
 
 ### Object Generation
 

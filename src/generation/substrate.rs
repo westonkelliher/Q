@@ -45,7 +45,7 @@ pub fn get_substrate_noise(
 /// | Lake     | Water only              | (always)                   |
 /// | Meadow   | Dirt, Grass             | < -0.3 → Dirt, else Grass  |
 /// | Forest   | Dirt, Grass, Brush      | < -0.4 → Dirt, < 0.5 → Grass, else Brush |
-/// | Mountain | Stone, Dirt             | < 0.0 → Stone, else Dirt   |
+/// | Mountain | Stone, Dirt             | < 0.6 → Stone, else Dirt   |
 pub fn substrate_for_biome(biome: &Biome, noise: f64) -> Substrate {
     match biome {
         Biome::Lake => Substrate::Water,
@@ -62,7 +62,7 @@ pub fn substrate_for_biome(biome: &Biome, noise: f64) -> Substrate {
         }
         
         Biome::Mountain => {
-            if noise < 0.0 { Substrate::Stone }
+            if noise < 0.6 { Substrate::Stone }
             else { Substrate::Dirt }
         }
     }
