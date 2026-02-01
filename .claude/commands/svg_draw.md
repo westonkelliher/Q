@@ -1,11 +1,11 @@
 ---
-description: Draw an object as SVG in Super Auto Pets style
+description: Draw an object as SVG in a cute cartoon style
 model: opus
 ---
 
 # Draw: $ARGUMENTS
 
-Generate an SVG of "$ARGUMENTS" in Super Auto Pets style.
+Generate an SVG of "$ARGUMENTS" in a cute cartoon style with bold outlines.
 
 ## Style Requirements
 
@@ -14,31 +14,39 @@ Generate an SVG of "$ARGUMENTS" in Super Auto Pets style.
    - **Base**: Main fill color
    - **Highlight**: 10-20% lighter, used for top/light-facing areas
    - **Shadow**: 10-20% darker, used for bottom/shadow areas
-3. **Outlines**: Every visible shape gets `stroke="#000" stroke-width="5"`
-4. **Shapes**: Use only:
+3. **Shapes**: Use only:
    - `<circle>` and `<ellipse>` for rounded forms
    - `<rect rx="...">` with rounded corners
    - `<polygon>` for simple angular shapes
    - `<path>` for simple curves (no complex bezier chains)
-5. **No gradients, no filters, no animations, no effects**
-6. **Layer order**: Draw back-to-front (background shapes first)
+4. **No gradients, no filters, no animations, no effects**
 
-## Composition Guidelines
+## Layering Process
 
-- Object should fill 70-90% of the viewBox
-- Center the object in the canvas
-- Use cute/rounded proportions (Super Auto Pets style)
-- If it has a face: white circle eyes with black dot pupils, or simple dot eyes
-- Simple expressions only (dots, small curves)
+Draw in this order (back to front):
+
+1. **Outline layer**: Draw each base shape in BLACK, slightly larger (add ~3-5 units to radii/dimensions). This creates the outline by being visible around the edges of the colored shapes.
+2. **Base shapes**: Draw the same shapes at normal size with their base colors. These sit on top of the black shapes, leaving a black border visible around the edges.
+3. **Detail shapes**: Draw highlights, shadows, and features WITHIN the bounds of the base shapes.
+4. **Line details**: Draw any internal line details on top. Lines can connect to the outline edges only if they are black.
+
 
 ## Example Structure
 
 ```svg
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <!-- Back layers first -->
-  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#8B4513" stroke="#000" stroke-width="5"/>
-  <!-- Front layers last -->
-  <circle cx="50" cy="45" rx="25" fill="#A0522D" stroke="#000" stroke-width="5"/>
+  <!-- 1. OUTLINE LAYER: Same shapes as base, but larger and black -->
+  <ellipse cx="50" cy="60" rx="38" ry="33" fill="#000"/>
+  <circle cx="50" cy="45" r="28" fill="#000"/>
+  
+  <!-- 2. BASE SHAPES: Normal size with color (covers most of the black) -->
+  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#8B4513"/>
+  <circle cx="50" cy="45" r="25" fill="#A0522D"/>
+  
+  <!-- 3. DETAIL SHAPES: Highlights, shadows, features within base bounds -->
+  <ellipse cx="45" cy="40" rx="8" ry="5" fill="#B8763D"/>
+  
+  <!-- 4. LINE DETAILS: Internal lines, can connect to black edges -->
 </svg>
 ```
 
