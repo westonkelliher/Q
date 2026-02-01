@@ -21,6 +21,9 @@ pub struct LandCamera {
     
     /// Tile size for land view (fixed)
     tile_size: f32,
+    
+    /// Whether to show the 8 adjacent lands
+    pub show_adjacent: bool,
 }
 
 impl LandCamera {
@@ -35,6 +38,7 @@ impl LandCamera {
             selected_tile_x: 4, // Start at center
             selected_tile_y: 4,
             tile_size: 64.0,
+            show_adjacent: false,
         }
     }
 
@@ -177,6 +181,50 @@ pub fn render<R: Renderer>(
         let selected_screen_x = grid_start_x + camera.selected_tile_x as f32 * tile_size;
         let selected_screen_y = grid_start_y + camera.selected_tile_y as f32 * tile_size;
         renderer.draw_selection_indicator(selected_screen_x, selected_screen_y, tile_size);
+
+        // Render adjacent lands if enabled
+        if camera.show_adjacent {
+            // Define the 8 adjacent positions relative to the current land
+            let adjacent_offsets = [
+                (-1, -1), // top-left
+                (0, -1),  // top
+                (1, -1),  // top-right
+                (-1, 0),  // left
+                (1, 0),   // right
+                (-1, 1),  // bottom-left
+                (0, 1),   // bottom
+                (1, 1),   // bottom-right
+            ];
+
+            for (dx, dy) in adjacent_offsets.iter() {
+                let adj_land_x = camera.selected_land_x + dx;
+                let adj_land_y = camera.selected_land_y + dy;
+
+                if let Some(adj_land) = world.terrain.get(&(adj_land_x, adj_land_y)) {
+                    // Calculate screen position offset for this adjacent land
+                    // Each land is 8 tiles wide, so offset by tile_size * 8
+                    let offset_x = *dx as f32 * grid_width;
+                    let offset_y = *dy as f32 * grid_height;
+                    
+                    let adj_grid_start_x = grid_start_x + offset_x;
+                    let adj_grid_start_y = grid_start_y + offset_y;
+
+                    // Render tiles for adjacent land (slightly dimmed)
+                    for (tile_y, row) in adj_land.tiles.iter().enumerate() {
+                        for (tile_x, tile) in row.iter().enumerate() {
+                            let screen_x = adj_grid_start_x + tile_x as f32 * tile_size;
+                            let screen_y = adj_grid_start_y + tile_y as f32 * tile_size;
+                            
+                            // Draw tile with slight dimming effect
+                            renderer.draw_tile(screen_x, screen_y, tile_size, &tile.substrate, &tile.objects);
+                        }
+                    }
+
+                    // Draw grid overlay for adjacent land
+                    renderer.draw_grid(adj_grid_start_x, adj_grid_start_y, grid_width, grid_height, 8, 8);
+                }
+            }
+        }
     }
 
     Ok(())

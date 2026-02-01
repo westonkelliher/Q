@@ -307,4 +307,41 @@ impl Renderer for MacroquadRenderer {
     fn window_size(&self) -> (f32, f32) {
         (screen_width(), screen_height())
     }
+
+    fn draw_button(&mut self, x: f32, y: f32, width: f32, height: f32, text: &str, is_pressed: bool) -> bool {
+        let (mouse_x, mouse_y) = mouse_position();
+        let is_hovered = mouse_x >= x && mouse_x <= x + width && mouse_y >= y && mouse_y <= y + height;
+        let is_clicked = is_hovered && is_mouse_button_pressed(MouseButton::Left);
+
+        // Button background color (darker when pressed/hovered)
+        let bg_color = if is_pressed {
+            Color::rgb(0.3, 0.5, 0.3) // Green when toggled on
+        } else if is_hovered {
+            Color::rgb(0.4, 0.4, 0.4) // Gray when hovered
+        } else {
+            Color::rgb(0.3, 0.3, 0.3) // Dark gray default
+        };
+
+        // Draw button background
+        draw_rectangle(x, y, width, height, Self::to_mq_color(bg_color));
+        
+        // Draw button border
+        let border_color = if is_hovered {
+            Color::rgb(0.7, 0.7, 0.7)
+        } else {
+            Color::rgb(0.5, 0.5, 0.5)
+        };
+        draw_rectangle_lines(x, y, width, height, 2.0, Self::to_mq_color(border_color));
+
+        // Draw button text (centered)
+        let text_size = 16.0;
+        let text_width = measure_text(text, None, text_size as u16, 1.0).width;
+        let text_height = text_size;
+        let text_x = x + (width - text_width) / 2.0;
+        let text_y = y + (height + text_height) / 2.0 - 2.0; // Slight offset for better centering
+        
+        draw_text(text, text_x, text_y, text_size, Self::to_mq_color(Color::rgb(1.0, 1.0, 1.0)));
+
+        is_clicked
+    }
 }

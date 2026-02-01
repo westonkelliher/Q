@@ -117,6 +117,10 @@ pub trait Renderer {
 
     /// Get the window dimensions
     fn window_size(&self) -> (f32, f32);
+
+    /// Draw a button at the given position with text
+    /// Returns true if the button was clicked (mouse is over button and mouse button is pressed)
+    fn draw_button(&mut self, x: f32, y: f32, width: f32, height: f32, text: &str, is_pressed: bool) -> bool;
 }
 
 // Re-export implementations
