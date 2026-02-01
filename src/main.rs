@@ -12,8 +12,22 @@ use types::World;
 use generation::{generate_world, initialize_world};
 use io::save_world;
 use display::{print_land, print_world};
+use macroquad::prelude::*;
 
-#[macroquad::main("Q - World Generator")]
+/// Window configuration - sets window size 50% larger than default (1200x900)
+/// macOS compatible with high DPI support and resizable window
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Q - World Generator".to_owned(),
+        window_width: 1200,  // 50% larger than default 800
+        window_height: 900,  // 50% larger than default 600
+        high_dpi: true,      // Enable high DPI support for macOS Retina displays
+        window_resizable: true, // Allow window resizing (macOS compatible)
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command line arguments
     let args: Vec<String> = std::env::args().collect();

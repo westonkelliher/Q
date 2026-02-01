@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Previous Commit**: `19b4aea191477068d84eda4f47d236c04b173386`  
+> **Previous Commit**: `93c9e9837e4c21f059fdedde11584d261c01ef24`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
