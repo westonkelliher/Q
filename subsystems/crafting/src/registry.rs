@@ -69,6 +69,11 @@ impl Registry {
     pub fn all_recipes(&self) -> impl Iterator<Item = &Recipe> {
         self.recipes.values()
     }
+
+    /// Get all item instances
+    pub fn all_instances(&self) -> impl Iterator<Item = &ItemInstance> {
+        self.instances.values()
+    }
 }
 
 impl Default for Registry {
