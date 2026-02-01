@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Commit**: `44b87dd8701b434d01030ed92afc5eef7cb9143b`  
+> **Commit**: `3d3e3b9fcf891bd71e6d0d169672f5a960a2233b`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -52,6 +52,11 @@ src/
 ├── generation.rs    # World generation algorithms
 ├── io.rs            # File I/O and serialization
 ├── display.rs       # Text-based rendering
+├── graphics.rs      # Graphics rendering (camera, view modes)
+├── graphics_loop.rs # Main graphics loop
+├── render/          # Renderer abstraction layer
+│   ├── mod.rs       # Renderer trait and types
+│   └── macroquad.rs # Macroquad renderer implementation
 └── tests.rs         # Unit tests (compiled only in test mode)
 tests/
 └── integration_tests.rs  # Integration tests
@@ -60,12 +65,16 @@ tests/
 ### Module Dependencies
 
 ```
-main.rs → types, generation, io, display
-lib.rs → types, generation, io, display, tests
+main.rs → types, generation, io, display, graphics_loop
+lib.rs → types, generation, io, display, graphics, render, tests
 types.rs → (no dependencies on other modules)
 generation.rs → types
 io.rs → types
 display.rs → types
+graphics.rs → render, types
+graphics_loop.rs → graphics, render::macroquad, types
+render/mod.rs → types
+render/macroquad.rs → render, types, macroquad
 tests.rs → types, generation, display
 ```
 
@@ -171,6 +180,81 @@ tests.rs → types, generation, display
 - `print_land(land)`: Prints detailed 8x8 tile grid
   - Shows substrate emoji + object emoji (or `*` for multiple)
   - Includes coordinate headers
+
+### `render/mod.rs` - Renderer Abstraction
+
+**Purpose**: Defines the `Renderer` trait that abstracts graphics operations, allowing different rendering backends (macroquad, Bevy, etc.).
+
+**Key Types**:
+
+- `Renderer`: Trait defining graphics operations (init, clear, draw_tile, draw_biome_overview, draw_selection_indicator, draw_grid, present, etc.)
+- `Color`: RGBA color representation
+- `Key`: Input key enumeration
+- `RenderError`: Error type for rendering operations
+
+**Design**: The abstraction is designed to be simple enough for immediate-mode APIs (like macroquad) while being complete enough for ECS-based engines (like Bevy). This allows easy migration between backends.
+
+### `render/macroquad.rs` - Macroquad Renderer
+
+**Purpose**: Implements the `Renderer` trait using macroquad as the graphics backend.
+
+**Features**:
+
+- Color mapping for substrates, biomes, and objects
+- Selection indicator rendering (bright yellow-orange border with corner markers)
+- Grid overlay rendering for Land view
+- Input handling (keyboard)
+
+**Color Schemes**:
+- **Substrates**: Grass (green), Dirt (brown), Stone (gray), Mud (dark brown), Water (blue), Brush (yellow-green)
+- **Biomes**: Forest (dark green), Meadow (light green/yellow), Lake (blue), Mountain (gray/white)
+- **Objects**: Rock (dark gray), Tree (green), Stick (brown)
+
+### `graphics.rs` - Graphics System
+
+**Purpose**: High-level graphics functions and camera management.
+
+**Key Types**:
+
+- `ViewMode`: Enum for view modes (`Terrain`, `Land`)
+- `Camera`: Camera/viewport state with selection tracking and smooth following
+
+**Camera System**:
+
+- **Discrete Selection**: Selection moves in discrete steps (one tile/land per keypress)
+- **Smooth Following**: Camera smoothly interpolates to follow the selection
+- **View Modes**:
+  - `Terrain`: Biome overview (one tile per land, 48px tiles)
+  - `Land`: Detailed 8x8 tile grid (64px tiles with grid overlay)
+
+**Key Functions**:
+
+- `render_terrain_view()`: Renders biome overview with selection indicator
+- `render_land_view()`: Renders detailed 8x8 grid with tiles, grid overlay, and selection indicator
+- `handle_input()`: Processes input for view switching
+- `update_camera()`: Smoothly updates camera position (called each frame)
+
+**Coordinate System**:
+
+- **Terrain View**: Uses world coordinates directly (land positions)
+- **Land View**: Uses screen-space positioning for tiles (centered grid, direct pixel positioning) to avoid coordinate conversion issues
+
+### `graphics_loop.rs` - Graphics Loop
+
+**Purpose**: Main graphics loop that handles input, updates camera, and renders frames.
+
+**Features**:
+
+- Discrete movement handling (key_pressed, not key_down)
+- Camera smooth following
+- View mode switching (Z for Land view, X for Terrain view)
+- UI text display
+
+**Controls**:
+- WASD/Arrow keys: Move selection (discrete steps)
+- Z: Switch to Land View
+- X: Switch to Terrain View
+- ESC: Exit
 
 ### `lib.rs` - Library Root
 
@@ -281,6 +365,9 @@ World
 - `save_world(world: &World) -> Result<(), Box<dyn std::error::Error>>`
 - `print_land(land: &Land)`
 - `print_world(world: &World, x1: i32, y1: i32, x2: i32, y2: i32)`
+- `render_terrain_view(renderer, world, camera)`
+- `render_land_view(renderer, world, camera)`
+- `Camera`, `ViewMode` types
 
 ### Usage Pattern
 
@@ -471,6 +558,7 @@ match save_world(&world) {
 - **serde**: Serialization framework (`Serialize`, `Deserialize` traits)
 - **serde_json**: JSON serialization
 - **rand**: Not directly used, but noise crate may use it
+- **macroquad**: Graphics rendering backend (immediate-mode, lightweight)
 
 ---
 
@@ -520,6 +608,8 @@ When modifying this codebase:
 - Generation: `src/generation.rs`
 - I/O: `src/io.rs`
 - Display: `src/display.rs`
+- Graphics: `src/graphics.rs`, `src/graphics_loop.rs`
+- Renderer: `src/render/mod.rs`, `src/render/macroquad.rs`
 - Tests: `src/tests.rs`, `tests/integration_tests.rs`
 
 **Key Constants**:
@@ -527,6 +617,9 @@ When modifying this codebase:
 - Initial generation: -10 to 10 (441 lands)
 - Noise scale: 0.1 for biomes, 0.5 for tiles
 - Uniformity factor: `matching_neighbors * 0.2`
+- Terrain view tile size: 48px
+- Land view tile size: 64px
+- Camera follow speed: 8.0
 
 **Common Seeds**:
 - Test seed: `12347`
