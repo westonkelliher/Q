@@ -3,6 +3,7 @@ mod generation;
 mod io;
 mod display;
 mod render;
+mod camera;
 mod terrain_view;
 mod land_view;
 mod graphics_loop;
@@ -51,34 +52,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("Initializing world with seed {}...", seed);
     let mut world = World {
-        name: "TestWorld".to_string(),
+        name: format!("World_{}", seed),
         terrain: HashMap::new(),
     };
     initialize_world(&mut world, seed);
     println!("World '{}' initialized with {} lands", world.name, world.terrain.len());
-    
-    println!("\nGenerating extra region (11 to 15, -5 to 5)...");
-    generate_world(&mut world, seed, 11, -5, 15, 5);
-    println!("World now has {} lands", world.terrain.len());
-    
+
     if use_text_mode {
-        println!("\nPrinting world overview (showing -5 to 5):");
+        // In text mode, show a sample of the world
+        let range = 5;
+        println!("\nWorld overview (showing {} to {}):", -range, range);
         println!("(Areas with ⬛ are ungenerated, other areas show biomes)");
-        print_world(&world, -5, -5, 5, 5);
-        
-        println!("\nShowing sample lands:");
-        println!("\nLand at (0, 0):");
-        if let Some(land) = world.terrain.get(&(0, 0)) {
-            print_land(land);
-        }
-        
-        println!("\nLand at (2, -1):");
-        if let Some(land) = world.terrain.get(&(2, -1)) {
-            print_land(land);
+        print_world(&world, -range, -range, range, range);
+
+        // Show a few sample lands from the center area
+        println!("\nSample land details:");
+        for (x, y) in [(0, 0), (1, 0), (0, 1)] {
+            println!("\nLand at ({}, {}):", x, y);
+            if let Some(land) = world.terrain.get(&(x, y)) {
+                print_land(land);
+            } else {
+                println!("  (not generated)");
+            }
         }
     } else {
         println!("\nStarting graphics mode...");
-        println!("Controls: WASD/Arrows to move, Z to toggle view, X to toggle adjacent lands, ESC to exit");
+        println!("Controls:");
+        println!("  WASD/Arrows: Move selection");
+        println!("  Z: Toggle between Terrain and Land view");
+        println!("  X: Toggle adjacent lands (Land view only)");
+        println!("  -/=: Zoom out/in");
+        println!("  ESC: Exit");
         graphics_loop::run_graphics_loop(&world).await?;
     }
     

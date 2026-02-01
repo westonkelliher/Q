@@ -1,66 +1,46 @@
 use crate::render::Renderer;
 use crate::types::World;
+use crate::camera::CameraCore;
 
 /// Camera for terrain view - manages land-level selection and camera following
 pub struct TerrainCamera {
-    /// Current camera position (for smooth following)
-    pub x: f32,
-    pub y: f32,
-    
-    /// Target camera position (where we want to be)
-    pub target_x: f32,
-    pub target_y: f32,
-    
+    /// Core camera functionality (position, zoom, smooth following)
+    core: CameraCore,
+
     /// Currently selected land coordinates
     pub selected_land_x: i32,
     pub selected_land_y: i32,
-    
-    /// Tile size for terrain view (base size)
-    tile_size: f32,
-    
-    /// Zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out)
-    zoom: f32,
 }
 
 impl TerrainCamera {
+    const BASE_TILE_SIZE: f32 = 48.0;
+
     pub fn new() -> Self {
         Self {
-            x: 0.0,
-            y: 0.0,
-            target_x: 0.0,
-            target_y: 0.0,
+            core: CameraCore::new(Self::BASE_TILE_SIZE),
             selected_land_x: 0,
             selected_land_y: 0,
-            tile_size: 48.0,
-            zoom: 1.0,
         }
     }
 
     /// Get tile size for terrain view (with zoom applied)
     pub fn get_tile_size(&self) -> f32 {
-        self.tile_size * self.zoom
+        self.core.get_tile_size()
     }
-    
+
     /// Zoom in (increase zoom level)
     pub fn zoom_in(&mut self) {
-        const ZOOM_STEP: f32 = 1.15;
-        const MAX_ZOOM: f32 = 3.0;
-        self.zoom = (self.zoom * ZOOM_STEP).min(MAX_ZOOM);
+        self.core.zoom_in();
     }
-    
+
     /// Zoom out (decrease zoom level)
     pub fn zoom_out(&mut self) {
-        const ZOOM_STEP: f32 = 1.15;
-        const MIN_ZOOM: f32 = 0.5;
-        self.zoom = (self.zoom / ZOOM_STEP).max(MIN_ZOOM);
+        self.core.zoom_out();
     }
 
     /// Convert world coordinates to screen coordinates
     pub fn world_to_screen(&self, world_x: f32, world_y: f32, screen_width: f32, screen_height: f32) -> (f32, f32) {
-        let tile_size = self.get_tile_size();
-        let screen_x = (world_x - self.x) * tile_size + screen_width / 2.0;
-        let screen_y = (world_y - self.y) * tile_size + screen_height / 2.0;
-        (screen_x, screen_y)
+        self.core.world_to_screen(world_x, world_y, screen_width, screen_height)
     }
 
     /// Get the world position of the selected land
@@ -70,17 +50,14 @@ impl TerrainCamera {
 
     /// Update target position based on current selection
     pub fn update_target(&mut self) {
-        self.target_x = self.selected_land_x as f32;
-        self.target_y = self.selected_land_y as f32;
+        let target_x = self.selected_land_x as f32;
+        let target_y = self.selected_land_y as f32;
+        self.core.set_target(target_x, target_y);
     }
 
     /// Smoothly move camera towards target
     pub fn update(&mut self, delta_time: f32) {
-        let follow_speed = 8.0; // How fast camera follows (higher = faster)
-        let t = (follow_speed * delta_time).min(1.0);
-        
-        self.x += (self.target_x - self.x) * t;
-        self.y += (self.target_y - self.y) * t;
+        self.core.update(delta_time);
     }
 
     /// Move selection
@@ -99,10 +76,12 @@ impl TerrainCamera {
 
     /// Sync camera position from another camera (for smooth view switching)
     pub fn sync_position_from(&mut self, x: f32, y: f32) {
-        self.x = x;
-        self.y = y;
-        self.target_x = x;
-        self.target_y = y;
+        self.core.sync_from(x, y);
+    }
+
+    /// Get current camera position (for syncing to other cameras)
+    pub fn get_position(&self) -> (f32, f32) {
+        (self.core.x, self.core.y)
     }
 }
 

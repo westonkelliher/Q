@@ -75,12 +75,17 @@ mod tests {
 
     #[test]
     fn test_lake_surrounded_by_lakes() {
-        let world = create_test_world();
-        
+        // Test with a specific seed known to produce surrounded lakes
+        let mut world = World {
+            name: "LakeTest".to_string(),
+            terrain: HashMap::new(),
+        };
+        initialize_world(&mut world, 42);
+
         // Find a lake land surrounded by lakes
-        let mut found_lake = false;
-        for x in -5..=5 {
-            for y in -5..=5 {
+        let mut found_and_tested = false;
+        for x in -10..=10 {
+            for y in -10..=10 {
                 if let Some(land) = world.terrain.get(&(x, y)) {
                     if matches!(land.center, Biome::Lake) {
                         let neighbors = [
@@ -91,29 +96,33 @@ mod tests {
                         ];
                         let all_lakes = neighbors.iter()
                             .all(|opt| opt.map(|l| matches!(l.center, Biome::Lake)).unwrap_or(false));
-                        
+
                         if all_lakes {
-                            // If all neighbors are lakes, tiles should be mostly water
-                            // (some edge tiles might be mud/grass due to noise variation)
-                            let water_count: usize = land.tiles.iter()
-                                .flat_map(|row| row.iter())
-                                .filter(|tile| matches!(tile.substrate, crate::types::Substrate::Water))
-                                .count();
-                            // At least 75% (48/64) should be water when surrounded by lakes
-                            assert!(water_count >= 48, "Expected at least 48 water tiles when surrounded by lakes (got {})", water_count);
-                            found_lake = true;
+                            // If all neighbors are lakes, all center tiles should be water
+                            // Check the 4 center tiles which are definitely in the center biome zone
+                            let center_tiles = [
+                                (3, 3), (3, 4), (4, 3), (4, 4)
+                            ];
+                            for (tile_x, tile_y) in center_tiles {
+                                let tile = &land.tiles[tile_y][tile_x];
+                                assert!(
+                                    matches!(tile.substrate, crate::types::Substrate::Water),
+                                    "Lake at ({}, {}) surrounded by lakes should have water in center tiles, but tile ({}, {}) is {:?}",
+                                    x, y, tile_x, tile_y, tile.substrate
+                                );
+                            }
+                            found_and_tested = true;
                             break;
                         }
                     }
                 }
             }
-            if found_lake {
+            if found_and_tested {
                 break;
             }
         }
-        
-        // This test passes if we find such a lake, or if we don't find one (both are valid)
-        // The important part is that if we do find one, it should be all water
+
+        assert!(found_and_tested, "Test should find at least one lake surrounded by lakes to verify behavior");
     }
 
     #[test]

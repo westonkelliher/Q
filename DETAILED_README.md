@@ -2,8 +2,8 @@
 
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
-> **Last Updated**: 2026-01-31  
-> **Previous Commit**: `3fb6e74`  
+> **Last Updated**: 2026-01-31
+> **Previous Commit**: `41a5b9b`
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -59,6 +59,7 @@ src/
 │   └── objects.rs   # Object spawning rules per biome
 ├── io.rs            # File I/O and serialization
 ├── display.rs       # Text-based rendering
+├── camera.rs        # Shared camera functionality (position, zoom, smooth following)
 ├── terrain_view.rs  # Terrain view system (biome overview)
 ├── land_view.rs     # Land view system (detailed 8x8 tile grid)
 ├── graphics_loop.rs # Main graphics loop (coordinates views)
@@ -73,8 +74,8 @@ tests/
 ### Module Dependencies
 
 ```
-main.rs → types, generation, io, display, render, terrain_view, land_view, graphics_loop
-lib.rs → types, generation, io, display, terrain_view, land_view, render, tests
+main.rs → types, generation, io, display, render, camera, terrain_view, land_view, graphics_loop
+lib.rs → types, generation, io, display, camera, terrain_view, land_view, render, tests
 types.rs → (no dependencies on other modules)
 generation/mod.rs → types, generation/noise, generation/biome, generation/substrate, generation/objects
 generation/noise.rs → noise crate
@@ -83,8 +84,9 @@ generation/substrate.rs → types, generation/noise
 generation/objects.rs → types, noise crate
 io.rs → types
 display.rs → types
-terrain_view.rs → render, types
-land_view.rs → render, types
+camera.rs → (no dependencies on other modules)
+terrain_view.rs → render, types, camera
+land_view.rs → render, types, camera
 graphics_loop.rs → terrain_view, land_view, render::macroquad, types
 render/mod.rs → types
 render/macroquad.rs → render, types, macroquad
@@ -270,6 +272,30 @@ generation/
   - Shows 🔴 (red circle) for tiles with multiple objects
   - Includes coordinate headers (0-7 for both axes)
 
+### `camera.rs` - Shared Camera Functionality
+
+**Purpose**: Provides shared camera behavior to eliminate duplication between terrain and land view cameras.
+
+**Key Type**:
+
+- `CameraCore`: Shared camera state and behavior
+  - **Position**: `x: f32, y: f32` - current camera position
+  - **Target**: `target_x: f32, target_y: f32` - target position for smooth following
+  - **Base Tile Size**: Base size before zoom is applied
+  - **Zoom**: Zoom level (0.5x to 3.0x range, 1.15x step size)
+
+**Key Methods**:
+
+- `new(base_tile_size)`: Create camera with specified base tile size
+- `get_tile_size()`: Get tile size with zoom applied
+- `zoom_in()` / `zoom_out()`: Adjust zoom level (1.15x steps, clamped to 0.5-3.0x)
+- `world_to_screen()`: Convert world coordinates to screen coordinates
+- `update(delta_time)`: Smoothly interpolate toward target (follow speed: 8.0)
+- `set_target()`: Set target position
+- `sync_from()`: Sync position and target from another camera (for view switching)
+
+**Design**: Eliminates ~100 lines of duplication between TerrainCamera and LandCamera by extracting common camera behavior into a reusable component.
+
 ### `render/mod.rs` - Renderer Abstraction
 
 **Purpose**: Defines the `Renderer` trait that abstracts graphics operations, allowing different rendering backends (macroquad, Bevy, etc.).
@@ -344,24 +370,23 @@ generation/
 
 **TerrainCamera**:
 
-- **Position**: `x: f32, y: f32` - current camera position (smooth following)
-- **Target**: `target_x: f32, target_y: f32` - target position (land center)
+- **Core**: `CameraCore` - shared camera functionality (position, zoom, smooth following)
 - **Selection**: `selected_land_x: i32, selected_land_y: i32` - currently selected land
-- **Tile Size**: Base size 48.0 pixels (multiplied by zoom level)
-- **Zoom**: `zoom: f32` - zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out), range 0.5x to 3.0x
+- **Base Tile Size**: 48.0 pixels
 
 **Key Methods**:
 
-- `new()`: Initialize camera at origin with zoom 1.0
-- `world_to_screen()`: Convert world coordinates to screen coordinates (uses zoomed tile size)
-- `update()`: Smoothly interpolate camera toward target (follow speed: 8.0)
+- `new()`: Initialize camera at origin
+- `get_tile_size()`: Get effective tile size (delegates to CameraCore)
+- `zoom_in()` / `zoom_out()`: Adjust zoom (delegates to CameraCore)
+- `world_to_screen()`: Convert coordinates (delegates to CameraCore)
+- `update()`: Smoothly interpolate camera (delegates to CameraCore)
 - `move_selection()`: Move selection in discrete steps (one land per keypress)
 - `update_target()`: Update target position based on current selection
 - `set_selected_land()`: Set selected land (used when switching from land view)
-- `sync_position_from()`: Sync camera position from another camera (for view switching)
-- `get_tile_size()`: Get effective tile size (base size * zoom)
-- `zoom_in()`: Increase zoom level (multiplies by 1.15, max 3.0x)
-- `zoom_out()`: Decrease zoom level (divides by 1.15, min 0.5x)
+- `sync_position_from()`: Sync camera position from another camera
+- `get_position()`: Get current camera position for syncing to other cameras
+- `get_selected_land_world_pos()`: Get world position of selected land
 
 **Key Functions**:
 
@@ -388,27 +413,27 @@ generation/
 
 **LandCamera**:
 
-- **Position**: `x: f32, y: f32` - current camera position (smooth following)
-- **Target**: `target_x: f32, target_y: f32` - target position (selected tile position)
+- **Core**: `CameraCore` - shared camera functionality (position, zoom, smooth following)
 - **Land Selection**: `selected_land_x: i32, selected_land_y: i32` - currently viewed land
 - **Tile Selection**: `selected_tile_x: usize, selected_tile_y: usize` - selected tile within land (0-7)
-- **Tile Size**: Base size 64.0 pixels (multiplied by zoom level, and by ADJACENT_SCALE when showing adjacent lands)
-- **Zoom**: `zoom: f32` - zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out), range 0.5x to 3.0x
+- **Base Tile Size**: 64.0 pixels
+- **Show Adjacent**: `show_adjacent: bool` - whether to show 8 adjacent lands
 
 **Key Methods**:
 
-- `new()`: Initialize camera at origin with tile selection at center (4, 4) and zoom 1.0
-- `world_to_screen()`: Convert world coordinates to screen coordinates (for land center, uses zoomed tile size)
-- `update()`: Smoothly interpolate camera toward target (follow speed: 8.0)
+- `new()`: Initialize camera at origin with tile selection at center (4, 4)
+- `get_tile_size()`: Get base tile size with zoom applied (delegates to CameraCore)
+- `get_effective_tile_size()`: Get effective tile size (zoomed and scaled for adjacent lands)
+- `zoom_in()` / `zoom_out()`: Adjust zoom (delegates to CameraCore)
+- `world_to_screen()`: Convert coordinates (delegates to CameraCore)
+- `update()`: Smoothly interpolate camera (delegates to CameraCore)
 - `move_selection()`: Move tile selection within land (clamped to 0-7 range)
 - `update_target()`: Update target position based on selected tile world position
-- `set_land()`: Set which land is being viewed (used when switching from terrain view)
-- `sync_position_from()`: Sync camera position from another camera (prevents snapping when switching views)
+- `set_land()`: Set which land is being viewed
+- `sync_position_from()`: Sync camera position from another camera
+- `get_position()`: Get current camera position for syncing to other cameras
 - `get_selected_tile_world_pos()`: Get world position of selected tile
-- `get_tile_size()`: Get base tile size with zoom applied
-- `get_effective_tile_size()`: Get effective tile size (with zoom and adjacent scale applied)
-- `zoom_in()`: Increase zoom level (multiplies by 1.15, max 3.0x)
-- `zoom_out()`: Decrease zoom level (divides by 1.15, min 0.5x)
+- `get_land_spacing()`: Get spacing between lands when showing adjacent
 
 **Key Functions**:
 
@@ -599,7 +624,7 @@ Located in `#[cfg(test)]` module, compiled only during testing.
 2. `test_incremental_generation`: Tests adding new regions
 3. `test_biome_generation`: Ensures biome variety
 4. `test_tile_generation`: Validates 8x8 grid structure
-5. `test_lake_surrounded_by_lakes`: Checks neighbor-aware generation (at least 75% water when surrounded by lakes)
+5. `test_lake_surrounded_by_lakes`: Checks neighbor-aware generation (center tiles are water when surrounded by lakes, uses seed 42, asserts test found a surrounded lake)
 6. `test_deterministic_generation`: Verifies same seed = same world
 
 **Helper Functions**:
@@ -659,8 +684,16 @@ Tests the library as an external user would use it.
 - **Independence**: Each view system is self-contained with its own camera and state management
 - **Clarity**: Separates concerns - terrain view handles land-level selection, land view handles tile-level selection
 - **Maintainability**: Easier to modify one view without affecting the other
-- **Coordinate Systems**: Each view uses its own coordinate system optimized for its rendering needs
+- **Coordinate Systems**: Both use the same world coordinate system, but center on different positions
 - **Smooth Transitions**: View switching syncs camera positions to prevent visual snapping
+
+### Why Extract CameraCore?
+
+- **Eliminates Duplication**: Removed ~100 lines of duplicated code between TerrainCamera and LandCamera
+- **Single Source of Truth**: Zoom, position tracking, and smooth following logic defined once
+- **Easier Maintenance**: Changes to camera behavior only need to be made in one place
+- **Composition Over Inheritance**: Both camera types compose CameraCore rather than inheriting
+- **Type Safety**: Each camera retains its specific selection logic (land vs tile) while sharing movement
 
 ---
 
@@ -903,6 +936,7 @@ When modifying this codebase:
 - Generation: `src/generation/` (mod.rs, noise.rs, biome.rs, substrate.rs, objects.rs)
 - I/O: `src/io.rs`
 - Display: `src/display.rs`
+- Camera: `src/camera.rs`
 - Terrain View: `src/terrain_view.rs`
 - Land View: `src/land_view.rs`
 - Graphics Loop: `src/graphics_loop.rs`

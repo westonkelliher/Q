@@ -3,6 +3,7 @@ pub mod generation;
 pub mod io;
 pub mod display;
 pub mod render;
+pub mod camera;
 pub mod terrain_view;
 pub mod land_view;
 
