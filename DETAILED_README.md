@@ -46,7 +46,7 @@ The codebase follows a modular structure:
 
 ```
 src/
-├── main.rs          # Binary entry point (simple demo)
+├── main.rs          # Binary entry point with CLI (accepts seed and --graphics flag)
 ├── lib.rs           # Library root (re-exports public API)
 ├── types.rs         # Domain types and enums
 ├── generation.rs    # World generation algorithms
@@ -66,7 +66,7 @@ tests/
 ### Module Dependencies
 
 ```
-main.rs → types, generation, io, display, graphics_loop
+main.rs → types, generation, io, display, render, terrain_view, land_view, graphics_loop
 lib.rs → types, generation, io, display, terrain_view, land_view, render, tests
 types.rs → (no dependencies on other modules)
 generation.rs → types
@@ -77,7 +77,7 @@ land_view.rs → render, types
 graphics_loop.rs → terrain_view, land_view, render::macroquad, types
 render/mod.rs → types
 render/macroquad.rs → render, types, macroquad
-tests.rs → types, generation, display
+tests.rs → types, generation
 ```
 
 ---
@@ -102,6 +102,9 @@ tests.rs → types, generation, display
 - All types derive `Serialize`, `Deserialize` for JSON persistence
 - `World.terrain` uses custom serialization (see `io.rs`) because HashMap keys are tuples
 - `Biome`, `Substrate`, `Object` have `to_char()` methods that return emoji representations for display
+  - `Biome::to_char() -> &str`: Returns multi-character emoji strings ("🟩", "🟨", "🟦", "⬜")
+  - `Substrate::to_char() -> char`: Returns single emoji characters (circles: '🟢', '🟤', etc.)
+  - `Object::to_char() -> char`: Returns single emoji characters ('⚫', '🟩', '🟤')
 
 **Serialization Note**: `World.terrain` uses `(i32, i32)` as keys, which JSON doesn't support directly. Custom serializers convert to/from `"x,y"` string keys.
 
@@ -159,8 +162,11 @@ tests.rs → types, generation, display
 
 **Key Functions**:
 
-- `save_world(world)` → Saves to `{world.name}.json`
+- `save_world(world)` → Saves to `worlds/{world.name}.json` (creates `worlds/` directory if needed)
 - `load_world(path)` → Loads world from JSON file
+  - Supports absolute paths or simple names (e.g., "MyWorld")
+  - Simple names automatically resolved to `worlds/{name}.json`
+  - Automatically handles `.json` extension (strips and re-adds as needed)
 
 **Custom Serialization**:
 
@@ -180,8 +186,11 @@ tests.rs → types, generation, display
   - Shows ⬛ for ungenerated terrain
 
 - `print_land(land)`: Prints detailed 8x8 tile grid
-  - Shows substrate emoji + object emoji (or `*` for multiple)
-  - Includes coordinate headers
+  - Displays biome type above the grid
+  - Shows substrate emoji when tile has no objects
+  - Shows object emoji when present (substrate hidden - mutually exclusive)
+  - Shows 🔴 (red circle) for tiles with multiple objects
+  - Includes coordinate headers (0-7 for both axes)
 
 ### `render/mod.rs` - Renderer Abstraction
 
@@ -189,10 +198,21 @@ tests.rs → types, generation, display
 
 **Key Types**:
 
-- `Renderer`: Trait defining graphics operations (init, clear, draw_tile, draw_biome_overview, draw_selection_indicator, draw_grid, present, etc.)
-- `Color`: RGBA color representation
-- `Key`: Input key enumeration
-- `RenderError`: Error type for rendering operations
+- `Renderer`: Trait defining graphics operations
+  - `init()`: Initialize the renderer
+  - `clear(color)`: Clear screen to color
+  - `draw_tile(...)`: Render a single tile with substrate/objects
+  - `draw_biome_overview(...)`: Render biome-level overview
+  - `draw_selection_indicator(...)`: Draw selection highlight
+  - `draw_grid(...)`: Draw grid overlay
+  - `present()`: Present the rendered frame
+  - `should_close()`: Check if window should close
+  - `get_mouse_pos()`: Get mouse coordinates
+  - `get_keys_pressed()`: Get currently pressed keys
+  - `window_size()`: Get viewport dimensions
+- `Color`: RGBA color representation (f32 values 0.0-1.0)
+- `Key`: Input key enumeration (Arrow keys, WASD, Z/X for view switching, Escape, etc.)
+- `RenderError`: Error type with variants (InitializationFailed, RenderingFailed, Other)
 
 **Design**: The abstraction is designed to be simple enough for immediate-mode APIs (like macroquad) while being complete enough for ECS-based engines (like Bevy). This allows easy migration between backends.
 
@@ -205,7 +225,9 @@ tests.rs → types, generation, display
 - Color mapping for substrates, biomes, and objects
 - Selection indicator rendering (bright yellow-orange border with corner markers)
 - Grid overlay rendering for Land view
-- Input handling (keyboard)
+- Input handling (keyboard and mouse)
+- Multi-object rendering: Shows red indicator (40% size) when tile has multiple objects, vs 60% sized single object
+- Window size querying
 
 **Color Schemes**:
 - **Substrates**: Grass (green), Dirt (brown), Stone (gray), Mud (dark brown), Water (blue), Brush (yellow-green)
@@ -425,6 +447,8 @@ World
 - `print_world(world: &World, x1: i32, y1: i32, x2: i32, y2: i32)`
 - `render_terrain_view(renderer, world, camera)` - from `terrain_view::render`
 - `render_land_view(renderer, world, camera)` - from `land_view::render`
+- `handle_terrain_input(renderer, camera) -> bool` - from `terrain_view::handle_input`
+- `handle_land_input(renderer, camera) -> bool` - from `land_view::handle_input`
 - `TerrainCamera`, `LandCamera` types
 
 ### Usage Pattern
@@ -456,7 +480,7 @@ Located in `#[cfg(test)]` module, compiled only during testing.
 2. `test_incremental_generation`: Tests adding new regions
 3. `test_biome_generation`: Ensures biome variety
 4. `test_tile_generation`: Validates 8x8 grid structure
-5. `test_lake_surrounded_by_lakes`: Checks neighbor-aware generation (all water tiles)
+5. `test_lake_surrounded_by_lakes`: Checks neighbor-aware generation (at least 75% water when surrounded by lakes)
 6. `test_deterministic_generation`: Verifies same seed = same world
 
 **Helper Functions**:
