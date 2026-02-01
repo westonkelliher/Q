@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Commit**: `9574ce1`  
+> **Commit**: `03bf88f`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -50,7 +50,12 @@ src/
 ├── main.rs          # Binary entry point with CLI (accepts seed and --graphics flag)
 ├── lib.rs           # Library root (re-exports public API)
 ├── types.rs         # Domain types and enums
-├── generation.rs    # World generation algorithms
+├── generation/      # World generation module
+│   ├── mod.rs       # Public API: generate_world, initialize_world
+│   ├── noise.rs     # Noise utilities, seed offsets, constants
+│   ├── biome.rs     # Biome determination and tile-to-biome mapping
+│   ├── substrate.rs # Substrate generation rules per biome
+│   └── objects.rs   # Object spawning rules per biome
 ├── io.rs            # File I/O and serialization
 ├── display.rs       # Text-based rendering
 ├── terrain_view.rs  # Terrain view system (biome overview)
@@ -70,7 +75,11 @@ tests/
 main.rs → types, generation, io, display, render, terrain_view, land_view, graphics_loop
 lib.rs → types, generation, io, display, terrain_view, land_view, render, tests
 types.rs → (no dependencies on other modules)
-generation.rs → types
+generation/mod.rs → types, generation/noise, generation/biome, generation/substrate, generation/objects
+generation/noise.rs → noise crate
+generation/biome.rs → types, generation/noise
+generation/substrate.rs → types, generation/noise
+generation/objects.rs → types, noise crate
 io.rs → types
 display.rs → types
 terrain_view.rs → render, types
@@ -109,69 +118,105 @@ tests.rs → types, generation
 
 **Serialization Note**: `World.terrain` uses `(i32, i32)` as keys, which JSON doesn't support directly. Custom serializers convert to/from `"x,y"` string keys.
 
-### `generation.rs` - World Generation
+### `generation/` - World Generation Module
 
-**Purpose**: Contains all procedural generation logic.
+**Purpose**: Contains all procedural generation logic, organized into focused submodules.
+
+**Architecture**:
+```
+generation/
+├── mod.rs       # Public API and orchestration
+├── noise.rs     # Noise utilities and constants
+├── biome.rs     # Biome determination and mapping
+├── substrate.rs # Substrate generation per biome
+└── objects.rs   # Object spawning per biome
+```
+
+#### `generation/noise.rs` - Noise Utilities
+
+**Purpose**: Centralized noise helpers and constants.
+
+**Key Constants**:
+- `BIOME_SCALE = 0.1`: Scale for biome determination (larger biome regions)
+- `SUBSTRATE_SCALE = 0.4`: Scale for substrate variation (more detail per land)
+
+**Key Functions**:
+- `seed_offset(seed, discriminator) -> (f64, f64)`: Derives deterministic 2D offset from seed
+- `sample_noise(perlin, x, y, scale, offset) -> f64`: Samples Perlin with scaling and offset
+- `land_local_seed(base_seed, land_x, land_y) -> u64`: Creates land-specific seed using primes
+
+#### `generation/biome.rs` - Biome Logic
+
+**Purpose**: Biome determination and tile-to-biome mapping.
+
+**Key Types**:
+- `LandBiomes`: Holds 9 biomes in 3x3 pattern (center, edges, corners)
 
 **Key Functions**:
 
 1. **`determine_biome(x, y, perlin, seed)`**
-   - Uses Perlin noise to assign biomes
-   - Applies seed-based offset to ensure (0, 0) varies with different seeds
-   - Noise sampled at `[(x * 0.1) + offset_x, (y * 0.1) + offset_y]` where offsets are derived from seed
+   - Uses Perlin noise with seed-based offset
    - Thresholds: `<-0.3` Lake, `-0.3..0` Meadow, `0..0.4` Forest, `>=0.4` Mountain
 
 2. **`calculate_land_biomes(land_x, land_y, perlin, seed)`**
-   - Calculates 9 biomes for a land using biome sub-coordinate system
-   - **Formula**: For land (lx, ly), biome coords are:
+   - Calculates 9 biomes using biome sub-coordinate formula:
      - X: `(2*lx - 1)`, `(2*lx)`, `(2*lx + 1)` → left, center, right
      - Y: `(2*ly - 1)`, `(2*ly)`, `(2*ly + 1)` → top, center, bottom
-   - Returns `LandBiomes` struct with all 9 biomes
-   - **Edge Sharing**: Adjacent lands share edge biomes automatically (e.g., land (1,0) left edge matches land (0,0) right edge)
+   - Adjacent lands share edge biomes automatically
 
 3. **`get_tile_biome(biomes, tile_x, tile_y)`**
    - Maps 8x8 tile coordinates to one of 9 biomes
-   - **Simple zone-based mapping**:
-     - Corners (1 tile each): (0,0), (7,0), (0,7), (7,7)
-     - Edges (6 tiles each): row 0 cols 1-6, row 7 cols 1-6, col 0 rows 1-6, col 7 rows 1-6
-     - Center (36 tiles): rows 1-6, cols 1-6
+   - Zone-based: corners (1 tile), edges (6 tiles), center (36 tiles)
 
-4. **`generate_land_terrain(land_x, land_y, biomes, seed)`**
-   - Generates 8x8 tile grid for a land using 9-biome system
-   - Uses `get_tile_biome()` to determine biome for each tile
-   - Creates per-land Perlin generator with seed derived from coordinates
-   - Samples noise at fine-grained level for tile variation
-   - **Simplified**: No longer checks neighbors (edge sharing handled by biome sub-coordinates)
+#### `generation/substrate.rs` - Substrate Generation
 
-5. **`generate_world(world, seed, x1, y1, x2, y2)`**
-   - Generates terrain for coordinate range [x1..=x2, y1..=y2]
-   - Creates master Perlin generator from seed
-   - Calls `calculate_land_biomes` then `generate_land_terrain` for each coordinate
-   - Assigns all 9 biome fields to `Land` struct
+**Purpose**: Substrate rules per biome with globally-continuous noise.
 
-4. **`initialize_world(world, seed)`**
-   - Convenience function: generates [-10, -10] to [10, 10] (441 lands)
+**Key Functions**:
+- `get_substrate_noise(biome, global_x, global_y, perlin, seed)`: Per-biome noise using unique offsets
+- `substrate_for_biome(biome, noise) -> Substrate`: Applies biome-specific thresholds
 
-**Algorithm Details**:
+**Substrate Rules**:
+| Biome    | Substrates         | Noise Thresholds                      |
+|----------|-------------------|---------------------------------------|
+| Lake     | Water only        | (always)                              |
+| Meadow   | Dirt, Grass       | < -0.3 → Dirt, else Grass             |
+| Forest   | Dirt, Grass, Brush| < -0.4 → Dirt, < 0.5 → Grass, else Brush |
+| Mountain | Stone, Dirt       | < 0.0 → Stone, else Dirt              |
 
-- **Seed Derivation**: Each land gets unique Perlin generator via:
-  ```rust
-  seed + (land_x * 73856093) + (land_y * 19349663)
-  ```
-  Uses prime multipliers to avoid collisions.
+**Global Continuity**: Substrate noise uses global tile coordinates (`land * 8 + tile`), ensuring patterns blend seamlessly across land boundaries.
 
-- **Uniformity Factor**: When all 4 neighbors match the biome:
-  - Lakes → all water tiles
-  - Meadows → all grass tiles
-  - Forests → mostly grass/brush
-  - Mountains → all stone tiles
+#### `generation/objects.rs` - Object Generation
 
-- **Noise Sampling**: Tile-level noise uses:
-  ```rust
-  noise_x = land_x + tile_x * 0.125
-  noise_y = land_y + tile_y * 0.125
-  perlin.get([noise_x * 0.5, noise_y * 0.5])
-  ```
+**Purpose**: Object spawning rules per biome with land-local noise.
+
+**Key Functions**:
+- `objects_for_biome(biome, noise) -> Vec<Object>`: Spawns objects based on thresholds
+- `get_object_noise(perlin, land_x, land_y, tile_x, tile_y)`: Land-local noise sampling
+
+**Object Rules**:
+| Biome    | Objects                    | Noise Thresholds                       |
+|----------|---------------------------|----------------------------------------|
+| Lake     | Rock (rare)               | > 0.7 → Rock                           |
+| Meadow   | Rock, Stick               | > 0.5 → Rock, > 0.8 → Stick            |
+| Forest   | Tree (common), Rock, Stick| > 0.0 → Tree, > 0.6 → Rock, > 0.8 → Stick |
+| Mountain | Rock (abundant), Tree     | > 0.2 → Rock, > 0.6 → Rock, > 0.9 → Tree |
+
+#### `generation/mod.rs` - Public API
+
+**Key Functions**:
+
+1. **`generate_land_terrain(land_x, land_y, biomes, seed, substrate_perlin)`**
+   - Generates 8x8 tile grid using the biome at each tile position
+   - Substrate uses global Perlin for cross-boundary continuity
+   - Objects use land-local Perlin (no blending needed)
+
+2. **`generate_world(world, seed, x1, y1, x2, y2)`**
+   - Creates biome Perlin and substrate Perlin from seed
+   - Iterates coordinate range, calling `calculate_land_biomes` then `generate_land_terrain`
+
+3. **`initialize_world(world, seed)`**
+   - Convenience: generates [-10, -10] to [10, 10] (441 lands)
 
 ### `io.rs` - File I/O
 
@@ -470,7 +515,9 @@ World
 
 **Functions**:
 - `determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome`
-- `generate_land_terrain(land_x: i32, land_y: i32, biome: &Biome, world: &World, seed: u64) -> [[Tile; 8]; 8]`
+- `calculate_land_biomes(land_x: i32, land_y: i32, perlin: &Perlin, seed: u64) -> LandBiomes`
+- `get_tile_biome(biomes: &LandBiomes, tile_x: usize, tile_y: usize) -> &Biome`
+- `generate_land_terrain(land_x: i32, land_y: i32, biomes: &LandBiomes, seed: u64, substrate_perlin: &Perlin) -> [[Tile; 8]; 8]`
 - `generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y2: i32)`
 - `initialize_world(world: &mut World, seed: u64)`
 - `load_world(path: &str) -> Result<World, Box<dyn std::error::Error>>`
@@ -583,22 +630,25 @@ Tests the library as an external user would use it.
 
 1. Add variant to `Biome` enum in `types.rs`
 2. Add `to_char()` representation
-3. Add generation logic in `generate_land_terrain()`:
-   - Substrate thresholds
-   - Object generation rules
-4. Update `determine_biome()` thresholds if needed
+3. Update `generation/biome.rs`:
+   - Add threshold in `determine_biome()`
+4. Update `generation/substrate.rs`:
+   - Add discriminator in `biome_discriminator()`
+   - Add substrate rules in `substrate_for_biome()`
+5. Update `generation/objects.rs`:
+   - Add object rules in `objects_for_biome()`
 
 ### Adding New Substrates
 
 1. Add variant to `Substrate` enum
 2. Add `to_char()` representation
-3. Use in `generate_land_terrain()` for appropriate biomes
+3. Use in `generation/substrate.rs` `substrate_for_biome()` for appropriate biomes
 
 ### Adding New Objects
 
 1. Add variant to `Object` enum
 2. Add `to_char()` representation
-3. Add generation logic in `generate_land_terrain()`
+3. Add generation logic in `generation/objects.rs` `objects_for_biome()`
 
 ### Changing Tile Grid Size
 
@@ -609,10 +659,10 @@ Tests the library as an external user would use it.
 
 ### Adding New Generation Features
 
-- **Rivers**: Add to `generate_land_terrain()` using noise patterns
-- **Structures**: Add to `Object` enum and generation logic
-- **Height/Elevation**: Add `height: f64` to `Tile` struct
-- **Resources**: Add `resources: HashMap<Resource, u32>` to `Tile`
+- **Rivers**: Add new submodule `generation/rivers.rs` with noise patterns
+- **Structures**: Add to `Object` enum and `generation/objects.rs`
+- **Height/Elevation**: Add `height: f64` to `Tile` struct, new `generation/elevation.rs`
+- **Resources**: Add `resources: HashMap<Resource, u32>` to `Tile`, new `generation/resources.rs`
 
 ---
 
@@ -727,7 +777,7 @@ When modifying this codebase:
 
 **File Locations**:
 - Types: `src/types.rs`
-- Generation: `src/generation.rs`
+- Generation: `src/generation/` (mod.rs, noise.rs, biome.rs, substrate.rs, objects.rs)
 - I/O: `src/io.rs`
 - Display: `src/display.rs`
 - Terrain View: `src/terrain_view.rs`
@@ -736,11 +786,11 @@ When modifying this codebase:
 - Renderer: `src/render/mod.rs`, `src/render/macroquad.rs`
 - Tests: `src/tests.rs`, `tests/integration_tests.rs`
 
-**Key Constants**:
+**Key Constants** (defined in `generation/noise.rs`):
 - Tile grid size: 8x8
 - Initial generation: -10 to 10 (441 lands)
-- Noise scale: 0.1 for biomes, 0.5 for tiles
-- Uniformity factor: `matching_neighbors * 0.2`
+- `BIOME_SCALE`: 0.1 (larger biome regions)
+- `SUBSTRATE_SCALE`: 0.4 (more variation per land)
 - Terrain view tile size: 48px
 - Land view tile size: 64px
 - Camera follow speed: 8.0
