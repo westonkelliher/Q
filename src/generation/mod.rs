@@ -48,10 +48,6 @@ pub fn generate_land_terrain(
     seed: u64,
     substrate_perlin: &Perlin,
 ) -> [[Tile; 8]; 8] {
-    // Create land-local Perlin for objects (don't need cross-boundary blending)
-    let object_seed = self::noise::land_local_seed(seed, land_x, land_y);
-    let object_perlin = Perlin::new(object_seed as u32);
-    
     std::array::from_fn(|tile_y| {
         std::array::from_fn(|tile_x| {
             let biome = get_tile_biome(biomes, tile_x, tile_y);
@@ -66,11 +62,10 @@ pub fn generate_land_terrain(
             );
             let substrate = substrate::substrate_for_biome(biome, substrate_noise);
             
-            // Generate objects
-            let object_noise = objects::get_object_noise(
-                &object_perlin, land_x, land_y, tile_x, tile_y
+            // Generate objects (pseudo-random sparse placement)
+            let objects = objects::objects_for_biome(
+                biome, seed, land_x, land_y, tile_x, tile_y
             );
-            let objects = objects::objects_for_biome(biome, object_noise);
             
             Tile { substrate, objects }
         })

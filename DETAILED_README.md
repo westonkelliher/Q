@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Previous Commit**: `ce8fb8c`  
+> **Previous Commit**: `1d7bde1f3ebfe8ebaa74bd6fea0227ef7635b1d7`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -188,19 +188,24 @@ generation/
 
 #### `generation/objects.rs` - Object Generation
 
-**Purpose**: Object spawning rules per biome with land-local noise.
+**Purpose**: Object spawning rules per biome with pseudo-random sparse placement.
 
 **Key Functions**:
-- `objects_for_biome(biome, noise) -> Vec<Object>`: Spawns objects based on thresholds
-- `get_object_noise(perlin, land_x, land_y, tile_x, tile_y)`: Land-local noise sampling
+- `objects_for_biome(biome, seed, land_x, land_y, tile_x, tile_y) -> Vec<Object>`: Spawns objects using deterministic pseudo-random placement
+- `tile_random_value(seed, land_x, land_y, tile_x, tile_y) -> f64`: Generates deterministic pseudo-random value for a tile
+
+**Object Placement**:
+- Objects are placed sparsely: 5-10% of tiles have an object (7.5% threshold)
+- Placement is completely pseudo-random (no noise patterns)
+- Deterministic: same seed produces same object placement
 
 **Object Rules**:
-| Biome    | Objects                    | Noise Thresholds                       |
+| Biome    | Object Type                | Notes                                  |
 |----------|---------------------------|----------------------------------------|
-| Lake     | Rock (rare)               | > 0.7 → Rock                           |
-| Meadow   | Rock, Stick               | > 0.5 → Rock, > 0.8 → Stick            |
-| Forest   | Tree (common), Rock, Stick| > 0.0 → Tree, > 0.6 → Rock, > 0.8 → Stick |
-| Mountain | Rock (abundant), Tree     | > 0.2 → Rock, > 0.6 → Rock, > 0.9 → Tree |
+| Lake     | Rock                      | Always Rock when object is placed      |
+| Meadow   | Rock or Stick             | 50/50 random distribution              |
+| Forest   | Tree, Rock, or Stick      | Tree 50%, Rock 25%, Stick 25%          |
+| Mountain | Rock or Tree              | Rock 70%, Tree 30%                     |
 
 #### `generation/mod.rs` - Public API
 
@@ -209,7 +214,7 @@ generation/
 1. **`generate_land_terrain(land_x, land_y, biomes, seed, substrate_perlin)`**
    - Generates 8x8 tile grid using the biome at each tile position
    - Substrate uses global Perlin for cross-boundary continuity
-   - Objects use land-local Perlin (no blending needed)
+   - Objects use pseudo-random sparse placement (5-10% of tiles)
 
 2. **`generate_world(world, seed, x1, y1, x2, y2)`**
    - Creates biome Perlin and substrate Perlin from seed
@@ -471,12 +476,17 @@ Each biome generates specific substrates based on noise values:
 
 ### Object Generation
 
-Objects are added based on noise thresholds (lower threshold = more objects):
+Objects are placed pseudo-randomly with sparse distribution (5-10% of tiles):
 
-- **Lake**: Rocks only, threshold `0.5 + uniformity_factor`
-- **Meadow**: Rocks (`0.3 - uniformity_factor`) and Sticks (`0.6 - uniformity_factor`)
-- **Forest**: Trees (`-0.2 - uniformity_factor`), Rocks (`0.4 - uniformity_factor`), Sticks (`0.7 - uniformity_factor`)
-- **Mountain**: Multiple Rocks (`0.0 - uniformity_factor`, `0.5 - uniformity_factor`), Trees (`0.8 - uniformity_factor`)
+- **Placement**: Deterministic hash function seeded by world seed and tile coordinates
+- **Sparsity**: 7.5% threshold (middle of 5-10% range)
+- **No Noise**: Completely pseudo-random placement (no noise patterns)
+
+**Object Types by Biome**:
+- **Lake**: Rock (always Rock when object is placed)
+- **Meadow**: Rock (50%) or Stick (50%)
+- **Forest**: Tree (50%), Rock (25%), or Stick (25%)
+- **Mountain**: Rock (70%) or Tree (30%)
 
 ---
 
