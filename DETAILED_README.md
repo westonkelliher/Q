@@ -986,6 +986,24 @@ When modifying this codebase:
 
 ---
 
+## Subsystems
+
+The project includes isolated subsystems that handle specific game mechanics:
+
+### Crafting Subsystem
+
+Location: `subsystems/crafting/`
+
+A tag-based crafting system with multi-component items and full provenance tracking. See **[subsystems/crafting/README.md](subsystems/crafting/README.md)** for detailed documentation.
+
+**Key Features**:
+- Tag-based material compatibility (e.g., "high_heat" matches forge, kiln, bonfire)
+- Multi-component items (Tinker's Construct style)
+- Lossless provenance tracking through crafting chains
+- LLM-friendly string-based IDs
+
+---
+
 ## Quick Reference
 
 **File Locations**:
