@@ -11,7 +11,7 @@ pub fn generate_lake_objects(
     global_x: i32,
     global_y: i32,
 ) -> Vec<Object> {
-    const PLACEMENT_THRESHOLD: f64 = 0.075; // 7.5% of tiles
+    const PLACEMENT_THRESHOLD: f64 = 0.02; // 2% of tiles (sparse)
     
     let random_value = tile_random_value(seed, global_x, global_y);
     
@@ -29,8 +29,8 @@ pub fn generate_meadow_objects(
     global_x: i32,
     global_y: i32,
 ) -> Vec<Object> {
-    const TREE_PLACEMENT_THRESHOLD: f64 = 0.04; // 4% average (middle of 3-5% range)
-    const OTHER_PLACEMENT_THRESHOLD: f64 = 0.065; // 6.5% average (middle of 5-8% range)
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.015; // 1.5% of tiles (sparse)
+    const OTHER_PLACEMENT_THRESHOLD: f64 = 0.025; // 2.5% of tiles (sparse)
     
     let random_value = tile_random_value(seed, global_x, global_y);
     let object_type_value = tile_random_value(seed.wrapping_add(1), global_x, global_y);
@@ -62,8 +62,8 @@ pub fn generate_forest_objects(
     global_x: i32,
     global_y: i32,
 ) -> Vec<Object> {
-    const TREE_PLACEMENT_THRESHOLD: f64 = 0.40; // 40% of eligible tiles
-    const OTHER_PLACEMENT_THRESHOLD: f64 = 0.10; // 10% average (middle of 8-12% range)
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.05; // 5% of eligible tiles (sparse)
+    const OTHER_PLACEMENT_THRESHOLD: f64 = 0.03; // 3% of tiles (sparse)
     
     let random_value = tile_random_value(seed, global_x, global_y);
     let object_type_value = tile_random_value(seed.wrapping_add(1), global_x, global_y);
@@ -92,6 +92,39 @@ pub fn generate_forest_objects(
     }
 }
 
+/// Generates objects for Plains biome.
+pub fn generate_plains_objects(
+    substrate: &Substrate,
+    seed: u64,
+    global_x: i32,
+    global_y: i32,
+) -> Vec<Object> {
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.02; // 2% of eligible tiles (sparse)
+    const OTHER_PLACEMENT_THRESHOLD: f64 = 0.03; // 3% of tiles (sparse)
+    
+    let random_value = tile_random_value(seed, global_x, global_y);
+    let object_type_value = tile_random_value(seed.wrapping_add(1), global_x, global_y);
+    
+    // Check if tile is eligible for trees (grass or dirt only)
+    let can_have_tree = matches!(substrate, Substrate::Grass | Substrate::Dirt);
+    
+    // Try to place a tree first if substrate is eligible
+    if can_have_tree && random_value < TREE_PLACEMENT_THRESHOLD {
+        return vec![Object::Tree];
+    }
+    
+    // Otherwise, try to place rock or stick
+    if random_value < OTHER_PLACEMENT_THRESHOLD {
+        if object_type_value < 0.75 {
+            vec![Object::Rock]
+        } else {
+            vec![Object::Stick]
+        }
+    } else {
+        Vec::new()
+    }
+}
+
 /// Generates objects for Mountain biome.
 pub fn generate_mountain_objects(
     substrate: &Substrate,
@@ -99,8 +132,8 @@ pub fn generate_mountain_objects(
     global_x: i32,
     global_y: i32,
 ) -> Vec<Object> {
-    const ROCK_PLACEMENT_THRESHOLD: f64 = 0.175; // 17.5% average (middle of 15-20% range)
-    const TREE_PLACEMENT_THRESHOLD: f64 = 0.35; // 35% average (middle of 30-40% range)
+    const ROCK_PLACEMENT_THRESHOLD: f64 = 0.03; // 3% of tiles (sparse)
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.02; // 2% of eligible tiles (sparse)
     
     let random_value = tile_random_value(seed, global_x, global_y);
     
@@ -182,8 +215,8 @@ pub fn add_sticks_near_trees(
                                 nearby_global_y,
                             );
                             
-                            // 5% chance to place a stick near a tree (reduced from 15%)
-                            if stick_value < 0.05 {
+                            // 2% chance to place a stick near a tree (sparse)
+                            if stick_value < 0.02 {
                                 nearby_tile.objects.push(crate::types::Object::Stick);
                             }
                         }

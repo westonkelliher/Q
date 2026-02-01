@@ -2,8 +2,8 @@
 
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
-> **Last Updated**: 2026-01-31  
-> **Previous Commit**: `aa62f174`  
+> **Last Updated**: 2026-02-01  
+> **Previous Commit**: `c807cdde`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -35,6 +35,7 @@ This document provides comprehensive technical context for LLMs working on this 
 - **Deterministic**: Same seed produces identical worlds
 - **Incremental**: Generate terrain on-demand for specific coordinate ranges
 - **9-Biome System**: Each land contains 9 biomes (center, 4 edges, 4 corners) using biome sub-coordinates
+- **5 Biome Types**: Lake, Meadow, Plains, Forest, Mountain
 - **Edge Sharing**: Adjacent lands automatically share edge biomes through deterministic biome sub-coordinate system
 - **Biome-based**: Tile generation uses zone-based mapping (center/edge/corner) to determine biome per tile
 
@@ -106,7 +107,7 @@ tests.rs → types, generation
 - `Substrate`: Ground material (Grass, Dirt, Stone, Mud, Water, Brush)
 - `Object`: Placed items (Rock, Tree, Stick)
 - `Tile`: Combines substrate + objects
-- `Biome`: Land classification (Forest, Meadow, Lake, Mountain)
+- `Biome`: Land classification (Forest, Meadow, Lake, Plains, Mountain)
 - `Land`: 8x8 tile grid + 9 biomes (center, top, bottom, left, right, top_left, top_right, bottom_left, bottom_right)
 - `World`: Container with name + terrain HashMap
 
@@ -159,7 +160,8 @@ generation/
 
 1. **`determine_biome(x, y, perlin, seed)`**
    - Uses Perlin noise with seed-based offset
-   - Thresholds: `<-0.3` Lake, `-0.3..0` Meadow, `0..0.4` Forest, `>=0.4` Mountain
+   - Thresholds: `<-0.3` Lake, `-0.3..-0.1` Meadow, `-0.1..0.2` Plains, `0.2..0.4` Forest, `>=0.4` Mountain
+   - Plains biome represents mostly dirt terrain with sparse vegetation
 
 2. **`calculate_land_biomes(land_x, land_y, perlin, seed)`**
    - Calculates 9 biomes using biome sub-coordinate formula:
@@ -184,6 +186,7 @@ generation/
 |----------|-------------------|---------------------------------------|
 | Lake     | Water only        | (always)                              |
 | Meadow   | Dirt, Grass       | < -0.8 → Dirt (rare), else Grass     |
+| Plains   | Dirt, Grass       | < 0.3 → Dirt (mostly), else Grass    |
 | Forest   | Dirt, Grass, Brush| < -0.4 → Dirt, < 0.2 → Grass, else Brush (increased brush) |
 | Mountain | Stone, Dirt       | < 0.6 → Stone, else Dirt              |
 
@@ -197,6 +200,7 @@ generation/
 - `objects_for_biome(biome, substrate, seed, land_x, land_y, tile_x, tile_y) -> Vec<Object>`: Dispatches to biome-specific generation functions
 - `generate_lake_objects(...)`: Generates objects for Lake biome
 - `generate_meadow_objects(substrate, ...)`: Generates objects for Meadow biome with substrate awareness
+- `generate_plains_objects(substrate, ...)`: Generates objects for Plains biome with substrate awareness
 - `generate_forest_objects(substrate, ...)`: Generates objects for Forest biome with substrate awareness
 - `generate_mountain_objects(substrate, ...)`: Generates objects for Mountain biome with substrate awareness
 - `add_sticks_near_trees(tiles, seed, land_x, land_y)`: Adds sticks deterministically near trees in a second pass
@@ -214,6 +218,7 @@ generation/
 |----------|---------------------------------------------------------|------------------------------------------------------------------|
 | Lake     | ~7.5% rocks                                              | Always Rock when placed                                          |
 | Meadow   | Trees: 3-5% of grass/dirt tiles<br>Rocks/Sticks: ~5-8% | Trees only on Grass/Dirt<br>Rock (80%), Stick (20%) otherwise   |
+| Plains   | Trees: 2% of grass/dirt tiles<br>Rocks/Sticks: ~3%     | Trees only on Grass/Dirt<br>Rock (75%), Stick (25%) otherwise   |
 | Forest   | Trees: 40% of grass/brush/dirt<br>Rocks/Sticks: ~8-12%  | Trees only on Grass/Brush/Dirt<br>Rock (75%), Stick (25%) otherwise |
 | Mountain | Rocks: 15-20% of all tiles<br>Trees: 30-40% of dirt    | Trees only on Dirt<br>Rocks can spawn on Stone or Dirt          |
 
@@ -342,7 +347,7 @@ generation/
 
 **Color Schemes**:
 - **Substrates**: Grass (green), Dirt (brown), Stone (gray), Mud (dark brown), Water (blue), Brush (yellow-green)
-- **Biomes**: Forest (dark green), Meadow (light green/yellow), Lake (blue), Mountain (gray/white)
+- **Biomes**: Forest (dark green), Meadow (light green/yellow), Lake (blue), Plains (brown/tan), Mountain (gray/white)
 - **Objects**: Rock (dark gray), Tree (green), Stick (brown)
 
 **Shadow Color Algorithm**:
@@ -502,7 +507,8 @@ offset_x = hash_function(seed) * 1000.0
 offset_y = hash_function(seed) * 1000.0
 noise_value = perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
 if noise_value < -0.3 => Lake
-else if noise_value < 0.0 => Meadow
+else if noise_value < -0.1 => Meadow
+else if noise_value < 0.2 => Plains
 else if noise_value < 0.4 => Forest
 else => Mountain
 ```
@@ -518,6 +524,10 @@ Each biome generates specific substrates based on noise values:
 - **Meadow**: Uses noise threshold at -0.8
   - Below threshold → Dirt (very rare)
   - Otherwise → Grass (almost entirely grass)
+
+- **Plains**: Uses noise threshold at 0.3
+  - Below threshold → Dirt (mostly dirt, ~70% of tiles)
+  - Otherwise → Grass (~30% of tiles)
 
 - **Forest**: Uses two noise thresholds
   - Below -0.4 → Dirt
@@ -541,6 +551,7 @@ Objects are placed pseudo-randomly with biome-specific rates and substrate-aware
 **Object Types by Biome**:
 - **Lake**: Rock (~7.5% of tiles)
 - **Meadow**: Trees (3-5% on grass/dirt), Rock (80%) or Stick (20%) on ~5-8% of tiles
+- **Plains**: Trees (2% on grass/dirt), Rock (75%) or Stick (25%) on ~3% of tiles
 - **Forest**: Trees (40% on grass/brush/dirt), Rock (75%) or Stick (25%) on ~8-12% of tiles
 - **Mountain**: Rocks (15-20% of all tiles), Trees (30-40% on dirt patches only)
 
@@ -710,12 +721,16 @@ Tests the library as an external user would use it.
 1. Add variant to `Biome` enum in `types.rs`
 2. Add `to_char()` representation
 3. Update `generation/biome.rs`:
-   - Add threshold in `determine_biome()`
-4. Update `generation/substrate.rs`:
-   - Add discriminator in `biome_discriminator()`
-   - Add substrate rules in `substrate_for_biome()`
+   - Add threshold constant
+   - Add case in `determine_biome()`
+4. Update `generation/mod.rs`:
+   - Add discriminator multiplier (next available: 4 * BIOME_DISCRIMINATOR_BASE for Plains)
+   - Add `generate_<biome>_tile()` function with substrate generation logic
+   - Add case in `generate_land_terrain()` match statement
 5. Update `generation/objects.rs`:
-   - Add object rules in `objects_for_biome()`
+   - Add `generate_<biome>_objects()` function with object placement rules
+6. Update `render/macroquad.rs`:
+   - Add color in `biome_color()` function
 
 ### Adding New Substrates
 

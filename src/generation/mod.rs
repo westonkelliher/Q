@@ -82,6 +82,24 @@ fn generate_forest_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
     Tile { substrate, objects }
 }
 
+/// Generates a tile for Plains biome.
+/// Plains are mostly dirt with some grass patches.
+fn generate_plains_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
+    let perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let offset = seed_offset(seed, 4 * BIOME_DISCRIMINATOR_BASE); // Plains discriminator = 4 * BASE
+    let noise = sample_noise(&perlin, global_x as f64, global_y as f64, SUBSTRATE_SCALE, offset);
+    
+    // Mostly dirt (below 0.3), with some grass patches (above 0.3)
+    let substrate = if noise < 0.3 {
+        Substrate::Dirt
+    } else {
+        Substrate::Grass
+    };
+    
+    let objects = objects::generate_plains_objects(&substrate, seed, global_x, global_y);
+    Tile { substrate, objects }
+}
+
 /// Generates a tile for Mountain biome.
 fn generate_mountain_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
     let perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
@@ -119,6 +137,7 @@ pub fn generate_land_terrain(
             match biome {
                 Biome::Lake => generate_lake_tile(global_x, global_y, seed),
                 Biome::Meadow => generate_meadow_tile(global_x, global_y, seed),
+                Biome::Plains => generate_plains_tile(global_x, global_y, seed),
                 Biome::Forest => generate_forest_tile(global_x, global_y, seed),
                 Biome::Mountain => generate_mountain_tile(global_x, global_y, seed),
             }

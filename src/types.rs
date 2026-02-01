@@ -30,6 +30,7 @@ pub enum Biome {
     Meadow,
     Lake,
     Mountain,
+    Plains,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,6 +62,7 @@ impl Biome {
             Biome::Meadow => "🟨",  // Yellow square
             Biome::Lake => "🟦",   // Blue square
             Biome::Mountain => "⬜", // White square
+            Biome::Plains => "🟫",  // Brown square
         }
     }
 }

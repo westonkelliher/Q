@@ -69,6 +69,7 @@ impl MacroquadRenderer {
             Biome::Meadow => Color::rgb(0.7, 0.9, 0.4),         // Light green/yellow
             Biome::Lake => Color::rgb(0.2, 0.5, 0.9),           // Blue
             Biome::Mountain => Color::rgb(0.8, 0.8, 0.85),      // Gray/white
+            Biome::Plains => Color::rgb(0.6, 0.5, 0.35),        // Brown/tan (dirt-colored)
         }
     }
 

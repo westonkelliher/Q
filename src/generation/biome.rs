@@ -36,7 +36,8 @@ pub struct LandBiomes {
 /// Noise thresholds for biome determination.
 /// Perlin noise returns values roughly in [-1.0, 1.0].
 const LAKE_THRESHOLD: f64 = -0.3;
-const MEADOW_THRESHOLD: f64 = 0.0;
+const MEADOW_THRESHOLD: f64 = -0.1;
+const PLAINS_THRESHOLD: f64 = 0.2;
 const FOREST_THRESHOLD: f64 = 0.4;
 // Above FOREST_THRESHOLD = Mountain
 
@@ -52,6 +53,8 @@ pub fn determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome {
         Biome::Lake
     } else if noise_value < MEADOW_THRESHOLD {
         Biome::Meadow
+    } else if noise_value < PLAINS_THRESHOLD {
+        Biome::Plains
     } else if noise_value < FOREST_THRESHOLD {
         Biome::Forest
     } else {
