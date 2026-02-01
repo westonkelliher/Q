@@ -48,11 +48,17 @@ pub struct Land {
     pub bottom_right: Biome, // corner (1 tile)
 }
 
+fn default_seed() -> u64 {
+    12347
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct World {
     pub name: String,
     #[serde(serialize_with = "crate::io::serialize_terrain", deserialize_with = "crate::io::deserialize_terrain")]
     pub terrain: HashMap<(i32, i32), Land>,
+    #[serde(default = "default_seed")]
+    pub seed: u64,
 }
 
 impl Biome {

@@ -171,29 +171,41 @@ pub fn generate_land_terrain(
     tiles
 }
 
+/// Generates a single land at the specified coordinates.
+/// Skips generation if the land already exists to preserve any dynamic changes.
+pub fn generate_land(world: &mut World, seed: u64, land_x: i32, land_y: i32) {
+    // Skip if land already exists to preserve dynamic changes
+    if world.terrain.contains_key(&(land_x, land_y)) {
+        return;
+    }
+    
+    let biomes = calculate_land_biomes(land_x, land_y, seed);
+    let tiles = generate_land_terrain(land_x, land_y, &biomes, seed);
+    
+    let land = Land {
+        tiles,
+        center: biomes.center,
+        top: biomes.top,
+        bottom: biomes.bottom,
+        left: biomes.left,
+        right: biomes.right,
+        top_left: biomes.top_left,
+        top_right: biomes.top_right,
+        bottom_left: biomes.bottom_left,
+        bottom_right: biomes.bottom_right,
+    };
+    
+    world.terrain.insert((land_x, land_y), land);
+}
+
 /// Generates world terrain for a rectangular region of lands.
 ///
 /// Coordinates are inclusive: generates from (x1, y1) to (x2, y2).
+/// Skips lands that already exist to preserve any dynamic changes.
 pub fn generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y2: i32) {
     for x in x1..=x2 {
         for y in y1..=y2 {
-            let biomes = calculate_land_biomes(x, y, seed);
-            let tiles = generate_land_terrain(x, y, &biomes, seed);
-            
-            let land = Land {
-                tiles,
-                center: biomes.center,
-                top: biomes.top,
-                bottom: biomes.bottom,
-                left: biomes.left,
-                right: biomes.right,
-                top_left: biomes.top_left,
-                top_right: biomes.top_right,
-                bottom_left: biomes.bottom_left,
-                bottom_right: biomes.bottom_right,
-            };
-            
-            world.terrain.insert((x, y), land);
+            generate_land(world, seed, x, y);
         }
     }
 }
@@ -201,4 +213,25 @@ pub fn generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y
 /// Initializes a world with the default generation area (-10 to 10).
 pub fn initialize_world(world: &mut World, seed: u64) {
     generate_world(world, seed, -10, -10, 10, 10);
+}
+
+/// Ensures terrain is generated within the specified radius of the center position.
+/// Only generates lands that don't already exist, preserving any dynamic changes.
+/// Uses circular radius (Euclidean distance) instead of square radius.
+pub fn ensure_terrain_generated(world: &mut World, center_x: i32, center_y: i32, radius: f32) {
+    let radius_squared = radius * radius;
+    let radius_ceil = radius.ceil() as i32;
+    
+    // Generate each ungenerated land within circular radius
+    for dx in -radius_ceil..=radius_ceil {
+        for dy in -radius_ceil..=radius_ceil {
+            // Check if this coordinate is within the circular radius
+            let distance_squared = (dx * dx + dy * dy) as f32;
+            if distance_squared <= radius_squared {
+                let x = center_x + dx;
+                let y = center_y + dy;
+                generate_land(world, world.seed, x, y);
+            }
+        }
+    }
 }

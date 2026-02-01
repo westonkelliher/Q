@@ -10,7 +10,7 @@ mod graphics_loop;
 
 use std::collections::HashMap;
 use types::World;
-use generation::{generate_world, initialize_world};
+use generation::initialize_world;
 use io::save_world;
 use display::{print_land, print_world};
 use macroquad::prelude::*;
@@ -54,6 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut world = World {
         name: format!("World_{}", seed),
         terrain: HashMap::new(),
+        seed,
     };
     initialize_world(&mut world, seed);
     println!("World '{}' initialized with {} lands", world.name, world.terrain.len());
@@ -83,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  X: Toggle adjacent lands (Land view only)");
         println!("  -/=: Zoom out/in");
         println!("  ESC: Exit");
-        graphics_loop::run_graphics_loop(&world).await?;
+        graphics_loop::run_graphics_loop(&mut world).await?;
     }
     
     println!("\nSaving world...");

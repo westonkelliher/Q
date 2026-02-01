@@ -3,6 +3,7 @@ use crate::render::macroquad::MacroquadRenderer;
 use crate::render::{Color, Key, Renderer};
 use crate::terrain_view::{self, TerrainCamera};
 use crate::types::World;
+use crate::generation;
 use macroquad::prelude::*;
 
 /// View mode enum for tracking which view is active
@@ -16,7 +17,7 @@ pub enum ViewMode {
 
 /// Run the graphics loop using macroquad
 /// This is a convenience function that sets up macroquad and runs the rendering loop
-pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_graphics_loop(world: &mut World) -> Result<(), Box<dyn std::error::Error>> {
     let mut renderer = MacroquadRenderer::new();
     renderer.init()?;
 
@@ -60,6 +61,15 @@ pub async fn run_graphics_loop(world: &World) -> Result<(), Box<dyn std::error::
         let should_switch_view = match view_mode {
             ViewMode::Terrain => {
                 let should_switch = terrain_view::handle_input(&mut terrain_camera, &keys_pressed_this_frame);
+                
+                // Ensure terrain is generated within 5.5 spaces of current position
+                generation::ensure_terrain_generated(
+                    world,
+                    terrain_camera.selected_land_x,
+                    terrain_camera.selected_land_y,
+                    5.5,
+                );
+                
                 if should_switch {
                     // Sync land camera with terrain camera's selection
                     // Set the land first, then sync to the land center (not terrain camera position)
