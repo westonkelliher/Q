@@ -38,8 +38,15 @@ const SUBSTRATE_SEED_OFFSET: u64 = 999983;
 
 /// Discriminator values for per-biome noise offsets.
 /// Each biome gets a unique offset so their substrate patterns differ.
-const 
-BIOME_DISCRIMINATOR_BASE: u64 = 7919; // Prime number
+const BIOME_DISCRIMINATOR_BASE: u64 = 7919; // Prime number
+
+/// Scale factor for brush placement in forests.
+/// Lower values = larger brush patches.
+/// Set lower than SUBSTRATE_SCALE to create larger, more cohesive brush areas.
+const BRUSH_SCALE: f64 = 0.15; // Larger features than substrate scale (0.4)
+
+/// Discriminator for brush-specific noise (separate from substrate noise).
+const BRUSH_DISCRIMINATOR: u64 = 7 * BIOME_DISCRIMINATOR_BASE;
 
 /// Generates a tile for Lake biome.
 fn generate_lake_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
@@ -65,17 +72,31 @@ fn generate_meadow_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
 }
 
 /// Generates a tile for Forest biome.
+/// Uses a two-stage approach: first determines dirt vs grass/brush using normal scale,
+/// then uses a larger-scale noise to determine brush patches within grass/brush areas.
 fn generate_forest_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
-    let perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
-    let offset = seed_offset(seed, 2 * BIOME_DISCRIMINATOR_BASE); // Forest discriminator = 2 * BASE
-    let noise = sample_noise(&perlin, global_x as f64, global_y as f64, SUBSTRATE_SCALE, offset);
+    // Stage 1: Determine dirt vs grass/brush using normal substrate scale
+    let substrate_perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+    let substrate_offset = seed_offset(seed, 2 * BIOME_DISCRIMINATOR_BASE); // Forest discriminator = 2 * BASE
+    let substrate_noise = sample_noise(&substrate_perlin, global_x as f64, global_y as f64, SUBSTRATE_SCALE, substrate_offset);
     
-    let substrate = if noise < -0.4 {
+    // First determine if it's dirt or grass/brush area
+    let substrate = if substrate_noise < -0.4 {
         Substrate::Dirt
-    } else if noise < 0.2 {
-        Substrate::Grass
     } else {
-        Substrate::Brush
+        // Stage 2: For grass/brush areas, use larger-scale noise to determine brush patches
+        // This creates larger, more cohesive brush areas without affecting dirt/grass distribution
+        let brush_perlin = Perlin::new(seed.wrapping_add(SUBSTRATE_SEED_OFFSET) as u32);
+        let brush_offset = seed_offset(seed, BRUSH_DISCRIMINATOR);
+        let brush_noise = sample_noise(&brush_perlin, global_x as f64, global_y as f64, BRUSH_SCALE, brush_offset);
+        
+        // Use the brush noise to determine if this grass/brush area becomes brush
+        // Threshold of 0.2 maintains similar brush frequency but with larger patches
+        if brush_noise > 0.2 {
+            Substrate::Brush
+        } else {
+            Substrate::Grass
+        }
     };
     
     let objects = objects::generate_forest_objects(&substrate, seed, global_x, global_y);
@@ -89,8 +110,8 @@ fn generate_plains_tile(global_x: i32, global_y: i32, seed: u64) -> Tile {
     let offset = seed_offset(seed, 4 * BIOME_DISCRIMINATOR_BASE); // Plains discriminator = 4 * BASE
     let noise = sample_noise(&perlin, global_x as f64, global_y as f64, SUBSTRATE_SCALE, offset);
     
-    // Mostly dirt (below 0.3), with some grass patches (above 0.3)
-    let substrate = if noise < 0.3 {
+    // Mostly dirt (below 0.45), with some grass patches (above 0.45)
+    let substrate = if noise < 0.45 {
         Substrate::Dirt
     } else {
         Substrate::Grass
