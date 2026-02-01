@@ -27,7 +27,7 @@ impl MacroquadRenderer {
             Substrate::Stone => Color::rgb(0.7, 0.7, 0.7),      // Gray
             Substrate::Mud => Color::rgb(0.4, 0.3, 0.2),        // Dark brown
             Substrate::Water => Color::rgb(0.2, 0.4, 0.9),      // Blue
-            Substrate::Brush => Color::rgb(0.5, 0.75, 0.2),    // More saturated yellow-green
+            Substrate::Brush => Color::rgb(0.2, 0.6, 0.15),    // Dark green, similar to forest
         }
     }
 
