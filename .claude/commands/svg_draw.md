@@ -1,5 +1,6 @@
 ---
 description: Draw an object as SVG in Super Auto Pets style
+model: sonnet
 ---
 
 # Draw: $ARGUMENTS
