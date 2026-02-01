@@ -35,7 +35,16 @@ pub enum Biome {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Land {
     pub tiles: [[Tile; 8]; 8],
-    pub biome: Biome,
+    // 9 biomes in a 3x3 pattern (named explicitly)
+    pub center: Biome,       // main biome, determines most tiles
+    pub top: Biome,          // top edge (6 tiles)
+    pub bottom: Biome,       // bottom edge (6 tiles)
+    pub left: Biome,         // left edge (6 tiles)
+    pub right: Biome,        // right edge (6 tiles)
+    pub top_left: Biome,     // corner (1 tile)
+    pub top_right: Biome,    // corner (1 tile)
+    pub bottom_left: Biome,  // corner (1 tile)
+    pub bottom_right: Biome, // corner (1 tile)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -118,7 +118,8 @@ pub fn render<R: Renderer>(
                 let world_y = y as f32;
                 let (screen_x, screen_y) = camera.world_to_screen(world_x, world_y, screen_width, screen_height);
                 
-                renderer.draw_biome_overview(screen_x, screen_y, tile_size, &land.biome);
+                // Draw single square per land using center biome for color
+                renderer.draw_biome_overview(screen_x, screen_y, tile_size, &land.center);
             }
         }
     }

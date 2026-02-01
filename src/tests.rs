@@ -48,7 +48,7 @@ mod tests {
         let mut has_mountain = false;
         
         for land in world.terrain.values() {
-            match land.biome {
+            match land.center {
                 Biome::Forest => has_forest = true,
                 Biome::Meadow => has_meadow = true,
                 Biome::Lake => has_lake = true,
@@ -82,7 +82,7 @@ mod tests {
         for x in -5..=5 {
             for y in -5..=5 {
                 if let Some(land) = world.terrain.get(&(x, y)) {
-                    if matches!(land.biome, Biome::Lake) {
+                    if matches!(land.center, Biome::Lake) {
                         let neighbors = [
                             world.terrain.get(&(x - 1, y)),
                             world.terrain.get(&(x + 1, y)),
@@ -90,7 +90,7 @@ mod tests {
                             world.terrain.get(&(x, y + 1)),
                         ];
                         let all_lakes = neighbors.iter()
-                            .all(|opt| opt.map(|l| matches!(l.biome, Biome::Lake)).unwrap_or(false));
+                            .all(|opt| opt.map(|l| matches!(l.center, Biome::Lake)).unwrap_or(false));
                         
                         if all_lakes {
                             // If all neighbors are lakes, tiles should be mostly water
@@ -134,7 +134,7 @@ mod tests {
         // Check that biomes match
         for (coord, land1) in &world1.terrain {
             if let Some(land2) = world2.terrain.get(coord) {
-                assert_eq!(land1.biome, land2.biome);
+                assert_eq!(land1.center, land2.center);
             }
         }
     }

@@ -21,10 +21,18 @@ fn test_save_and_load_world() {
     assert_eq!(world.name, loaded_world.name);
     assert_eq!(world.terrain.len(), loaded_world.terrain.len());
     
-    // Check that biomes match
+    // Check that center biomes match
     for (coord, original_land) in &world.terrain {
         if let Some(loaded_land) = loaded_world.terrain.get(coord) {
-            assert_eq!(original_land.biome, loaded_land.biome);
+            assert_eq!(original_land.center, loaded_land.center);
+            assert_eq!(original_land.top, loaded_land.top);
+            assert_eq!(original_land.bottom, loaded_land.bottom);
+            assert_eq!(original_land.left, loaded_land.left);
+            assert_eq!(original_land.right, loaded_land.right);
+            assert_eq!(original_land.top_left, loaded_land.top_left);
+            assert_eq!(original_land.top_right, loaded_land.top_right);
+            assert_eq!(original_land.bottom_left, loaded_land.bottom_left);
+            assert_eq!(original_land.bottom_right, loaded_land.bottom_right);
         }
     }
     
@@ -67,7 +75,7 @@ fn test_large_world_generation() {
     let mut has_mountain = false;
     
     for land in world.terrain.values() {
-        match land.biome {
+        match land.center {
             Q::types::Biome::Forest => has_forest = true,
             Q::types::Biome::Meadow => has_meadow = true,
             Q::types::Biome::Lake => has_lake = true,
