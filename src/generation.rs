@@ -1,10 +1,15 @@
 use noise::{NoiseFn, Perlin};
 use crate::types::{Biome, Land, Object, Substrate, Tile, World};
 
-pub fn determine_biome(x: i32, y: i32, perlin: &Perlin) -> Biome {
-    // Sample Perlin noise at the coordinate
+pub fn determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome {
+    // Create a seed-based offset to ensure (0, 0) isn't always the same biome
+    // Use a simple hash-like function to derive offset from seed
+    let offset_x = ((seed.wrapping_mul(1103515245).wrapping_add(12345)) % 1000000) as f64 / 1000000.0 * 1000.0;
+    let offset_y = ((seed.wrapping_mul(2147483647).wrapping_add(54321)) % 1000000) as f64 / 1000000.0 * 1000.0;
+    
+    // Sample Perlin noise at the coordinate with seed-based offset
     // Scale coordinates for better noise distribution
-    let noise_value = perlin.get([x as f64 * 0.1, y as f64 * 0.1]);
+    let noise_value = perlin.get([(x as f64 * 0.1) + offset_x, (y as f64 * 0.1) + offset_y]);
     
     // Perlin noise returns values roughly in range [-1.0, 1.0]
     // Map to biome based on noise value ranges
@@ -196,7 +201,7 @@ pub fn generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y
     // Generate terrain for the specified range
     for x in x1..=x2 {
         for y in y1..=y2 {
-            let biome = determine_biome(x, y, &perlin);
+            let biome = determine_biome(x, y, &perlin, seed);
             
             // Generate terrain within the land (check neighbors)
             let tiles = generate_land_terrain(x, y, &biome, world, seed);

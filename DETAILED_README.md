@@ -3,8 +3,8 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Commit**: `18a4d5e6983cea6355bc63b755c245e4208074a8`  
-> Check this commit hash against the latest commit to verify documentation is up-to-date.
+> **Commit**: `759ad3a8b3d4bb5635e4fad408bf62684e531290`  
+> Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
 
@@ -100,9 +100,10 @@ tests.rs → types, generation, display
 
 **Key Functions**:
 
-1. **`determine_biome(x, y, perlin)`**
+1. **`determine_biome(x, y, perlin, seed)`**
    - Uses Perlin noise to assign biomes
-   - Noise sampled at `[x * 0.1, y * 0.1]` for appropriate scale
+   - Applies seed-based offset to ensure (0, 0) varies with different seeds
+   - Noise sampled at `[(x * 0.1) + offset_x, (y * 0.1) + offset_y]` where offsets are derived from seed
    - Thresholds: `<-0.3` Lake, `-0.3..0` Meadow, `0..0.4` Forest, `>=0.4` Mountain
 
 2. **`generate_land_terrain(land_x, land_y, biome, world, seed)`**
@@ -186,12 +187,16 @@ tests.rs → types, generation, display
 ### Biome Determination
 
 ```rust
-noise_value = perlin.get([x * 0.1, y * 0.1])
+offset_x = hash_function(seed) * 1000.0
+offset_y = hash_function(seed) * 1000.0
+noise_value = perlin.get([(x * 0.1) + offset_x, (y * 0.1) + offset_y])
 if noise_value < -0.3 => Lake
 else if noise_value < 0.0 => Meadow
 else if noise_value < 0.4 => Forest
 else => Mountain
 ```
+
+**Note**: The seed-based offset ensures that coordinate (0, 0) produces different biomes for different seeds, rather than always being the same biome.
 
 ### Tile Substrate Generation
 
@@ -268,7 +273,7 @@ World
 - `Biome`, `Land`, `Object`, `Substrate`, `Tile`, `World`
 
 **Functions**:
-- `determine_biome(x: i32, y: i32, perlin: &Perlin) -> Biome`
+- `determine_biome(x: i32, y: i32, perlin: &Perlin, seed: u64) -> Biome`
 - `generate_land_terrain(land_x: i32, land_y: i32, biome: &Biome, world: &World, seed: u64) -> [[Tile; 8]; 8]`
 - `generate_world(world: &mut World, seed: u64, x1: i32, y1: i32, x2: i32, y2: i32)`
 - `initialize_world(world: &mut World, seed: u64)`
