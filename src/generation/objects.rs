@@ -62,7 +62,7 @@ pub fn generate_forest_objects(
     global_x: i32,
     global_y: i32,
 ) -> Vec<Object> {
-    const TREE_PLACEMENT_THRESHOLD: f64 = 0.05; // 5% of eligible tiles (sparse)
+    const TREE_PLACEMENT_THRESHOLD: f64 = 0.4; // 40% of eligible tiles (dense forests)
     const OTHER_PLACEMENT_THRESHOLD: f64 = 0.03; // 3% of tiles (sparse)
     
     let random_value = tile_random_value(seed, global_x, global_y);
