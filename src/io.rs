@@ -52,14 +52,28 @@ where
 }
 
 pub fn save_world(world: &crate::types::World) -> Result<(), Box<dyn std::error::Error>> {
-    let filename = format!("{}.json", world.name);
+    let dir = "worlds";
+    // Create the directory if it doesn't exist
+    fs::create_dir_all(dir)?;
+    
+    let filename = format!("{}/{}.json", dir, world.name);
     let json = serde_json::to_string_pretty(world)?;
     fs::write(filename, json)?;
     Ok(())
 }
 
 pub fn load_world(path: &str) -> Result<crate::types::World, Box<dyn std::error::Error>> {
-    let contents = fs::read_to_string(path)?;
+    // If path contains a directory separator, use it as-is
+    // Otherwise, look in the worlds directory
+    let file_path = if path.contains('/') || path.contains('\\') {
+        path.to_string()
+    } else {
+        // Remove .json extension if present, then add it back with worlds/ prefix
+        let name = path.strip_suffix(".json").unwrap_or(path);
+        format!("worlds/{}.json", name)
+    };
+    
+    let contents = fs::read_to_string(&file_path)?;
     let world: crate::types::World = serde_json::from_str(&contents)?;
     Ok(world)
 }

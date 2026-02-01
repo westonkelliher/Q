@@ -29,7 +29,7 @@ fn test_save_and_load_world() {
     }
     
     // Clean up
-    std::fs::remove_file("TestSaveLoad.json").ok();
+    std::fs::remove_file("worlds/TestSaveLoad.json").ok();
 }
 
 #[test]

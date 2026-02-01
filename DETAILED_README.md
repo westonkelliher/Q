@@ -3,7 +3,7 @@
 This document provides comprehensive technical context for LLMs working on this codebase. It covers architecture, design decisions, algorithms, and implementation details.
 
 > **Last Updated**: 2026-01-31  
-> **Commit**: `759ad3a8b3d4bb5635e4fad408bf62684e531290`  
+> **Commit**: `44b87dd8701b434d01030ed92afc5eef7cb9143b`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ## Table of Contents
@@ -509,6 +509,7 @@ When modifying this codebase:
 5. **Document Changes**: Update this file if architecture changes significantly
 6. **Check Serialization**: Ensure new types are serializable if they're part of World
 7. **Consider Performance**: Large worlds can be memory-intensive
+8. **Update Commit Hash Before Committing**: When the Director (user) asks for a commit, update the commit hash in this file (at the top) to reference the previous commit hash BEFORE making the commit. This ensures the documentation references the commit that existed before the changes being committed.
 
 ---
 

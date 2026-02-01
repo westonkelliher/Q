@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("\nSaving world...");
     save_world(&world)?;
-    println!("World saved to {}.json", world.name);
+    println!("World saved to worlds/{}.json", world.name);
     
     Ok(())
 }
