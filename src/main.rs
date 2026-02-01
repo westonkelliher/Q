@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("World now has {} lands", world.terrain.len());
     
     println!("\nPrinting world overview (showing -5 to 5):");
-    println!("(Areas with ## are ungenerated, other areas show biomes)");
+    println!("(Areas with ⬛ are ungenerated, other areas show biomes)");
     print_world(&world, -5, -5, 5, 5);
     
     println!("\nShowing sample lands:");

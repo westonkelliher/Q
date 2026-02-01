@@ -46,12 +46,12 @@ pub struct World {
 }
 
 impl Biome {
-    pub fn to_chars(&self) -> &str {
+    pub fn to_char(&self) -> &str {
         match self {
-            Biome::Forest => " Y",
-            Biome::Meadow => " .",
-            Biome::Lake => "~~",
-            Biome::Mountain => "/\\",
+            Biome::Forest => "🟩",  // Green square
+            Biome::Meadow => "🟨",  // Yellow square
+            Biome::Lake => "🟦",   // Blue square
+            Biome::Mountain => "⬜", // White square
         }
     }
 }
@@ -59,12 +59,12 @@ impl Biome {
 impl Substrate {
     pub fn to_char(&self) -> char {
         match self {
-            Substrate::Grass => 'g',
-            Substrate::Dirt => 'd',
-            Substrate::Stone => 's',
-            Substrate::Mud => 'm',
-            Substrate::Water => 'w',
-            Substrate::Brush => 'b',
+            Substrate::Grass => '🟢',  // Green circle
+            Substrate::Dirt => '🟤',  // Brown circle
+            Substrate::Stone => '⚪',  // White circle
+            Substrate::Mud => '🟫',   // Brown square
+            Substrate::Water => '🔵', // Blue circle
+            Substrate::Brush => '🟡', // Yellow circle
         }
     }
 }
@@ -72,9 +72,9 @@ impl Substrate {
 impl Object {
     pub fn to_char(&self) -> char {
         match self {
-            Object::Rock => 'R',
-            Object::Tree => 'T',
-            Object::Stick => 'S',
+            Object::Rock => '⚫',  // Black circle
+            Object::Tree => '🟩',  // Green square (same as Forest biome)
+            Object::Stick => '🟤',  // Brown circle (same as Dirt)
         }
     }
 }

@@ -58,30 +58,30 @@ Each land has one of four biomes:
 
 | Biome | Symbol | Description |
 |-------|--------|-------------|
-| Forest | ` Y` | Dense trees, rocks, and sticks |
-| Meadow | ` .` | Open grasslands with occasional rocks |
-| Lake | `~~` | Water with mud edges, rare rocks |
-| Mountain | `/\` | Stone and dirt, many rocks, occasional trees |
+| Forest | 🟩 | Dense trees, rocks, and sticks |
+| Meadow | 🟨 | Open grasslands with occasional rocks |
+| Lake | 🟦 | Water with mud edges, rare rocks |
+| Mountain | ⬜ | Stone and dirt, many rocks, occasional trees |
 
-Ungenerated terrain shows as `##`.
+Ungenerated terrain shows as ⬛.
 
 ## Tile Details
 
 Each tile has:
 
 **Substrates** (ground material):
-- `g` - Grass
-- `d` - Dirt
-- `s` - Stone
-- `m` - Mud
-- `w` - Water
-- `b` - Brush
+- 🟢 - Grass
+- 🟤 - Dirt
+- ⚪ - Stone
+- 🟫 - Mud
+- 🔵 - Water
+- 🟡 - Brush
 
 **Objects** (placed items):
-- `T` - Tree
-- `R` - Rock
-- `S` - Stick
-- `*` - Multiple objects
+- 🟩 - Tree
+- ⚫ - Rock
+- 🟤 - Stick
+- 🔴 - Multiple objects
 
 ## Examples
 

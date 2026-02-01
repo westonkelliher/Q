@@ -90,7 +90,7 @@ tests.rs → types, generation, display
 
 - All types derive `Serialize`, `Deserialize` for JSON persistence
 - `World.terrain` uses custom serialization (see `io.rs`) because HashMap keys are tuples
-- `Biome`, `Substrate`, `Object` have `to_chars()`/`to_char()` methods for display
+- `Biome`, `Substrate`, `Object` have `to_char()` methods that return emoji representations for display
 
 **Serialization Note**: `World.terrain` uses `(i32, i32)` as keys, which JSON doesn't support directly. Custom serializers convert to/from `"x,y"` string keys.
 
@@ -164,11 +164,11 @@ tests.rs → types, generation, display
 **Functions**:
 
 - `print_world(world, x1, y1, x2, y2)`: Prints biome overview grid
-  - Uses `Biome::to_chars()` for 2-character representation
-  - Shows `##` for ungenerated terrain
+  - Uses `Biome::to_char()` for emoji representation (1 emoji per biome)
+  - Shows ⬛ for ungenerated terrain
 
 - `print_land(land)`: Prints detailed 8x8 tile grid
-  - Shows substrate character + object character (or `*` for multiple)
+  - Shows substrate emoji + object emoji (or `*` for multiple)
   - Includes coordinate headers
 
 ### `lib.rs` - Library Root
@@ -368,7 +368,7 @@ Tests the library as an external user would use it.
 ### Adding New Biomes
 
 1. Add variant to `Biome` enum in `types.rs`
-2. Add `to_chars()` representation
+2. Add `to_char()` representation
 3. Add generation logic in `generate_land_terrain()`:
    - Substrate thresholds
    - Object generation rules
