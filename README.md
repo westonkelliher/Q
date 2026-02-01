@@ -12,12 +12,12 @@ This will generate a sample world, display it, and save it to `TestWorld.json`.
 
 ## Features
 
-- **🌍 Infinite Worlds**: Generate terrain on-demand for any coordinate range
-- **🎲 Deterministic**: Same seed always produces the same world
-- **🌲 Biome System**: Four biomes (Forest, Meadow, Lake, Mountain) with unique characteristics
-- **🗺️ Detailed Terrain**: Each land contains an 8x8 grid of tiles with substrates and objects
-- **🔗 Neighbor-Aware**: Terrain generation considers adjacent biomes for natural transitions
-- **💾 Persistent**: Save and load worlds as JSON files
+- **Infinite Worlds**: Generate terrain on-demand for any coordinate range
+- **Deterministic**: Same seed always produces the same world
+- **Biome System**: Four biomes (Forest, Meadow, Lake, Mountain) with unique characteristics
+- **Detailed Terrain**: Each land contains an 8x8 grid of tiles with substrates and objects
+- **Neighbor-Aware**: Terrain generation considers adjacent biomes for natural transitions
+- **Persistent**: Save and load worlds as JSON files
 
 ## Usage
 
