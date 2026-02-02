@@ -10,8 +10,11 @@ use crate::{
     Material, MaterialId, Submaterial, SubmaterialId, ComponentKind, ComponentKindId,
     ItemDefinition, ItemId, ItemKind, CompositeDef, CompositeSlot, CompositeCategory, ToolType,
     SimpleRecipe, ComponentRecipe, CompositeRecipe, SimpleInput, RecipeId,
-    ToolRequirement, Quality, Registry,
+    ToolRequirement, WorldObjectRequirement, Quality, Registry,
 };
+use crate::ids::WorldObjectTag;
+use crate::world_object::WorldObjectKind;
+use crate::ids::CraftingStationId;
 
 /// Helper to create a MaterialId
 fn mat(s: &str) -> MaterialId {
@@ -384,6 +387,14 @@ fn register_items(registry: &mut Registry) {
         kind: ItemKind::Simple { submaterial: None },
     });
 
+    // Crafting stations
+    registry.register_item(ItemDefinition {
+        id: item("forge"),
+        name: "Forge".to_string(),
+        description: "A forge for smelting metals. Provides high heat for crafting.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+    });
+
     // =========================================================================
     // COMPONENT ITEMS
     // =========================================================================
@@ -537,7 +548,10 @@ fn register_recipes(registry: &mut Registry) {
             SimpleInput { item_id: item("iron_ore"), quantity: 2 },
         ],
         tool: None,
-        world_object: None,  // Could add forge requirement
+        world_object: Some(WorldObjectRequirement {
+            kind: Some(WorldObjectKind::CraftingStation(CraftingStationId("forge".to_string()))),
+            required_tags: vec![WorldObjectTag("high_heat".to_string())],
+        }),
     });
 
     registry.register_simple_recipe(SimpleRecipe {
@@ -550,7 +564,10 @@ fn register_recipes(registry: &mut Registry) {
             SimpleInput { item_id: item("tin_ore"), quantity: 1 },
         ],
         tool: None,
-        world_object: None,
+        world_object: Some(WorldObjectRequirement {
+            kind: Some(WorldObjectKind::CraftingStation(CraftingStationId("forge".to_string()))),
+            required_tags: vec![WorldObjectTag("high_heat".to_string())],
+        }),
     });
 
     // =========================================================================

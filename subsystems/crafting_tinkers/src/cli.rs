@@ -1,7 +1,9 @@
 use crate::{
     ItemId, ItemInstanceId, RecipeId, Registry, Provenance,
-    ItemInstance, SimpleInstance, ItemKind,
+    ItemInstance, SimpleInstance, ItemKind, WorldObjectInstanceId,
 };
+use crate::ids::{CraftingStationId, WorldObjectTag};
+use crate::world_object::{WorldObjectKind, WorldObjectInstance};
 use serde_json::{json, Value};
 use std::io::{self, Write as IoWrite};
 use colored::*;
@@ -11,6 +13,8 @@ use colored::*;
 pub enum Command {
     /// List all item definitions
     ListItems,
+    /// List only simple item definitions
+    ListSimpleItems,
     /// List all recipes
     ListRecipes,
     /// List all item instances
@@ -24,7 +28,11 @@ pub enum Command {
     /// Create a raw material instance (Simple items only)
     New { item_id: String },
     /// Craft an item using a recipe and inventory indices
-    Craft { recipe_id: String, input_indices: Vec<usize> },
+    Craft { recipe_id: String, input_indices: Vec<usize>, station_index: Option<usize> },
+    /// Place a crafting station from inventory
+    Place { instance_index: usize },
+    /// List all placed world objects
+    ListStations,
     /// Show help
     Help,
     /// Exit REPL
@@ -49,19 +57,30 @@ pub fn parse_command(input: &str) -> Result<Command, String> {
         // Shorthand commands
         "lr" => Ok(Command::ListRecipes),
         "li" => Ok(Command::ListItems),
+        "lis" => Ok(Command::ListSimpleItems),
         "ls" => Ok(Command::ListInstances),
         "c" => {
             if parts.len() < 2 {
-                return Err("craft requires: craft <recipe_id> [index1] [index2] ...".to_string());
+                return Err("craft requires: craft <recipe_id> [index1] [index2] ... [@station_index]".to_string());
             }
             let recipe_id = parts[1].to_string();
-            let input_indices: Result<Vec<usize>, String> = parts[2..]
-                .iter()
-                .map(|s| s.parse::<usize>()
-                    .map_err(|_| format!("Invalid index: {}", s)))
-                .collect();
-            let input_indices = input_indices?;
-            Ok(Command::Craft { recipe_id, input_indices })
+            let mut input_indices = Vec::new();
+            let mut station_index = None;
+            
+            for part in &parts[2..] {
+                if part.starts_with('@') {
+                    // Station reference
+                    let station_str = &part[1..];
+                    station_index = Some(station_str.parse::<usize>()
+                        .map_err(|_| format!("Invalid station index: {}", station_str))?);
+                } else {
+                    // Input index
+                    let idx = part.parse::<usize>()
+                        .map_err(|_| format!("Invalid index: {}", part))?;
+                    input_indices.push(idx);
+                }
+            }
+            Ok(Command::Craft { recipe_id, input_indices, station_index })
         }
         "i" | "inventory" | "inv" => Ok(Command::ListInstances),
         "si" => {
@@ -94,10 +113,11 @@ pub fn parse_command(input: &str) -> Result<Command, String> {
         "q" => Ok(Command::Exit),
         "list" => {
             if parts.len() < 2 {
-                return Err("list requires a target: items, recipes, or instances".to_string());
+                return Err("list requires a target: items, simple items, recipes, or instances".to_string());
             }
             match parts[1] {
                 "items" => Ok(Command::ListItems),
+                "simple" | "simple-items" => Ok(Command::ListSimpleItems),
                 "recipes" => Ok(Command::ListRecipes),
                 "instances" => Ok(Command::ListInstances),
                 _ => Err(format!("Unknown list target: {}", parts[1])),
@@ -127,16 +147,45 @@ pub fn parse_command(input: &str) -> Result<Command, String> {
         }
         "craft" => {
             if parts.len() < 2 {
-                return Err("craft requires: craft <recipe_id> [index1] [index2] ...".to_string());
+                return Err("craft requires: craft <recipe_id> [index1] [index2] ... [@station_index]".to_string());
             }
             let recipe_id = parts[1].to_string();
-            let input_indices: Result<Vec<usize>, String> = parts[2..]
-                .iter()
-                .map(|s| s.parse::<usize>()
-                    .map_err(|_| format!("Invalid index: {}", s)))
-                .collect();
-            let input_indices = input_indices?;
-            Ok(Command::Craft { recipe_id, input_indices })
+            let mut input_indices = Vec::new();
+            let mut station_index = None;
+            
+            for part in &parts[2..] {
+                if part.starts_with('@') {
+                    // Station reference
+                    let station_str = &part[1..];
+                    station_index = Some(station_str.parse::<usize>()
+                        .map_err(|_| format!("Invalid station index: {}", station_str))?);
+                } else {
+                    // Input index
+                    let idx = part.parse::<usize>()
+                        .map_err(|_| format!("Invalid index: {}", part))?;
+                    input_indices.push(idx);
+                }
+            }
+            Ok(Command::Craft { recipe_id, input_indices, station_index })
+        }
+        "place" => {
+            if parts.len() < 2 {
+                return Err("place requires: place <instance_index>".to_string());
+            }
+            let instance_index = parts[1].parse::<usize>()
+                .map_err(|_| format!("Invalid instance index: {}", parts[1]))?;
+            Ok(Command::Place { instance_index })
+        }
+        "p" => {
+            if parts.len() < 2 {
+                return Err("place requires: place <instance_index>".to_string());
+            }
+            let instance_index = parts[1].parse::<usize>()
+                .map_err(|_| format!("Invalid instance index: {}", parts[1]))?;
+            Ok(Command::Place { instance_index })
+        }
+        "stations" => {
+            Ok(Command::ListStations)
         }
         "help" => Ok(Command::Help),
         "exit" | "quit" => Ok(Command::Exit),
@@ -160,6 +209,35 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                         }
                         ItemKind::Component { .. } => "Component",
                         ItemKind::Composite(_) => "Composite",
+                    };
+                    json!({
+                        "id": item.id.0,
+                        "name": item.name,
+                        "kind": kind_str,
+                    })
+                })
+                .collect();
+            json!({
+                "status": "success",
+                "data": {
+                    "items": items,
+                    "count": items.len()
+                }
+            })
+        }
+        Command::ListSimpleItems => {
+            let items: Vec<Value> = registry.all_items()
+                .filter(|item| matches!(item.kind, ItemKind::Simple { .. }))
+                .map(|item| {
+                    let kind_str = match &item.kind {
+                        ItemKind::Simple { submaterial } => {
+                            if submaterial.is_some() {
+                                "Simple (Submaterial)"
+                            } else {
+                                "Simple"
+                            }
+                        }
+                        _ => unreachable!(), // We filtered to only Simple items
                     };
                     json!({
                         "id": item.id.0,
@@ -422,7 +500,107 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                 }
             })
         }
-        Command::Craft { recipe_id, input_indices } => {
+        Command::ListStations => {
+            let stations: Vec<Value> = registry.all_world_objects()
+                .enumerate()
+                .map(|(index, wo)| {
+                    let kind_str = match &wo.kind {
+                        WorldObjectKind::CraftingStation(id) => format!("CraftingStation({})", id.0),
+                        WorldObjectKind::ResourceNode(id) => format!("ResourceNode({})", id.0),
+                    };
+                    json!({
+                        "index": index,
+                        "id": wo.id.0,
+                        "kind": kind_str,
+                        "tags": wo.tags.iter().map(|t| t.0.clone()).collect::<Vec<_>>(),
+                    })
+                })
+                .collect();
+            json!({
+                "status": "success",
+                "data": {
+                    "stations": stations,
+                    "count": stations.len()
+                }
+            })
+        }
+        Command::Place { instance_index } => {
+            // Collect all instances into a vector for indexing
+            let instances_vec: Vec<ItemInstanceId> = registry.all_instances()
+                .map(|inst| inst.id())
+                .collect();
+            
+            // Validate index
+            if instance_index >= instances_vec.len() {
+                return json!({
+                    "status": "error",
+                    "message": format!("Invalid inventory index: {}. Inventory has {} items (indices 0-{})", 
+                        instance_index, instances_vec.len(), 
+                        if instances_vec.is_empty() { 0 } else { instances_vec.len() - 1 })
+                });
+            }
+            
+            let instance_id = instances_vec[instance_index];
+            let instance = match registry.get_instance(instance_id) {
+                Some(inst) => inst,
+                None => return json!({
+                    "status": "error",
+                    "message": format!("Instance {:?} not found", instance_id)
+                }),
+            };
+            
+            // Get the item definition and clone the ID before mutable borrow
+            let (item_id_str, is_forge) = match instance {
+                ItemInstance::Simple(si) => {
+                    let item_def = match registry.get_item(&si.definition) {
+                        Some(def) => def,
+                        None => return json!({
+                            "status": "error",
+                            "message": format!("Item definition {:?} not found", si.definition)
+                        }),
+                    };
+                    let item_id_str = item_def.id.0.clone();
+                    let is_forge = item_id_str == "forge";
+                    (item_id_str, is_forge)
+                },
+                _ => return json!({
+                    "status": "error",
+                    "message": "Only Simple items can be placed as crafting stations"
+                }),
+            };
+            
+            // Check if this is a forge (or other crafting station)
+            if !is_forge {
+                return json!({
+                    "status": "error",
+                    "message": format!("Item '{}' cannot be placed as a crafting station. Only 'forge' is supported.", item_id_str)
+                });
+            }
+            
+            // Create world object instance
+            let world_object_id = registry.next_world_object_id();
+            let world_object = WorldObjectInstance {
+                id: world_object_id,
+                kind: WorldObjectKind::CraftingStation(CraftingStationId(item_id_str)),
+                tags: vec![WorldObjectTag("high_heat".to_string())], // Forge provides high heat
+            };
+            
+            // Register the world object
+            registry.register_world_object(world_object.clone());
+            
+            // Remove the item instance from inventory
+            registry.remove_instance(instance_id);
+            
+            json!({
+                "status": "success",
+                "data": {
+                    "world_object_id": world_object_id.0,
+                    "kind": format!("{:?}", world_object.kind),
+                    "tags": world_object.tags.iter().map(|t| t.0.clone()).collect::<Vec<_>>(),
+                }
+            })
+        }
+        Command::Craft { recipe_id, input_indices, station_index } => {
             // Collect all instances into a vector for indexing
             let instances_vec: Vec<ItemInstanceId> = registry.all_instances()
                 .map(|inst| inst.id())
@@ -445,13 +623,33 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                 .map(|&idx| instances_vec[idx])
                 .collect();
             
+            // Collect all world objects for indexing
+            let stations_vec: Vec<WorldObjectInstanceId> = registry.all_world_objects()
+                .map(|wo| wo.id)
+                .collect();
+            
+            // Resolve station reference if provided
+            let world_object_used = if let Some(station_idx) = station_index {
+                if station_idx >= stations_vec.len() {
+                    return json!({
+                        "status": "error",
+                        "message": format!("Invalid station index: {}. There are {} stations (indices 0-{})", 
+                            station_idx, stations_vec.len(), 
+                            if stations_vec.is_empty() { 0 } else { stations_vec.len() - 1 })
+                    });
+                }
+                Some(stations_vec[station_idx])
+            } else {
+                None
+            };
+            
             // Find the recipe
             let recipe_id_obj = RecipeId(recipe_id.clone());
             
             // Try Simple recipe first
             if let Some(recipe) = registry.get_simple_recipe(&recipe_id_obj) {
                 let recipe_clone = recipe.clone();
-                match registry.execute_simple_recipe(&recipe_clone, input_instance_ids.clone(), None, None) {
+                match registry.execute_simple_recipe(&recipe_clone, input_instance_ids.clone(), None, world_object_used) {
                     Ok(new_instance) => {
                         // Remove consumed instances
                         for &id in &input_instance_ids {
@@ -487,7 +685,7 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                 }
                 
                 let recipe_clone = recipe.clone();
-                match registry.execute_component_recipe(&recipe_clone, input_instance_ids[0], None, None) {
+                match registry.execute_component_recipe(&recipe_clone, input_instance_ids[0], None, world_object_used) {
                     Ok(new_instance) => {
                         // Remove consumed instance
                         registry.remove_instance(input_instance_ids[0]);
@@ -548,7 +746,7 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                     .map(|(slot, &id)| (slot.name.clone(), id))
                     .collect();
                 
-                match registry.execute_composite_recipe(&recipe_clone, provided_components.clone(), None, None) {
+                match registry.execute_composite_recipe(&recipe_clone, provided_components.clone(), None, world_object_used) {
                     Ok(new_instance) => {
                         // Remove consumed instances
                         for (_, id) in provided_components {
@@ -588,17 +786,20 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                     "commands": [
                         {"command": "inventory (i/inv/ls)", "description": "Show your inventory (items with indices)"},
                         {"command": "list items (li)", "description": "List all item definitions"},
+                        {"command": "list simple items (lis)", "description": "List only simple item definitions"},
                         {"command": "list recipes (lr)", "description": "List all recipes"},
                         {"command": "list instances (ls)", "description": "List all item instances (with indices)"},
                         {"command": "show item <id> (si)", "description": "Show detailed item definition"},
                         {"command": "show recipe <id> (sr)", "description": "Show recipe with requirements"},
                         {"command": "show instance <id> (sin)", "description": "Show instance details"},
                         {"command": "new <item_id> (n)", "description": "Create raw Simple material instance"},
-                        {"command": "craft <recipe_id> [index1] [index2] ... (c)", "description": "Craft an item using a recipe and inventory indices"},
+                        {"command": "place <instance_index> (p)", "description": "Place a crafting station from inventory"},
+                        {"command": "stations", "description": "List all placed crafting stations"},
+                        {"command": "craft <recipe_id> [index1] [index2] ... [@station_index] (c)", "description": "Craft an item using a recipe and inventory indices, optionally at a station"},
                         {"command": "help (h/?)", "description": "Show this help"},
                         {"command": "exit (q)", "description": "Exit REPL"},
                     ],
-                    "note": "Shorthands: i/inv/ls (inventory), lr (list recipes), li (list items), c (craft), si (show item), sr (show recipe), sin (show instance), n (new), h/? (help), q (exit). Use 'inventory' to see numbered items. Use those numbers with 'craft' command. Use --human-readable flag for readable output format."
+                    "note": "Shorthands: i/inv/ls (inventory), lr (list recipes), li (list items), lis (list simple items), c (craft), si (show item), sr (show recipe), sin (show instance), n (new), h/? (help), q (exit). Use 'inventory' to see numbered items. Use those numbers with 'craft' command. Use --human-readable flag for readable output format."
                 }
             })
         }
@@ -1086,6 +1287,15 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_list_simple_items() {
+        let cmd = parse_command("list simple").unwrap();
+        assert_eq!(cmd, Command::ListSimpleItems);
+        
+        let cmd = parse_command("list simple-items").unwrap();
+        assert_eq!(cmd, Command::ListSimpleItems);
+    }
+
+    #[test]
     fn test_parse_list_instances() {
         let cmd = parse_command("list instances").unwrap();
         assert_eq!(cmd, Command::ListInstances);
@@ -1113,6 +1323,10 @@ mod tests {
         let cmd = parse_command("li").unwrap();
         assert_eq!(cmd, Command::ListItems);
         
+        // List simple items shorthand
+        let cmd = parse_command("lis").unwrap();
+        assert_eq!(cmd, Command::ListSimpleItems);
+        
         // List instances shorthand
         let cmd = parse_command("ls").unwrap();
         assert_eq!(cmd, Command::ListInstances);
@@ -1122,6 +1336,7 @@ mod tests {
         assert_eq!(cmd, Command::Craft {
             recipe_id: "recipe_id".to_string(),
             input_indices: vec![0, 1],
+            station_index: None,
         });
         
         // Show item shorthand

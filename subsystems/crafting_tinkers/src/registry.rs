@@ -3,9 +3,10 @@ use crate::ids::{ItemId, ItemInstanceId, RecipeId, MaterialId, SubmaterialId, Co
 use crate::instance::{ItemInstance, SimpleInstance, ComponentInstance, CompositeInstance};
 use crate::item_def::{ItemDefinition, ItemKind};
 use crate::materials::{Material, Submaterial, ComponentKind};
-use crate::recipe::{SimpleRecipe, ComponentRecipe, CompositeRecipe};
+use crate::recipe::{SimpleRecipe, ComponentRecipe, CompositeRecipe, WorldObjectRequirement};
 use crate::provenance::{Provenance, ConsumedInput};
 use crate::quality::Quality;
+use crate::world_object::WorldObjectInstance;
 
 /// Central registry for all game content and runtime instances.
 ///
@@ -44,6 +45,10 @@ pub struct Registry {
     // Runtime instances
     instances: HashMap<ItemInstanceId, ItemInstance>,
     next_instance_id: u64,
+    
+    // World object instances
+    world_objects: HashMap<WorldObjectInstanceId, WorldObjectInstance>,
+    next_world_object_id: u64,
 }
 
 impl Registry {
@@ -59,6 +64,8 @@ impl Registry {
             composite_recipes: HashMap::new(),
             instances: HashMap::new(),
             next_instance_id: 0,
+            world_objects: HashMap::new(),
+            next_world_object_id: 0,
         }
     }
 
@@ -194,6 +201,60 @@ impl Registry {
         self.instances.values()
     }
 
+    /// Generate a new unique world object instance ID
+    pub fn next_world_object_id(&mut self) -> WorldObjectInstanceId {
+        let id = WorldObjectInstanceId(self.next_world_object_id);
+        self.next_world_object_id += 1;
+        id
+    }
+
+    /// Register a world object instance
+    pub fn register_world_object(&mut self, world_object: WorldObjectInstance) {
+        self.world_objects.insert(world_object.id, world_object);
+    }
+
+    /// Get a world object instance by ID
+    pub fn get_world_object(&self, id: WorldObjectInstanceId) -> Option<&WorldObjectInstance> {
+        self.world_objects.get(&id)
+    }
+
+    /// Iterate over all world object instances
+    pub fn all_world_objects(&self) -> impl Iterator<Item = &WorldObjectInstance> {
+        self.world_objects.values()
+    }
+
+    /// Validate that a world object instance meets the requirements
+    pub fn validate_world_object_requirement(
+        &self,
+        world_object_id: WorldObjectInstanceId,
+        requirement: &WorldObjectRequirement,
+    ) -> Result<(), String> {
+        let world_object = self.get_world_object(world_object_id)
+            .ok_or_else(|| format!("World object instance {:?} not found", world_object_id))?;
+
+        // Check if specific kind is required
+        if let Some(ref required_kind) = requirement.kind {
+            if &world_object.kind != required_kind {
+                return Err(format!(
+                    "World object kind mismatch: required {:?}, got {:?}",
+                    required_kind, world_object.kind
+                ));
+            }
+        }
+
+        // Check if all required tags are present
+        for required_tag in &requirement.required_tags {
+            if !world_object.tags.contains(required_tag) {
+                return Err(format!(
+                    "World object missing required tag: {:?}",
+                    required_tag
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     // Crafting validation and execution methods
 
     /// Execute a SimpleRecipe to create a Simple item
@@ -201,6 +262,7 @@ impl Registry {
     /// Validates:
     /// - All required inputs are provided with correct quantities
     /// - Input items exist in the registry
+    /// - World object requirements are met (if specified)
     pub fn execute_simple_recipe(
         &mut self,
         recipe: &SimpleRecipe,
@@ -208,6 +270,15 @@ impl Registry {
         tool_used: Option<ItemInstanceId>,
         world_object_used: Option<WorldObjectInstanceId>,
     ) -> Result<ItemInstance, String> {
+        // Validate world object requirement if specified
+        if let Some(ref requirement) = recipe.world_object {
+            if let Some(wo_id) = world_object_used {
+                self.validate_world_object_requirement(wo_id, requirement)?;
+            } else {
+                return Err(format!("Recipe requires a world object but none was provided"));
+            }
+        }
+
         // Validate all required inputs are provided
         for required_input in &recipe.inputs {
             let mut found_quantity = 0u32;
@@ -275,6 +346,7 @@ impl Registry {
     /// - Input is exactly one item instance
     /// - Input is a Simple item with a submaterial
     /// - The submaterial's parent material is in the ComponentKind's accepted_materials list
+    /// - World object requirements are met (if specified)
     pub fn execute_component_recipe(
         &mut self,
         recipe: &ComponentRecipe,
@@ -282,6 +354,15 @@ impl Registry {
         tool_used: Option<ItemInstanceId>,
         world_object_used: Option<WorldObjectInstanceId>,
     ) -> Result<ItemInstance, String> {
+        // Validate world object requirement if specified
+        if let Some(ref requirement) = recipe.world_object {
+            if let Some(wo_id) = world_object_used {
+                self.validate_world_object_requirement(wo_id, requirement)?;
+            } else {
+                return Err(format!("Recipe requires a world object but none was provided"));
+            }
+        }
+
         // Get the input instance
         let input_instance = self.get_instance(input_instance_id)
             .ok_or_else(|| format!("Input instance {:?} not found", input_instance_id))?;
@@ -358,6 +439,7 @@ impl Registry {
     /// - Each slot in the CompositeDef is filled with exactly one component
     /// - Each provided component matches the slot's required ComponentKind
     /// - No extra components are provided
+    /// - World object requirements are met (if specified)
     pub fn execute_composite_recipe(
         &mut self,
         recipe: &CompositeRecipe,
@@ -365,6 +447,15 @@ impl Registry {
         tool_used: Option<ItemInstanceId>,
         world_object_used: Option<WorldObjectInstanceId>,
     ) -> Result<ItemInstance, String> {
+        // Validate world object requirement if specified
+        if let Some(ref requirement) = recipe.world_object {
+            if let Some(wo_id) = world_object_used {
+                self.validate_world_object_requirement(wo_id, requirement)?;
+            } else {
+                return Err(format!("Recipe requires a world object but none was provided"));
+            }
+        }
+
         // Get the output item definition
         let output_def = self.get_item(&recipe.output)
             .ok_or_else(|| format!("Output item {:?} not found", recipe.output))?;

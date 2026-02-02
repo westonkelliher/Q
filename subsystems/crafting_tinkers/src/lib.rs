@@ -25,4 +25,4 @@ pub use recipe::{
     ToolRequirement, WorldObjectRequirement,
 };
 pub use registry::Registry;
-pub use world_object::WorldObjectKind;
+pub use world_object::{WorldObjectKind, WorldObjectInstance};
