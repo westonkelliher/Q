@@ -4,6 +4,7 @@ use crate::{
 };
 use serde_json::{json, Value};
 use std::io::{self, Write as IoWrite};
+use colored::*;
 
 /// CLI Commands
 #[derive(Debug, Clone, PartialEq)]
@@ -45,7 +46,52 @@ pub fn parse_command(input: &str) -> Result<Command, String> {
     let parts: Vec<&str> = input.split_whitespace().collect();
     
     match parts[0] {
-        "inventory" | "inv" => Ok(Command::ListInstances),
+        // Shorthand commands
+        "lr" => Ok(Command::ListRecipes),
+        "li" => Ok(Command::ListItems),
+        "ls" => Ok(Command::ListInstances),
+        "c" => {
+            if parts.len() < 2 {
+                return Err("craft requires: craft <recipe_id> [index1] [index2] ...".to_string());
+            }
+            let recipe_id = parts[1].to_string();
+            let input_indices: Result<Vec<usize>, String> = parts[2..]
+                .iter()
+                .map(|s| s.parse::<usize>()
+                    .map_err(|_| format!("Invalid index: {}", s)))
+                .collect();
+            let input_indices = input_indices?;
+            Ok(Command::Craft { recipe_id, input_indices })
+        }
+        "i" | "inventory" | "inv" => Ok(Command::ListInstances),
+        "si" => {
+            if parts.len() < 2 {
+                return Err("show item requires: show item <id>".to_string());
+            }
+            Ok(Command::ShowItem(parts[1].to_string()))
+        }
+        "sr" => {
+            if parts.len() < 2 {
+                return Err("show recipe requires: show recipe <id>".to_string());
+            }
+            Ok(Command::ShowRecipe(parts[1].to_string()))
+        }
+        "sin" => {
+            if parts.len() < 2 {
+                return Err("show instance requires: show instance <id>".to_string());
+            }
+            let id = parts[1].parse::<u64>()
+                .map_err(|_| format!("Invalid instance ID: {}", parts[1]))?;
+            Ok(Command::ShowInstance(id))
+        }
+        "n" => {
+            if parts.len() < 2 {
+                return Err("new requires: new <item_id>".to_string());
+            }
+            Ok(Command::New { item_id: parts[1].to_string() })
+        }
+        "h" | "?" => Ok(Command::Help),
+        "q" => Ok(Command::Exit),
         "list" => {
             if parts.len() < 2 {
                 return Err("list requires a target: items, recipes, or instances".to_string());
@@ -540,19 +586,19 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                 "status": "success",
                 "data": {
                     "commands": [
-                        {"command": "inventory", "description": "Show your inventory (items with indices)"},
-                        {"command": "list items", "description": "List all item definitions"},
-                        {"command": "list recipes", "description": "List all recipes"},
-                        {"command": "list instances", "description": "List all item instances (with indices)"},
-                        {"command": "show item <id>", "description": "Show detailed item definition"},
-                        {"command": "show recipe <id>", "description": "Show recipe with requirements"},
-                        {"command": "show instance <id>", "description": "Show instance details"},
-                        {"command": "new <item_id>", "description": "Create raw Simple material instance"},
-                        {"command": "craft <recipe_id> [index1] [index2] ...", "description": "Craft an item using a recipe and inventory indices"},
-                        {"command": "help", "description": "Show this help"},
-                        {"command": "exit", "description": "Exit REPL"},
+                        {"command": "inventory (i/inv/ls)", "description": "Show your inventory (items with indices)"},
+                        {"command": "list items (li)", "description": "List all item definitions"},
+                        {"command": "list recipes (lr)", "description": "List all recipes"},
+                        {"command": "list instances (ls)", "description": "List all item instances (with indices)"},
+                        {"command": "show item <id> (si)", "description": "Show detailed item definition"},
+                        {"command": "show recipe <id> (sr)", "description": "Show recipe with requirements"},
+                        {"command": "show instance <id> (sin)", "description": "Show instance details"},
+                        {"command": "new <item_id> (n)", "description": "Create raw Simple material instance"},
+                        {"command": "craft <recipe_id> [index1] [index2] ... (c)", "description": "Craft an item using a recipe and inventory indices"},
+                        {"command": "help (h/?)", "description": "Show this help"},
+                        {"command": "exit (q)", "description": "Exit REPL"},
                     ],
-                    "note": "Use 'inventory' or 'list instances' to see numbered inventory items. Use those numbers with 'craft' command. Use --human-readable flag for readable output format."
+                    "note": "Shorthands: i/inv/ls (inventory), lr (list recipes), li (list items), c (craft), si (show item), sr (show recipe), sin (show instance), n (new), h/? (help), q (exit). Use 'inventory' to see numbered items. Use those numbers with 'craft' command. Use --human-readable flag for readable output format."
                 }
             })
         }
@@ -616,6 +662,10 @@ fn serialize_instance(instance: &ItemInstance) -> Value {
 
 /// Format JSON output in human-readable form
 fn format_human_readable(value: &Value) -> String {
+    // Enable colors only if stdout is a TTY
+    let use_colors = atty::is(atty::Stream::Stdout);
+    colored::control::set_override(use_colors);
+    
     match value {
         Value::Object(map) => {
             if let Some(status) = map.get("status") {
@@ -624,17 +674,17 @@ fn format_human_readable(value: &Value) -> String {
                         if let Some(data) = map.get("data") {
                             format_human_readable_data(data)
                         } else {
-                            "Success".to_string()
+                            "Success".green().to_string()
                         }
                     }
                     Some("error") => {
                         if let Some(msg) = map.get("message") {
-                            format!("Error: {}", msg.as_str().unwrap_or("Unknown error"))
+                            format!("{}: {}", "Error".red().bold(), msg.as_str().unwrap_or("Unknown error").red())
                         } else {
-                            "Error".to_string()
+                            "Error".red().bold().to_string()
                         }
                     }
-                    Some("exit") => "Exiting...".to_string(),
+                    Some("exit") => "Exiting...".yellow().to_string(),
                     _ => serde_json::to_string_pretty(value).unwrap_or_default()
                 }
             } else {
@@ -651,13 +701,16 @@ fn format_human_readable_data(data: &Value) -> String {
     
     if let Some(items) = data.get("items") {
         if let Some(items_array) = items.as_array() {
-            output.push_str(&format!("Items ({}):\n", items_array.len()));
+            output.push_str(&format!("{} ({}):\n", "Items".bold().cyan(), items_array.len().to_string().cyan()));
             for item in items_array {
                 if let Some(obj) = item.as_object() {
                     let id = obj.get("id").and_then(|v| v.as_str()).unwrap_or("?");
                     let name = obj.get("name").and_then(|v| v.as_str()).unwrap_or("?");
                     let kind = obj.get("kind").and_then(|v| v.as_str()).unwrap_or("?");
-                    output.push_str(&format!("  - {} ({}) [{}]\n", name, id, kind));
+                    output.push_str(&format!("  {} {} {}\n", 
+                        format!("[{}]", id).cyan().bold(),
+                        name.bold(),
+                        format!("[{}]", kind).yellow()));
                 }
             }
         }
@@ -665,7 +718,7 @@ fn format_human_readable_data(data: &Value) -> String {
     
     if let Some(recipes) = data.get("recipes") {
         if let Some(recipes_array) = recipes.as_array() {
-            output.push_str(&format!("Recipes ({}):\n", recipes_array.len()));
+            output.push_str(&format!("{} ({}):\n", "Recipes".bold().cyan(), recipes_array.len().to_string().cyan()));
             for recipe in recipes_array {
                 if let Some(obj) = recipe.as_object() {
                     let index = obj.get("index").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
@@ -674,9 +727,22 @@ fn format_human_readable_data(data: &Value) -> String {
                     let rtype = obj.get("type").and_then(|v| v.as_str()).unwrap_or("?");
                     let output_item = obj.get("output").and_then(|v| v.as_str()).unwrap_or("?");
                     if let Some(qty) = obj.get("quantity").and_then(|v| v.as_u64()) {
-                        output.push_str(&format!("  [{}] {} ({}) [{}] -> {} x{}\n", index, name, id, rtype, output_item, qty));
+                        output.push_str(&format!("  {} {} {} {} {} {} {}\n", 
+                            format!("[{}]", index).bright_magenta().bold(),
+                            format!("[{}]", id).cyan().bold(),
+                            name.bold(),
+                            format!("[{}]", rtype).yellow(),
+                            "->".bright_black(),
+                            output_item.green(),
+                            format!("x{}", qty).green()));
                     } else {
-                        output.push_str(&format!("  [{}] {} ({}) [{}] -> {}\n", index, name, id, rtype, output_item));
+                        output.push_str(&format!("  {} {} {} {} {} {}\n", 
+                            format!("[{}]", index).bright_magenta().bold(),
+                            format!("[{}]", id).cyan().bold(),
+                            name.bold(),
+                            format!("[{}]", rtype).yellow(),
+                            "->".bright_black(),
+                            output_item.green()));
                     }
                 }
             }
@@ -685,19 +751,36 @@ fn format_human_readable_data(data: &Value) -> String {
     
     if let Some(instances) = data.get("instances") {
         if let Some(instances_array) = instances.as_array() {
-            output.push_str(&format!("Inventory ({}):\n", instances_array.len()));
+            output.push_str(&format!("{} ({}):\n", "Inventory".bold().cyan(), instances_array.len().to_string().cyan()));
             for instance in instances_array {
                 if let Some(obj) = instance.as_object() {
                     let index = obj.get("index").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
                     let id = obj.get("id").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
                     let kind = obj.get("kind").and_then(|v| v.as_str()).unwrap_or("?");
                     if let Some(item) = obj.get("item").and_then(|v| v.as_str()) {
-                        output.push_str(&format!("  [{}] Instance #{} [{}] -> {}\n", index, id, kind, item));
+                        output.push_str(&format!("  {} {} {} {} {} {}\n", 
+                            format!("[{}]", index).bright_magenta().bold(),
+                            format!("Instance #{}", index).white(),
+                            format!("(id: {})", id).cyan(),
+                            format!("[{}]", kind).yellow(),
+                            "->".bright_black(),
+                            item.green()));
                     } else if let Some(comp_kind) = obj.get("component_kind").and_then(|v| v.as_str()) {
                         let submaterial = obj.get("submaterial").and_then(|v| v.as_str()).unwrap_or("?");
-                        output.push_str(&format!("  [{}] Instance #{} [{}] -> {} ({})\n", index, id, kind, comp_kind, submaterial));
+                        output.push_str(&format!("  {} {} {} {} {} {} {}\n", 
+                            format!("[{}]", index).bright_magenta().bold(),
+                            format!("Instance #{}", index).white(),
+                            format!("(id: {})", id).cyan(),
+                            format!("[{}]", kind).yellow(),
+                            "->".bright_black(),
+                            comp_kind.green(),
+                            format!("({})", submaterial).bright_black()));
                     } else {
-                        output.push_str(&format!("  [{}] Instance #{} [{}]\n", index, id, kind));
+                        output.push_str(&format!("  {} {} {} {}\n", 
+                            format!("[{}]", index).bright_magenta().bold(),
+                            format!("Instance #{}", index).white(),
+                            format!("(id: {})", id).cyan(),
+                            format!("[{}]", kind).yellow()));
                     }
                 }
             }
@@ -709,14 +792,14 @@ fn format_human_readable_data(data: &Value) -> String {
         if item_obj.contains_key("id") && item_obj.contains_key("name") {
             let id = item_obj.get("id").and_then(|v| v.as_str()).unwrap_or("?");
             let name = item_obj.get("name").and_then(|v| v.as_str()).unwrap_or("?");
-            output.push_str(&format!("Item: {} ({})\n", name, id));
+            output.push_str(&format!("{}: {} ({})\n", "Item".bold().cyan(), name.bold(), format!("{}", id).cyan()));
             
             if let Some(desc) = item_obj.get("description").and_then(|v| v.as_str()) {
-                output.push_str(&format!("Description: {}\n", desc));
+                output.push_str(&format!("{}: {}\n", "Description".bright_black(), desc));
             }
             
             if let Some(kind) = item_obj.get("kind") {
-                output.push_str(&format!("Kind: {}\n", format_kind(kind)));
+                output.push_str(&format!("{}: {}\n", "Kind".bright_black(), format_kind(kind)));
             }
         }
         
@@ -789,16 +872,16 @@ fn format_human_readable_data(data: &Value) -> String {
         
         // Show commands help
         if let Some(commands) = item_obj.get("commands").and_then(|v| v.as_array()) {
-            output.push_str("Available Commands:\n");
+            output.push_str(&format!("{}\n", "Available Commands:".bold().cyan()));
             for cmd in commands {
                 if let Some(cmd_obj) = cmd.as_object() {
                     let cmd_str = cmd_obj.get("command").and_then(|v| v.as_str()).unwrap_or("?");
                     let desc = cmd_obj.get("description").and_then(|v| v.as_str()).unwrap_or("?");
-                    output.push_str(&format!("  {} - {}\n", cmd_str, desc));
+                    output.push_str(&format!("  {} - {}\n", cmd_str.cyan().bold(), desc));
                 }
             }
             if let Some(note) = item_obj.get("note").and_then(|v| v.as_str()) {
-                output.push_str(&format!("\nNote: {}\n", note));
+                output.push_str(&format!("\n{}: {}\n", "Note".yellow().bold(), note.bright_black()));
             }
         }
         
@@ -807,11 +890,20 @@ fn format_human_readable_data(data: &Value) -> String {
             if let Some(recipe) = item_obj.get("recipe").and_then(|v| v.as_str()) {
                 // This is a craft command result
                 let craft_type = item_obj.get("type").and_then(|v| v.as_str()).unwrap_or("?");
-                output.push_str(&format!("Crafted {} instance #{} using recipe: {}\n", craft_type, instance_id, recipe));
+                output.push_str(&format!("{} {} {} {} {}\n", 
+                    "Crafted".green().bold(),
+                    craft_type.green(),
+                    format!("instance #{}", instance_id).cyan(),
+                    "using recipe:".bright_black(),
+                    recipe.cyan().bold()));
             } else {
                 // This is a new command result
                 let item = item_obj.get("item").and_then(|v| v.as_str()).unwrap_or("?");
-                output.push_str(&format!("Created instance #{} for item: {}\n", instance_id, item));
+                output.push_str(&format!("{} {} {} {}\n", 
+                    "Created".green().bold(),
+                    format!("instance #{}", instance_id).cyan(),
+                    "for item:".bright_black(),
+                    item.cyan().bold()));
             }
         }
     }
@@ -1006,6 +1098,60 @@ mod tests {
         
         let cmd = parse_command("inv").unwrap();
         assert_eq!(cmd, Command::ListInstances);
+        
+        let cmd = parse_command("i").unwrap();
+        assert_eq!(cmd, Command::ListInstances);
+    }
+
+    #[test]
+    fn test_parse_shorthands() {
+        // List recipes shorthand
+        let cmd = parse_command("lr").unwrap();
+        assert_eq!(cmd, Command::ListRecipes);
+        
+        // List items shorthand
+        let cmd = parse_command("li").unwrap();
+        assert_eq!(cmd, Command::ListItems);
+        
+        // List instances shorthand
+        let cmd = parse_command("ls").unwrap();
+        assert_eq!(cmd, Command::ListInstances);
+        
+        // Craft shorthand
+        let cmd = parse_command("c recipe_id 0 1").unwrap();
+        assert_eq!(cmd, Command::Craft {
+            recipe_id: "recipe_id".to_string(),
+            input_indices: vec![0, 1],
+        });
+        
+        // Show item shorthand
+        let cmd = parse_command("si item_id").unwrap();
+        assert_eq!(cmd, Command::ShowItem("item_id".to_string()));
+        
+        // Show recipe shorthand
+        let cmd = parse_command("sr recipe_id").unwrap();
+        assert_eq!(cmd, Command::ShowRecipe("recipe_id".to_string()));
+        
+        // Show instance shorthand
+        let cmd = parse_command("sin 123").unwrap();
+        assert_eq!(cmd, Command::ShowInstance(123));
+        
+        // New shorthand
+        let cmd = parse_command("n item_id").unwrap();
+        assert_eq!(cmd, Command::New {
+            item_id: "item_id".to_string(),
+        });
+        
+        // Help shorthand
+        let cmd = parse_command("h").unwrap();
+        assert_eq!(cmd, Command::Help);
+        
+        let cmd = parse_command("?").unwrap();
+        assert_eq!(cmd, Command::Help);
+        
+        // Exit shorthand
+        let cmd = parse_command("q").unwrap();
+        assert_eq!(cmd, Command::Exit);
     }
 
     #[test]
