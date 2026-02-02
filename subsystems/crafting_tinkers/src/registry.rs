@@ -102,6 +102,11 @@ impl Registry {
         self.instances.insert(instance.id(), instance);
     }
 
+    /// Remove an item instance from the registry
+    pub fn remove_instance(&mut self, id: ItemInstanceId) -> Option<ItemInstance> {
+        self.instances.remove(&id)
+    }
+
     /// Get a material by ID
     pub fn get_material(&self, id: &MaterialId) -> Option<&Material> {
         self.materials.get(id)

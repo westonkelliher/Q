@@ -22,6 +22,8 @@ pub enum Command {
     ShowInstance(u64),
     /// Create a raw material instance (Simple items only)
     New { item_id: String },
+    /// Craft an item using a recipe and inventory indices
+    Craft { recipe_id: String, input_indices: Vec<usize> },
     /// Show help
     Help,
     /// Exit REPL
@@ -43,6 +45,7 @@ pub fn parse_command(input: &str) -> Result<Command, String> {
     let parts: Vec<&str> = input.split_whitespace().collect();
     
     match parts[0] {
+        "inventory" | "inv" => Ok(Command::ListInstances),
         "list" => {
             if parts.len() < 2 {
                 return Err("list requires a target: items, recipes, or instances".to_string());
@@ -75,6 +78,19 @@ pub fn parse_command(input: &str) -> Result<Command, String> {
             }
             let item_id = parts[1].to_string();
             Ok(Command::New { item_id })
+        }
+        "craft" => {
+            if parts.len() < 2 {
+                return Err("craft requires: craft <recipe_id> [index1] [index2] ...".to_string());
+            }
+            let recipe_id = parts[1].to_string();
+            let input_indices: Result<Vec<usize>, String> = parts[2..]
+                .iter()
+                .map(|s| s.parse::<usize>()
+                    .map_err(|_| format!("Invalid index: {}", s)))
+                .collect();
+            let input_indices = input_indices?;
+            Ok(Command::Craft { recipe_id, input_indices })
         }
         "help" => Ok(Command::Help),
         "exit" | "quit" => Ok(Command::Exit),
@@ -145,42 +161,58 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                 }));
             }
             
+            // Add indices to recipes
+            let recipes_with_indices: Vec<Value> = recipes.iter()
+                .enumerate()
+                .map(|(index, recipe)| {
+                    let mut recipe_obj = recipe.as_object().unwrap().clone();
+                    recipe_obj.insert("index".to_string(), json!(index));
+                    json!(recipe_obj)
+                })
+                .collect();
+            
             json!({
                 "status": "success",
                 "data": {
-                    "recipes": recipes,
-                    "count": recipes.len()
+                    "recipes": recipes_with_indices,
+                    "count": recipes_with_indices.len()
                 }
             })
         }
         Command::ListInstances => {
-            let instances: Vec<Value> = registry.all_instances()
-                .map(|instance| {
-                    match instance {
+            let instances: Vec<(usize, Value)> = registry.all_instances()
+                .enumerate()
+                .map(|(index, instance)| {
+                    let value = match instance {
                         ItemInstance::Simple(i) => json!({
+                            "index": index,
                             "id": i.id.0,
                             "kind": "Simple",
                             "item": i.definition.0,
                         }),
                         ItemInstance::Component(i) => json!({
+                            "index": index,
                             "id": i.id.0,
                             "kind": "Component",
                             "component_kind": i.component_kind.0,
                             "submaterial": i.submaterial.0,
                         }),
                         ItemInstance::Composite(i) => json!({
+                            "index": index,
                             "id": i.id.0,
                             "kind": "Composite",
                             "item": i.definition.0,
                             "quality": format!("{:?}", i.quality),
                         }),
-                    }
+                    };
+                    (index, value)
                 })
                 .collect();
+            let instances_values: Vec<Value> = instances.iter().map(|(_, v)| v.clone()).collect();
             json!({
                 "status": "success",
                 "data": {
-                    "instances": instances,
+                    "instances": instances_values,
                     "count": instances.len()
                 }
             })
@@ -344,22 +376,183 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                 }
             })
         }
+        Command::Craft { recipe_id, input_indices } => {
+            // Collect all instances into a vector for indexing
+            let instances_vec: Vec<ItemInstanceId> = registry.all_instances()
+                .map(|inst| inst.id())
+                .collect();
+            
+            // Validate indices
+            for &index in &input_indices {
+                if index >= instances_vec.len() {
+                    return json!({
+                        "status": "error",
+                        "message": format!("Invalid inventory index: {}. Inventory has {} items (indices 0-{})", 
+                            index, instances_vec.len(), 
+                            if instances_vec.is_empty() { 0 } else { instances_vec.len() - 1 })
+                    });
+                }
+            }
+            
+            // Map indices to instance IDs
+            let input_instance_ids: Vec<ItemInstanceId> = input_indices.iter()
+                .map(|&idx| instances_vec[idx])
+                .collect();
+            
+            // Find the recipe
+            let recipe_id_obj = RecipeId(recipe_id.clone());
+            
+            // Try Simple recipe first
+            if let Some(recipe) = registry.get_simple_recipe(&recipe_id_obj) {
+                let recipe_clone = recipe.clone();
+                match registry.execute_simple_recipe(&recipe_clone, input_instance_ids.clone(), None, None) {
+                    Ok(new_instance) => {
+                        // Remove consumed instances
+                        for &id in &input_instance_ids {
+                            registry.remove_instance(id);
+                        }
+                        
+                        // Register the new instance
+                        let new_id = new_instance.id();
+                        registry.register_instance(new_instance);
+                        
+                        json!({
+                            "status": "success",
+                            "data": {
+                                "instance_id": new_id.0,
+                                "recipe": recipe_id,
+                                "type": "Simple"
+                            }
+                        })
+                    }
+                    Err(e) => json!({
+                        "status": "error",
+                        "message": e
+                    })
+                }
+            }
+            // Try Component recipe
+            else if let Some(recipe) = registry.get_component_recipe(&recipe_id_obj) {
+                if input_instance_ids.len() != 1 {
+                    return json!({
+                        "status": "error",
+                        "message": format!("Component recipe requires exactly 1 input, got {}", input_instance_ids.len())
+                    });
+                }
+                
+                let recipe_clone = recipe.clone();
+                match registry.execute_component_recipe(&recipe_clone, input_instance_ids[0], None, None) {
+                    Ok(new_instance) => {
+                        // Remove consumed instance
+                        registry.remove_instance(input_instance_ids[0]);
+                        
+                        // Register the new instance
+                        let new_id = new_instance.id();
+                        registry.register_instance(new_instance);
+                        
+                        json!({
+                            "status": "success",
+                            "data": {
+                                "instance_id": new_id.0,
+                                "recipe": recipe_id,
+                                "type": "Component"
+                            }
+                        })
+                    }
+                    Err(e) => json!({
+                        "status": "error",
+                        "message": e
+                    })
+                }
+            }
+            // Try Composite recipe
+            else if let Some(recipe) = registry.get_composite_recipe(&recipe_id_obj) {
+                // Clone recipe and get output item info before mutable borrow
+                let recipe_clone = recipe.clone();
+                let output_item_id = recipe.output.clone();
+                
+                // Get the output item to determine slot order
+                let output_def = match registry.get_item(&output_item_id) {
+                    Some(def) => def,
+                    None => return json!({
+                        "status": "error",
+                        "message": format!("Output item {:?} not found", output_item_id)
+                    })
+                };
+                
+                let composite_def = match &output_def.kind {
+                    crate::ItemKind::Composite(def) => def,
+                    _ => return json!({
+                        "status": "error",
+                        "message": format!("Recipe output {:?} is not a Composite item", output_item_id)
+                    })
+                };
+                
+                // Match indices to slots in order
+                if input_instance_ids.len() != composite_def.slots.len() {
+                    return json!({
+                        "status": "error",
+                        "message": format!("Composite recipe requires {} components (one per slot), got {}", 
+                            composite_def.slots.len(), input_instance_ids.len())
+                    });
+                }
+                
+                let provided_components: Vec<(String, ItemInstanceId)> = composite_def.slots.iter()
+                    .zip(input_instance_ids.iter())
+                    .map(|(slot, &id)| (slot.name.clone(), id))
+                    .collect();
+                
+                match registry.execute_composite_recipe(&recipe_clone, provided_components.clone(), None, None) {
+                    Ok(new_instance) => {
+                        // Remove consumed instances
+                        for (_, id) in provided_components {
+                            registry.remove_instance(id);
+                        }
+                        
+                        // Register the new instance
+                        let new_id = new_instance.id();
+                        registry.register_instance(new_instance);
+                        
+                        json!({
+                            "status": "success",
+                            "data": {
+                                "instance_id": new_id.0,
+                                "recipe": recipe_id,
+                                "type": "Composite"
+                            }
+                        })
+                    }
+                    Err(e) => json!({
+                        "status": "error",
+                        "message": e
+                    })
+                }
+            }
+            else {
+                json!({
+                    "status": "error",
+                    "message": format!("Recipe not found: {}", recipe_id)
+                })
+            }
+        }
         Command::Help => {
             json!({
                 "status": "success",
                 "data": {
                     "commands": [
+                        {"command": "inventory", "description": "Show your inventory (items with indices)"},
                         {"command": "list items", "description": "List all item definitions"},
                         {"command": "list recipes", "description": "List all recipes"},
-                        {"command": "list instances", "description": "List all item instances"},
+                        {"command": "list instances", "description": "List all item instances (with indices)"},
                         {"command": "show item <id>", "description": "Show detailed item definition"},
                         {"command": "show recipe <id>", "description": "Show recipe with requirements"},
                         {"command": "show instance <id>", "description": "Show instance details"},
                         {"command": "new <item_id>", "description": "Create raw Simple material instance"},
+                        {"command": "craft <recipe_id> [index1] [index2] ...", "description": "Craft an item using a recipe and inventory indices"},
                         {"command": "help", "description": "Show this help"},
                         {"command": "exit", "description": "Exit REPL"},
                     ],
-                    "note": "Crafting support coming soon in the new system! Use --human-readable flag for readable output format."
+                    "note": "Use 'inventory' or 'list instances' to see numbered inventory items. Use those numbers with 'craft' command. Use --human-readable flag for readable output format."
                 }
             })
         }
@@ -475,14 +668,15 @@ fn format_human_readable_data(data: &Value) -> String {
             output.push_str(&format!("Recipes ({}):\n", recipes_array.len()));
             for recipe in recipes_array {
                 if let Some(obj) = recipe.as_object() {
+                    let index = obj.get("index").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
                     let id = obj.get("id").and_then(|v| v.as_str()).unwrap_or("?");
                     let name = obj.get("name").and_then(|v| v.as_str()).unwrap_or("?");
                     let rtype = obj.get("type").and_then(|v| v.as_str()).unwrap_or("?");
                     let output_item = obj.get("output").and_then(|v| v.as_str()).unwrap_or("?");
                     if let Some(qty) = obj.get("quantity").and_then(|v| v.as_u64()) {
-                        output.push_str(&format!("  - {} ({}) [{}] -> {} x{}\n", name, id, rtype, output_item, qty));
+                        output.push_str(&format!("  [{}] {} ({}) [{}] -> {} x{}\n", index, name, id, rtype, output_item, qty));
                     } else {
-                        output.push_str(&format!("  - {} ({}) [{}] -> {}\n", name, id, rtype, output_item));
+                        output.push_str(&format!("  [{}] {} ({}) [{}] -> {}\n", index, name, id, rtype, output_item));
                     }
                 }
             }
@@ -491,18 +685,19 @@ fn format_human_readable_data(data: &Value) -> String {
     
     if let Some(instances) = data.get("instances") {
         if let Some(instances_array) = instances.as_array() {
-            output.push_str(&format!("Instances ({}):\n", instances_array.len()));
+            output.push_str(&format!("Inventory ({}):\n", instances_array.len()));
             for instance in instances_array {
                 if let Some(obj) = instance.as_object() {
+                    let index = obj.get("index").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
                     let id = obj.get("id").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
                     let kind = obj.get("kind").and_then(|v| v.as_str()).unwrap_or("?");
                     if let Some(item) = obj.get("item").and_then(|v| v.as_str()) {
-                        output.push_str(&format!("  - Instance #{} [{}] -> {}\n", id, kind, item));
+                        output.push_str(&format!("  [{}] Instance #{} [{}] -> {}\n", index, id, kind, item));
                     } else if let Some(comp_kind) = obj.get("component_kind").and_then(|v| v.as_str()) {
                         let submaterial = obj.get("submaterial").and_then(|v| v.as_str()).unwrap_or("?");
-                        output.push_str(&format!("  - Instance #{} [{}] -> {} ({})\n", id, kind, comp_kind, submaterial));
+                        output.push_str(&format!("  [{}] Instance #{} [{}] -> {} ({})\n", index, id, kind, comp_kind, submaterial));
                     } else {
-                        output.push_str(&format!("  - Instance #{} [{}]\n", id, kind));
+                        output.push_str(&format!("  [{}] Instance #{} [{}]\n", index, id, kind));
                     }
                 }
             }
@@ -609,8 +804,15 @@ fn format_human_readable_data(data: &Value) -> String {
         
         // Show instance_id from new command
         if let Some(instance_id) = item_obj.get("instance_id").and_then(|v| v.as_u64()) {
-            let item = item_obj.get("item").and_then(|v| v.as_str()).unwrap_or("?");
-            output.push_str(&format!("Created instance #{} for item: {}\n", instance_id, item));
+            if let Some(recipe) = item_obj.get("recipe").and_then(|v| v.as_str()) {
+                // This is a craft command result
+                let craft_type = item_obj.get("type").and_then(|v| v.as_str()).unwrap_or("?");
+                output.push_str(&format!("Crafted {} instance #{} using recipe: {}\n", craft_type, instance_id, recipe));
+            } else {
+                // This is a new command result
+                let item = item_obj.get("item").and_then(|v| v.as_str()).unwrap_or("?");
+                output.push_str(&format!("Created instance #{} for item: {}\n", instance_id, item));
+            }
         }
     }
     
@@ -794,6 +996,15 @@ mod tests {
     #[test]
     fn test_parse_list_instances() {
         let cmd = parse_command("list instances").unwrap();
+        assert_eq!(cmd, Command::ListInstances);
+    }
+
+    #[test]
+    fn test_parse_inventory() {
+        let cmd = parse_command("inventory").unwrap();
+        assert_eq!(cmd, Command::ListInstances);
+        
+        let cmd = parse_command("inv").unwrap();
         assert_eq!(cmd, Command::ListInstances);
     }
 
