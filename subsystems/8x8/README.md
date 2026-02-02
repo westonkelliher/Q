@@ -1,7 +1,7 @@
 # 8x8 Subsystem
 
 > **Last Updated**: 2026-02-01  
-> **Previous Commit**: `f103538`  
+> **Previous Commit**: `7e46b70`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
