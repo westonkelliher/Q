@@ -1,0 +1,52 @@
+# Complex Crafting Sequence - Building a Scimitar
+# This demonstrates the full three-tier crafting system:
+# 1. Simple items (raw materials)
+# 2. Components (crafted from submaterials)
+# 3. Composite (assembled from components)
+
+# Step 1: Create raw materials
+# We need: iron ore (x2), oak wood, deer leather
+n iron_ore
+n iron_ore
+n oak_wood
+n deer_leather
+
+# Step 2: Check inventory
+i
+
+# Step 3: Smelt iron bars (Simple recipe: 2 iron_ore -> 1 iron_bar)
+# Use inventory indices 0 and 1 (the two iron_ore)
+c smelt_iron_bar 0 1
+
+# Step 4: Check inventory - should have iron_bar, oak_wood, deer_leather
+i
+
+# Step 5: Craft components from submaterials
+# Craft scimitar blade from iron_bar (Component recipe)
+# Use inventory index 0 (the iron_bar)
+c craft_scimitar_blade 0
+
+# Step 6: Craft handle from oak_wood (Component recipe)
+# Use inventory index 1 (the oak_wood)
+c craft_handle 1
+
+# Step 7: Craft binding from deer_leather (Component recipe)
+# Use inventory index 2 (the deer_leather)
+c craft_binding 2
+
+# Step 8: Check inventory - should have 3 components
+i
+
+# Step 9: Assemble scimitar from components (Composite recipe)
+# Scimitar slots: blade, handle, binding (in that order)
+# Use inventory indices 0, 1, 2 (blade, handle, binding)
+c assemble_scimitar 0 1 2
+
+# Step 10: Final inventory check - should have the scimitar!
+i
+
+# Step 11: Show the scimitar details
+sin 0
+
+# Step 12: List recipes to see what else we can craft
+lr

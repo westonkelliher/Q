@@ -4,7 +4,6 @@ use crate::{
 };
 use crate::ids::{CraftingStationId, WorldObjectTag};
 use crate::world_object::{WorldObjectKind, WorldObjectInstance};
-use crate::combat::{Combatant, CombatState, CombatResult};
 use serde_json::{json, Value};
 use std::io::{self, Write as IoWrite};
 use colored::*;
@@ -34,20 +33,6 @@ pub enum Command {
     Place { instance_index: usize },
     /// List all placed world objects
     ListStations,
-    /// Start a combat and simulate to completion
-    Combat { 
-        health1: i32, 
-        attack1: i32, 
-        health2: i32, 
-        attack2: i32 
-    },
-    /// Execute one round of combat
-    CombatRound { 
-        health1: i32, 
-        attack1: i32, 
-        health2: i32, 
-        attack2: i32 
-    },
     /// Show help
     Help,
     /// Exit REPL
@@ -201,34 +186,6 @@ pub fn parse_command(input: &str) -> Result<Command, String> {
         }
         "stations" => {
             Ok(Command::ListStations)
-        }
-        "combat" | "comb" => {
-            if parts.len() < 5 {
-                return Err("combat requires: combat <health1> <attack1> <health2> <attack2>".to_string());
-            }
-            let health1 = parts[1].parse::<i32>()
-                .map_err(|_| format!("Invalid health1: {}", parts[1]))?;
-            let attack1 = parts[2].parse::<i32>()
-                .map_err(|_| format!("Invalid attack1: {}", parts[2]))?;
-            let health2 = parts[3].parse::<i32>()
-                .map_err(|_| format!("Invalid health2: {}", parts[3]))?;
-            let attack2 = parts[4].parse::<i32>()
-                .map_err(|_| format!("Invalid attack2: {}", parts[4]))?;
-            Ok(Command::Combat { health1, attack1, health2, attack2 })
-        }
-        "combat-round" | "cr" => {
-            if parts.len() < 5 {
-                return Err("combat-round requires: combat-round <health1> <attack1> <health2> <attack2>".to_string());
-            }
-            let health1 = parts[1].parse::<i32>()
-                .map_err(|_| format!("Invalid health1: {}", parts[1]))?;
-            let attack1 = parts[2].parse::<i32>()
-                .map_err(|_| format!("Invalid attack1: {}", parts[2]))?;
-            let health2 = parts[3].parse::<i32>()
-                .map_err(|_| format!("Invalid health2: {}", parts[3]))?;
-            let attack2 = parts[4].parse::<i32>()
-                .map_err(|_| format!("Invalid attack2: {}", parts[4]))?;
-            Ok(Command::CombatRound { health1, attack1, health2, attack2 })
         }
         "help" => Ok(Command::Help),
         "exit" | "quit" => Ok(Command::Exit),
@@ -822,98 +779,6 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                 })
             }
         }
-        Command::Combat { health1, attack1, health2, attack2 } => {
-            let combatant1 = Combatant::new(health1, attack1);
-            let combatant2 = Combatant::new(health2, attack2);
-            let state = CombatState::new(combatant1, combatant2);
-            
-            // Track round-by-round history
-            let mut history = Vec::new();
-            let mut current_state = state.clone();
-            
-            loop {
-                let round_before = current_state.round;
-                let health1_before = current_state.combatant1.health;
-                let health2_before = current_state.combatant2.health;
-                
-                let result = current_state.execute_round();
-                
-                history.push(json!({
-                    "round": round_before + 1,
-                    "combatant1_health_before": health1_before,
-                    "combatant2_health_before": health2_before,
-                    "combatant1_health_after": current_state.combatant1.health,
-                    "combatant2_health_after": current_state.combatant2.health,
-                    "result": format!("{:?}", result),
-                }));
-                
-                match result {
-                    CombatResult::Ongoing => continue,
-                    _ => {
-                        let result_str = match result {
-                            CombatResult::Combatant1Wins => "Combatant1Wins",
-                            CombatResult::Combatant2Wins => "Combatant2Wins",
-                            CombatResult::Draw => "Draw",
-                            CombatResult::Ongoing => unreachable!(),
-                        };
-                        
-                        return json!({
-                            "status": "success",
-                            "data": {
-                                "result": result_str,
-                                "final_state": {
-                                    "round": current_state.round,
-                                    "combatant1": {
-                                        "health": current_state.combatant1.health,
-                                        "attack": current_state.combatant1.attack,
-                                    },
-                                    "combatant2": {
-                                        "health": current_state.combatant2.health,
-                                        "attack": current_state.combatant2.attack,
-                                    },
-                                },
-                                "history": history,
-                            }
-                        });
-                    }
-                }
-            }
-        }
-        Command::CombatRound { health1, attack1, health2, attack2 } => {
-            let combatant1 = Combatant::new(health1, attack1);
-            let combatant2 = Combatant::new(health2, attack2);
-            let mut state = CombatState::new(combatant1, combatant2);
-            
-            let health1_before = state.combatant1.health;
-            let health2_before = state.combatant2.health;
-            
-            let result = state.execute_round();
-            
-            let result_str = match result {
-                CombatResult::Combatant1Wins => "Combatant1Wins",
-                CombatResult::Combatant2Wins => "Combatant2Wins",
-                CombatResult::Draw => "Draw",
-                CombatResult::Ongoing => "Ongoing",
-            };
-            
-            json!({
-                "status": "success",
-                "data": {
-                    "result": result_str,
-                    "round": state.round,
-                    "combatant1": {
-                        "health_before": health1_before,
-                        "health_after": state.combatant1.health,
-                        "attack": state.combatant1.attack,
-                    },
-                    "combatant2": {
-                        "health_before": health2_before,
-                        "health_after": state.combatant2.health,
-                        "attack": state.combatant2.attack,
-                    },
-                }
-            })
-        }
         Command::Help => {
             json!({
                 "status": "success",
@@ -931,12 +796,10 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                         {"command": "place <instance_index> (p)", "description": "Place a crafting station from inventory"},
                         {"command": "stations", "description": "List all placed crafting stations"},
                         {"command": "craft <recipe_id> [index1] [index2] ... [@station_index] (c)", "description": "Craft an item using a recipe and inventory indices, optionally at a station"},
-                        {"command": "combat <health1> <attack1> <health2> <attack2> (comb)", "description": "Simulate full combat between two combatants"},
-                        {"command": "combat-round <health1> <attack1> <health2> <attack2> (cr)", "description": "Execute one round of combat"},
                         {"command": "help (h/?)", "description": "Show this help"},
                         {"command": "exit (q)", "description": "Exit REPL"},
                     ],
-                    "note": "Shorthands: i/inv/ls (inventory), lr (list recipes), li (list items), lis (list simple items), c (craft), comb (combat), cr (combat-round), si (show item), sr (show recipe), sin (show instance), n (new), h/? (help), q (exit). Use 'inventory' to see numbered items. Use those numbers with 'craft' command. Use --human-readable flag for readable output format."
+                    "note": "Shorthands: i/inv/ls (inventory), lr (list recipes), li (list items), lis (list simple items), c (craft), si (show item), sr (show recipe), sin (show instance), n (new), h/? (help), q (exit). Use 'inventory' to see numbered items. Use those numbers with 'craft' command. Use --human-readable flag for readable output format."
                 }
             })
         }
@@ -1242,102 +1105,6 @@ fn format_human_readable_data(data: &Value) -> String {
                     format!("instance #{}", instance_id).cyan(),
                     "for item:".bright_black(),
                     item.cyan().bold()));
-            }
-        }
-        
-        // Show combat results
-        if let Some(result) = item_obj.get("result").and_then(|v| v.as_str()) {
-            output.push_str(&format!("{}: {}\n", "Combat Result".bold().cyan(), 
-                match result {
-                    "Combatant1Wins" => "Combatant 1 Wins".green().bold(),
-                    "Combatant2Wins" => "Combatant 2 Wins".green().bold(),
-                    "Draw" => "Draw".yellow().bold(),
-                    "Ongoing" => "Ongoing".yellow(),
-                    _ => result.white(),
-                }));
-            
-            // Show final state for full combat
-            if let Some(final_state) = item_obj.get("final_state") {
-                if let Some(final_obj) = final_state.as_object() {
-                    if let Some(round) = final_obj.get("round").and_then(|v| v.as_u64()) {
-                        output.push_str(&format!("{}: {}\n", "Total Rounds".bright_black(), round));
-                    }
-                    
-                    if let Some(c1) = final_obj.get("combatant1").and_then(|v| v.as_object()) {
-                        let health = c1.get("health").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let attack = c1.get("attack").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let health_str = if health <= 0 {
-                            format!("{}", health).red()
-                        } else {
-                            format!("{}", health).green()
-                        };
-                        output.push_str(&format!("{}: HP={}, ATK={}\n", 
-                            "Combatant 1".bold(), health_str, attack));
-                    }
-                    
-                    if let Some(c2) = final_obj.get("combatant2").and_then(|v| v.as_object()) {
-                        let health = c2.get("health").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let attack = c2.get("attack").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let health_str = if health <= 0 {
-                            format!("{}", health).red()
-                        } else {
-                            format!("{}", health).green()
-                        };
-                        output.push_str(&format!("{}: HP={}, ATK={}\n", 
-                            "Combatant 2".bold(), health_str, attack));
-                    }
-                }
-            }
-            
-            // Show round-by-round for single round command
-            if let Some(round) = item_obj.get("round").and_then(|v| v.as_u64()) {
-                output.push_str(&format!("{}: {}\n", "Round".bright_black(), round));
-                
-                if let Some(c1) = item_obj.get("combatant1").and_then(|v| v.as_object()) {
-                    let health_before = c1.get("health_before").and_then(|v| v.as_i64()).unwrap_or(0);
-                    let health_after = c1.get("health_after").and_then(|v| v.as_i64()).unwrap_or(0);
-                    let attack = c1.get("attack").and_then(|v| v.as_i64()).unwrap_or(0);
-                    output.push_str(&format!("{}: {} -> {} (ATK={})\n", 
-                        "Combatant 1".bold(),
-                        health_before,
-                        if health_after <= 0 { health_after.to_string().red() } else { health_after.to_string().green() },
-                        attack));
-                }
-                
-                if let Some(c2) = item_obj.get("combatant2").and_then(|v| v.as_object()) {
-                    let health_before = c2.get("health_before").and_then(|v| v.as_i64()).unwrap_or(0);
-                    let health_after = c2.get("health_after").and_then(|v| v.as_i64()).unwrap_or(0);
-                    let attack = c2.get("attack").and_then(|v| v.as_i64()).unwrap_or(0);
-                    output.push_str(&format!("{}: {} -> {} (ATK={})\n", 
-                        "Combatant 2".bold(),
-                        health_before,
-                        if health_after <= 0 { health_after.to_string().red() } else { health_after.to_string().green() },
-                        attack));
-                }
-            }
-            
-            // Show history for full combat
-            if let Some(history) = item_obj.get("history").and_then(|v| v.as_array()) {
-                if !history.is_empty() {
-                    output.push_str(&format!("\n{}:\n", "Round History".bold().cyan()));
-                    for round_data in history {
-                        if let Some(round_obj) = round_data.as_object() {
-                            let round_num = round_obj.get("round").and_then(|v| v.as_u64()).unwrap_or(0);
-                            let c1_before = round_obj.get("combatant1_health_before").and_then(|v| v.as_i64()).unwrap_or(0);
-                            let c1_after = round_obj.get("combatant1_health_after").and_then(|v| v.as_i64()).unwrap_or(0);
-                            let c2_before = round_obj.get("combatant2_health_before").and_then(|v| v.as_i64()).unwrap_or(0);
-                            let c2_after = round_obj.get("combatant2_health_after").and_then(|v| v.as_i64()).unwrap_or(0);
-                            
-                            output.push_str(&format!("  {}: C1 {} -> {}, C2 {} -> {}\n",
-                                format!("Round {}", round_num).bright_magenta(),
-                                c1_before,
-                                if c1_after <= 0 { c1_after.to_string().red() } else { c1_after.to_string().green() },
-                                c2_before,
-                                if c2_after <= 0 { c2_after.to_string().red() } else { c2_after.to_string().green() },
-                            ));
-                        }
-                    }
-                }
             }
         }
     }
