@@ -359,7 +359,7 @@ pub fn execute_command(command: Command, registry: &mut Registry) -> Value {
                         {"command": "help", "description": "Show this help"},
                         {"command": "exit", "description": "Exit REPL"},
                     ],
-                    "note": "Crafting support coming soon in the new system!"
+                    "note": "Crafting support coming soon in the new system! Use --human-readable flag for readable output format."
                 }
             })
         }
@@ -421,8 +421,304 @@ fn serialize_instance(instance: &ItemInstance) -> Value {
     }
 }
 
+/// Format JSON output in human-readable form
+fn format_human_readable(value: &Value) -> String {
+    match value {
+        Value::Object(map) => {
+            if let Some(status) = map.get("status") {
+                match status.as_str() {
+                    Some("success") => {
+                        if let Some(data) = map.get("data") {
+                            format_human_readable_data(data)
+                        } else {
+                            "Success".to_string()
+                        }
+                    }
+                    Some("error") => {
+                        if let Some(msg) = map.get("message") {
+                            format!("Error: {}", msg.as_str().unwrap_or("Unknown error"))
+                        } else {
+                            "Error".to_string()
+                        }
+                    }
+                    Some("exit") => "Exiting...".to_string(),
+                    _ => serde_json::to_string_pretty(value).unwrap_or_default()
+                }
+            } else {
+                serde_json::to_string_pretty(value).unwrap_or_default()
+            }
+        }
+        _ => serde_json::to_string_pretty(value).unwrap_or_default()
+    }
+}
+
+/// Format the data section of a success response
+fn format_human_readable_data(data: &Value) -> String {
+    let mut output = String::new();
+    
+    if let Some(items) = data.get("items") {
+        if let Some(items_array) = items.as_array() {
+            output.push_str(&format!("Items ({}):\n", items_array.len()));
+            for item in items_array {
+                if let Some(obj) = item.as_object() {
+                    let id = obj.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+                    let name = obj.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+                    let kind = obj.get("kind").and_then(|v| v.as_str()).unwrap_or("?");
+                    output.push_str(&format!("  - {} ({}) [{}]\n", name, id, kind));
+                }
+            }
+        }
+    }
+    
+    if let Some(recipes) = data.get("recipes") {
+        if let Some(recipes_array) = recipes.as_array() {
+            output.push_str(&format!("Recipes ({}):\n", recipes_array.len()));
+            for recipe in recipes_array {
+                if let Some(obj) = recipe.as_object() {
+                    let id = obj.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+                    let name = obj.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+                    let rtype = obj.get("type").and_then(|v| v.as_str()).unwrap_or("?");
+                    let output_item = obj.get("output").and_then(|v| v.as_str()).unwrap_or("?");
+                    if let Some(qty) = obj.get("quantity").and_then(|v| v.as_u64()) {
+                        output.push_str(&format!("  - {} ({}) [{}] -> {} x{}\n", name, id, rtype, output_item, qty));
+                    } else {
+                        output.push_str(&format!("  - {} ({}) [{}] -> {}\n", name, id, rtype, output_item));
+                    }
+                }
+            }
+        }
+    }
+    
+    if let Some(instances) = data.get("instances") {
+        if let Some(instances_array) = instances.as_array() {
+            output.push_str(&format!("Instances ({}):\n", instances_array.len()));
+            for instance in instances_array {
+                if let Some(obj) = instance.as_object() {
+                    let id = obj.get("id").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+                    let kind = obj.get("kind").and_then(|v| v.as_str()).unwrap_or("?");
+                    if let Some(item) = obj.get("item").and_then(|v| v.as_str()) {
+                        output.push_str(&format!("  - Instance #{} [{}] -> {}\n", id, kind, item));
+                    } else if let Some(comp_kind) = obj.get("component_kind").and_then(|v| v.as_str()) {
+                        let submaterial = obj.get("submaterial").and_then(|v| v.as_str()).unwrap_or("?");
+                        output.push_str(&format!("  - Instance #{} [{}] -> {} ({})\n", id, kind, comp_kind, submaterial));
+                    } else {
+                        output.push_str(&format!("  - Instance #{} [{}]\n", id, kind));
+                    }
+                }
+            }
+        }
+    }
+    
+    if let Some(item_obj) = data.as_object() {
+        // Show item details
+        if item_obj.contains_key("id") && item_obj.contains_key("name") {
+            let id = item_obj.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+            let name = item_obj.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+            output.push_str(&format!("Item: {} ({})\n", name, id));
+            
+            if let Some(desc) = item_obj.get("description").and_then(|v| v.as_str()) {
+                output.push_str(&format!("Description: {}\n", desc));
+            }
+            
+            if let Some(kind) = item_obj.get("kind") {
+                output.push_str(&format!("Kind: {}\n", format_kind(kind)));
+            }
+        }
+        
+        // Show recipe details
+        if item_obj.contains_key("type") && item_obj.get("type").and_then(|v| v.as_str()) == Some("Simple") {
+            let id = item_obj.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+            let name = item_obj.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+            let output_item = item_obj.get("output").and_then(|v| v.as_str()).unwrap_or("?");
+            let qty = item_obj.get("output_quantity").and_then(|v| v.as_u64()).unwrap_or(1);
+            output.push_str(&format!("Recipe: {} ({})\n", name, id));
+            output.push_str(&format!("Output: {} x{}\n", output_item, qty));
+            
+            if let Some(inputs) = item_obj.get("inputs").and_then(|v| v.as_array()) {
+                if !inputs.is_empty() {
+                    output.push_str("Inputs:\n");
+                    for input in inputs {
+                        if let Some(inp_obj) = input.as_object() {
+                            let item_id = inp_obj.get("item_id").and_then(|v| v.as_str()).unwrap_or("?");
+                            let qty = inp_obj.get("quantity").and_then(|v| v.as_u64()).unwrap_or(1);
+                            output.push_str(&format!("  - {} x{}\n", item_id, qty));
+                        }
+                    }
+                }
+            }
+            
+            if let Some(tool) = item_obj.get("tool") {
+                output.push_str(&format!("Tool: {}\n", format_tool(tool)));
+            }
+        }
+        
+        // Show instance details
+        if item_obj.contains_key("kind") && !item_obj.contains_key("name") {
+            let id = item_obj.get("id").and_then(|v| v.as_u64()).map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+            let kind = item_obj.get("kind").and_then(|v| v.as_str()).unwrap_or("?");
+            output.push_str(&format!("Instance #{} [{}]\n", id, kind));
+            
+            if let Some(item) = item_obj.get("item").and_then(|v| v.as_str()) {
+                output.push_str(&format!("Item: {}\n", item));
+            }
+            
+            if let Some(comp_kind) = item_obj.get("component_kind").and_then(|v| v.as_str()) {
+                output.push_str(&format!("Component Kind: {}\n", comp_kind));
+            }
+            
+            if let Some(submaterial) = item_obj.get("submaterial").and_then(|v| v.as_str()) {
+                output.push_str(&format!("Submaterial: {}\n", submaterial));
+            }
+            
+            if let Some(quality) = item_obj.get("quality").and_then(|v| v.as_str()) {
+                output.push_str(&format!("Quality: {}\n", quality));
+            }
+            
+            if let Some(components) = item_obj.get("components").and_then(|v| v.as_object()) {
+                if !components.is_empty() {
+                    output.push_str("Components:\n");
+                    for (slot_name, comp) in components {
+                        if let Some(comp_obj) = comp.as_object() {
+                            let comp_kind = comp_obj.get("component_kind").and_then(|v| v.as_str()).unwrap_or("?");
+                            let submaterial = comp_obj.get("submaterial").and_then(|v| v.as_str()).unwrap_or("?");
+                            output.push_str(&format!("  - {}: {} ({})\n", slot_name, comp_kind, submaterial));
+                        }
+                    }
+                }
+            }
+            
+            if let Some(provenance) = item_obj.get("provenance") {
+                output.push_str(&format!("Provenance: {}\n", format_provenance(provenance)));
+            }
+        }
+        
+        // Show commands help
+        if let Some(commands) = item_obj.get("commands").and_then(|v| v.as_array()) {
+            output.push_str("Available Commands:\n");
+            for cmd in commands {
+                if let Some(cmd_obj) = cmd.as_object() {
+                    let cmd_str = cmd_obj.get("command").and_then(|v| v.as_str()).unwrap_or("?");
+                    let desc = cmd_obj.get("description").and_then(|v| v.as_str()).unwrap_or("?");
+                    output.push_str(&format!("  {} - {}\n", cmd_str, desc));
+                }
+            }
+            if let Some(note) = item_obj.get("note").and_then(|v| v.as_str()) {
+                output.push_str(&format!("\nNote: {}\n", note));
+            }
+        }
+        
+        // Show instance_id from new command
+        if let Some(instance_id) = item_obj.get("instance_id").and_then(|v| v.as_u64()) {
+            let item = item_obj.get("item").and_then(|v| v.as_str()).unwrap_or("?");
+            output.push_str(&format!("Created instance #{} for item: {}\n", instance_id, item));
+        }
+    }
+    
+    if output.is_empty() {
+        serde_json::to_string_pretty(data).unwrap_or_default()
+    } else {
+        output.trim_end().to_string()
+    }
+}
+
+fn format_kind(kind: &Value) -> String {
+    if let Some(obj) = kind.as_object() {
+        if let Some(typ) = obj.get("type").and_then(|v| v.as_str()) {
+            match typ {
+                "Simple" => {
+                    if let Some(submaterial) = obj.get("submaterial").and_then(|v| v.as_str()) {
+                        format!("Simple (Submaterial: {})", submaterial)
+                    } else {
+                        "Simple".to_string()
+                    }
+                }
+                "Component" => {
+                    if let Some(comp_kind) = obj.get("component_kind").and_then(|v| v.as_str()) {
+                        format!("Component ({})", comp_kind)
+                    } else {
+                        "Component".to_string()
+                    }
+                }
+                "Composite" => {
+                    let mut parts = vec!["Composite".to_string()];
+                    if let Some(cat) = obj.get("category").and_then(|v| v.as_str()) {
+                        parts.push(format!("Category: {}", cat));
+                    }
+                    if let Some(tool_type) = obj.get("tool_type").and_then(|v| v.as_str()) {
+                        parts.push(format!("Tool Type: {}", tool_type));
+                    }
+                    if let Some(slots) = obj.get("slots").and_then(|v| v.as_array()) {
+                        parts.push(format!("Slots: {}", slots.len()));
+                    }
+                    parts.join(", ")
+                }
+                _ => typ.to_string()
+            }
+        } else {
+            serde_json::to_string_pretty(kind).unwrap_or_default()
+        }
+    } else {
+        serde_json::to_string_pretty(kind).unwrap_or_default()
+    }
+}
+
+fn format_tool(tool: &Value) -> String {
+    if let Some(obj) = tool.as_object() {
+        let mut parts = vec![];
+        if let Some(typ) = obj.get("type").and_then(|v| v.as_str()) {
+            parts.push(typ.to_string());
+        }
+        if let Some(min_quality) = obj.get("min_quality").and_then(|v| v.as_str()) {
+            if min_quality != "None" {
+                parts.push(format!("Min Quality: {}", min_quality));
+            }
+        }
+        if parts.is_empty() {
+            "None".to_string()
+        } else {
+            parts.join(", ")
+        }
+    } else {
+        "None".to_string()
+    }
+}
+
+fn format_provenance(provenance: &Value) -> String {
+    if let Some(obj) = provenance.as_object() {
+        let mut parts = vec![];
+        if let Some(recipe) = obj.get("recipe").and_then(|v| v.as_str()) {
+            parts.push(format!("Recipe: {}", recipe));
+        }
+        if let Some(consumed) = obj.get("consumed").and_then(|v| v.as_array()) {
+            if !consumed.is_empty() {
+                let consumed_strs: Vec<String> = consumed.iter()
+                    .filter_map(|c| {
+                        if let Some(c_obj) = c.as_object() {
+                            let inst_id = c_obj.get("instance_id").and_then(|v| v.as_u64())?;
+                            let qty = c_obj.get("quantity").and_then(|v| v.as_u64()).unwrap_or(1);
+                            Some(format!("#{} x{}", inst_id, qty))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                if !consumed_strs.is_empty() {
+                    parts.push(format!("Consumed: {}", consumed_strs.join(", ")));
+                }
+            }
+        }
+        if parts.is_empty() {
+            "None".to_string()
+        } else {
+            parts.join(", ")
+        }
+    } else {
+        "None".to_string()
+    }
+}
+
 /// Run the REPL loop
-pub fn run_repl(registry: &mut Registry) -> io::Result<()> {
+pub fn run_repl(registry: &mut Registry, human_readable: bool) -> io::Result<()> {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     
@@ -453,7 +749,11 @@ pub fn run_repl(registry: &mut Registry) -> io::Result<()> {
                     break;
                 }
                 
-                println!("{}", serde_json::to_string(&result).unwrap());
+                if human_readable {
+                    println!("{}", format_human_readable(&result));
+                } else {
+                    println!("{}", serde_json::to_string(&result).unwrap());
+                }
             }
             Err(err) => {
                 // Don't print errors for comments
@@ -462,7 +762,11 @@ pub fn run_repl(registry: &mut Registry) -> io::Result<()> {
                         "status": "error",
                         "message": err
                     });
-                    println!("{}", serde_json::to_string(&error_response).unwrap());
+                    if human_readable {
+                        println!("{}", format_human_readable(&error_response));
+                    } else {
+                        println!("{}", serde_json::to_string(&error_response).unwrap());
+                    }
                 }
             }
         }

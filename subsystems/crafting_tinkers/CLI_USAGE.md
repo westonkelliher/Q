@@ -10,6 +10,14 @@ The crafting system now has a fully functional REPL-based CLI for testing and ex
 cargo run
 ```
 
+Or with human-readable output:
+
+```bash
+cargo run -- --human-readable
+# or use the short form:
+cargo run -- -h
+```
+
 Then type commands:
 ```
 > help
@@ -25,6 +33,12 @@ Run pre-written test scripts:
 
 ```bash
 cargo run < test_scripts/basic_crafting.txt
+```
+
+With human-readable output:
+
+```bash
+cargo run -- --human-readable < test_scripts/basic_crafting.txt
 ```
 
 ## Available Commands
@@ -53,9 +67,11 @@ cargo run < test_scripts/basic_crafting.txt
 - `epic` - Very high quality
 - `legendary` - Highest quality
 
-## JSON Output
+## Output Formats
 
-All commands return structured JSON:
+### JSON Output (Default)
+
+By default, all commands return structured JSON:
 
 **Success:**
 ```json
@@ -72,6 +88,27 @@ All commands return structured JSON:
   "message": "error description"
 }
 ```
+
+### Human-Readable Output
+
+Use the `--human-readable` flag (or `-h` for short) to get formatted, human-friendly output:
+
+```bash
+cargo run -- --human-readable
+# or use the short form:
+cargo run -- -h
+```
+
+**Example:**
+```
+Items (31):
+  - Knife (knife) [Composite]
+  - Copper Ore (copper_ore) [Simple]
+  - Wolf Bone (wolf_bone) [Simple (Submaterial)]
+  ...
+```
+
+The human-readable format is easier to read for interactive use, while JSON format is better for scripting and automation.
 
 ## Example Workflow
 
