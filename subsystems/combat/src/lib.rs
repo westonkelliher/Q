@@ -7,6 +7,27 @@ pub struct Combatant {
     pub attack: i32,
 }
 
+/// Predefined combatants with different stat combinations
+impl Combatant {
+    /// Tank: High health, low attack - survives long but deals little damage
+    pub const TANK: Combatant = Combatant { health: 20, attack: 2 };
+    
+    /// Glass Cannon: Low health, high attack - deals massive damage but fragile
+    pub const GLASS_CANNON: Combatant = Combatant { health: 5, attack: 8 };
+    
+    /// Balanced Fighter: Medium health and attack - well-rounded combatant
+    pub const BALANCED: Combatant = Combatant { health: 10, attack: 5 };
+    
+    /// Bruiser: High health, medium attack - durable and hits hard
+    pub const BRUISER: Combatant = Combatant { health: 15, attack: 6 };
+    
+    /// Assassin: Very low health, very high attack - extreme glass cannon
+    pub const ASSASSIN: Combatant = Combatant { health: 3, attack: 10 };
+    
+    /// Defender: Very high health, very low attack - ultimate tank
+    pub const DEFENDER: Combatant = Combatant { health: 25, attack: 1 };
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CombatState {
     pub combatant1: Combatant,
