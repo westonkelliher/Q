@@ -506,11 +506,107 @@ impl CombatGUI {
         let screen_width = screen_width();
         let screen_height = screen_height();
 
+        // Pet selection panel at top
+        let top_panel_height = 250.0;
+        let top_panel_y = 20.0;
+        let top_panel_width = screen_width - 40.0;
+        let top_panel_x = 20.0;
+
+        self.draw_rounded_rect(top_panel_x, top_panel_y, top_panel_width, top_panel_height, 15.0, Color::new(0.98, 0.99, 1.0, 1.0));
+        draw_rectangle_lines(top_panel_x, top_panel_y, top_panel_width, top_panel_height, 2.0, Color::new(0.8, 0.8, 0.9, 1.0));
+
+        // Left side - Combatant 1 controls
+        let left_panel_x = top_panel_x + 20.0;
+        let left_panel_y = top_panel_y + 20.0;
+        let left_panel_width = (top_panel_width - 60.0) / 2.0;
+
+        draw_text("Pet 1", left_panel_x, left_panel_y, 24.0, Color::new(0.2, 0.2, 0.2, 1.0));
+
+        // Preset buttons
+        let preset_y = left_panel_y + 40.0;
+        draw_text("Preset:", left_panel_x, preset_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
+        
+        let preset_buttons = [
+            PredefinedCombatant::Tank,
+            PredefinedCombatant::GlassCannon,
+            PredefinedCombatant::Balanced,
+            PredefinedCombatant::Bruiser,
+            PredefinedCombatant::Assassin,
+            PredefinedCombatant::Defender,
+        ];
+        
+        let button_spacing = 8.0;
+        let button_width = (left_panel_width - 2.0 * button_spacing) / 3.0;
+        let button_height = 30.0;
+        for (i, preset) in preset_buttons.iter().enumerate() {
+            let bx = left_panel_x + (i % 3) as f32 * (button_width + button_spacing);
+            let by = preset_y + 25.0 + (i / 3) as f32 * (button_height + 10.0);
+            let is_selected = !self.side1_custom && self.side1_preset == *preset;
+            if self.draw_preset_button(bx, by, button_width, button_height, *preset, is_selected) {
+                self.side1_custom = false;
+                self.side1_preset = *preset;
+            }
+        }
+
+        // Custom toggle
+        let custom_y = preset_y + 25.0 + 80.0;
+        if self.draw_button(left_panel_x, custom_y, 140.0, 35.0, if self.side1_custom { "Custom: ON" } else { "Custom: OFF" }, Color::new(0.6, 0.6, 0.6, 1.0)) {
+            self.side1_custom = !self.side1_custom;
+        }
+
+        // Custom inputs
+        if self.side1_custom {
+            let input_y = custom_y + 50.0;
+            draw_text("Health:", left_panel_x, input_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
+            self.draw_text_input(left_panel_x + 80.0, input_y - 22.0, 100.0, 35.0, self.side1_health.clone(), InputField::Side1Health);
+            
+            draw_text("Attack:", left_panel_x, input_y + 40.0, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
+            self.draw_text_input(left_panel_x + 80.0, input_y + 18.0, 100.0, 35.0, self.side1_attack.clone(), InputField::Side1Attack);
+        }
+
+        // Right side - Combatant 2 controls
+        let right_panel_x = left_panel_x + left_panel_width + 20.0;
+        let right_panel_y = top_panel_y + 20.0;
+
+        draw_text("Pet 2", right_panel_x, right_panel_y, 24.0, Color::new(0.2, 0.2, 0.2, 1.0));
+
+        // Preset buttons for Side 2
+        let preset_y = right_panel_y + 40.0;
+        draw_text("Preset:", right_panel_x, preset_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
+        
+        let button_spacing = 8.0;
+        let button_width = (left_panel_width - 2.0 * button_spacing) / 3.0;
+        for (i, preset) in preset_buttons.iter().enumerate() {
+            let bx = right_panel_x + (i % 3) as f32 * (button_width + button_spacing);
+            let by = preset_y + 25.0 + (i / 3) as f32 * (button_height + 10.0);
+            let is_selected = !self.side2_custom && self.side2_preset == *preset;
+            if self.draw_preset_button(bx, by, button_width, button_height, *preset, is_selected) {
+                self.side2_custom = false;
+                self.side2_preset = *preset;
+            }
+        }
+
+        // Custom toggle for Side 2
+        let custom_y = preset_y + 25.0 + 80.0;
+        if self.draw_button(right_panel_x, custom_y, 140.0, 35.0, if self.side2_custom { "Custom: ON" } else { "Custom: OFF" }, Color::new(0.6, 0.6, 0.6, 1.0)) {
+            self.side2_custom = !self.side2_custom;
+        }
+
+        // Custom inputs for Side 2
+        if self.side2_custom {
+            let input_y = custom_y + 50.0;
+            draw_text("Health:", right_panel_x, input_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
+            self.draw_text_input(right_panel_x + 80.0, input_y - 22.0, 100.0, 35.0, self.side2_health.clone(), InputField::Side2Health);
+            
+            draw_text("Attack:", right_panel_x, input_y + 40.0, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
+            self.draw_text_input(right_panel_x + 80.0, input_y + 18.0, 100.0, 35.0, self.side2_attack.clone(), InputField::Side2Attack);
+        }
+
         // Draw combat arena in center
         let arena_width = screen_width * 0.7;
-        let arena_height = screen_height * 0.6;
+        let arena_height = screen_height * 0.5;
         let arena_x = (screen_width - arena_width) / 2.0;
-        let arena_y = screen_height * 0.1;
+        let arena_y = top_panel_y + top_panel_height + 20.0;
 
         // Arena background
         self.draw_rounded_rect(arena_x, arena_y, arena_width, arena_height, 20.0, Color::new(0.98, 0.99, 1.0, 1.0));
@@ -567,108 +663,21 @@ impl CombatGUI {
             draw_text(vs_text, arena_x + arena_width / 2.0 - vs_width / 2.0, arena_y + arena_height / 2.0 + vs_size / 2.0, vs_size, Color::new(0.5, 0.5, 0.5, 1.0));
         }
 
-        // Control panel at bottom
-        let panel_y = arena_y + arena_height + 20.0;
-        let panel_height = screen_height - panel_y - 20.0;
-        let panel_width = screen_width - 40.0;
-        let panel_x = 20.0;
-
-        self.draw_rounded_rect(panel_x, panel_y, panel_width, panel_height, 15.0, Color::new(0.98, 0.99, 1.0, 1.0));
-        draw_rectangle_lines(panel_x, panel_y, panel_width, panel_height, 2.0, Color::new(0.8, 0.8, 0.9, 1.0));
-
-        // Left side - Combatant 1 controls
-        let left_panel_x = panel_x + 20.0;
-        let left_panel_y = panel_y + 20.0;
-        let left_panel_width = (panel_width - 60.0) / 2.0;
-
-        draw_text("Pet 1", left_panel_x, left_panel_y, 24.0, Color::new(0.2, 0.2, 0.2, 1.0));
-
-        // Preset buttons
-        let preset_y = left_panel_y + 40.0;
-        draw_text("Preset:", left_panel_x, preset_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
-        
-        let preset_buttons = [
-            PredefinedCombatant::Tank,
-            PredefinedCombatant::GlassCannon,
-            PredefinedCombatant::Balanced,
-            PredefinedCombatant::Bruiser,
-            PredefinedCombatant::Assassin,
-            PredefinedCombatant::Defender,
-        ];
-        
-        let button_width = (left_panel_width - 20.0) / 3.0;
-        let button_height = 30.0;
-        for (i, preset) in preset_buttons.iter().enumerate() {
-            let bx = left_panel_x + (i % 3) as f32 * (button_width + 10.0);
-            let by = preset_y + 25.0 + (i / 3) as f32 * (button_height + 10.0);
-            let is_selected = !self.side1_custom && self.side1_preset == *preset;
-            if self.draw_preset_button(bx, by, button_width, button_height, *preset, is_selected) {
-                self.side1_custom = false;
-                self.side1_preset = *preset;
-            }
-        }
-
-        // Custom toggle
-        let custom_y = preset_y + 25.0 + 80.0;
-        if self.draw_button(left_panel_x, custom_y, 140.0, 35.0, if self.side1_custom { "Custom: ON" } else { "Custom: OFF" }, Color::new(0.6, 0.6, 0.6, 1.0)) {
-            self.side1_custom = !self.side1_custom;
-        }
-
-        // Custom inputs
-        if self.side1_custom {
-            let input_y = custom_y + 50.0;
-            draw_text("Health:", left_panel_x, input_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
-            self.draw_text_input(left_panel_x + 80.0, input_y - 22.0, 100.0, 35.0, self.side1_health.clone(), InputField::Side1Health);
-            
-            draw_text("Attack:", left_panel_x, input_y + 40.0, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
-            self.draw_text_input(left_panel_x + 80.0, input_y + 18.0, 100.0, 35.0, self.side1_attack.clone(), InputField::Side1Attack);
-        }
-
-        // Right side - Combatant 2 controls
-        let right_panel_x = left_panel_x + left_panel_width + 20.0;
-        let right_panel_y = panel_y + 20.0;
-
-        draw_text("Pet 2", right_panel_x, right_panel_y, 24.0, Color::new(0.2, 0.2, 0.2, 1.0));
-
-        // Preset buttons for Side 2
-        let preset_y = right_panel_y + 40.0;
-        draw_text("Preset:", right_panel_x, preset_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
-        
-        for (i, preset) in preset_buttons.iter().enumerate() {
-            let bx = right_panel_x + (i % 3) as f32 * (button_width + 10.0);
-            let by = preset_y + 25.0 + (i / 3) as f32 * (button_height + 10.0);
-            let is_selected = !self.side2_custom && self.side2_preset == *preset;
-            if self.draw_preset_button(bx, by, button_width, button_height, *preset, is_selected) {
-                self.side2_custom = false;
-                self.side2_preset = *preset;
-            }
-        }
-
-        // Custom toggle for Side 2
-        let custom_y = preset_y + 25.0 + 80.0;
-        if self.draw_button(right_panel_x, custom_y, 140.0, 35.0, if self.side2_custom { "Custom: ON" } else { "Custom: OFF" }, Color::new(0.6, 0.6, 0.6, 1.0)) {
-            self.side2_custom = !self.side2_custom;
-        }
-
-        // Custom inputs for Side 2
-        if self.side2_custom {
-            let input_y = custom_y + 50.0;
-            draw_text("Health:", right_panel_x, input_y, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
-            self.draw_text_input(right_panel_x + 80.0, input_y - 22.0, 100.0, 35.0, self.side2_health.clone(), InputField::Side2Health);
-            
-            draw_text("Attack:", right_panel_x, input_y + 40.0, 16.0, Color::new(0.4, 0.4, 0.4, 1.0));
-            self.draw_text_input(right_panel_x + 80.0, input_y + 18.0, 100.0, 35.0, self.side2_attack.clone(), InputField::Side2Attack);
-        }
-
-        // Center controls
+        // Center controls at bottom
         let center_x = screen_width / 2.0;
-        let controls_y = panel_y + panel_height - 80.0;
+        let controls_y = arena_y + arena_height + 30.0;
+        let button_width = 130.0;
+        let button_height = 45.0;
+        let button_spacing = 15.0;
         
-        if self.draw_button(center_x - 200.0, controls_y, 140.0, 45.0, "Start Fight", Color::new(0.2, 0.7, 0.3, 1.0)) {
+        // Top row: Start Fight, Next Round, Auto Play
+        let top_row_start_x = center_x - (button_width * 1.5 + button_spacing);
+        
+        if self.draw_button(top_row_start_x, controls_y, button_width, button_height, "Start Fight", Color::new(0.2, 0.7, 0.3, 1.0)) {
             self.start_combat();
         }
         
-        if self.draw_button(center_x - 40.0, controls_y, 140.0, 45.0, "Next Round", Color::new(0.3, 0.5, 0.8, 1.0)) {
+        if self.draw_button(top_row_start_x + button_width + button_spacing, controls_y, button_width, button_height, "Next Round", Color::new(0.3, 0.5, 0.8, 1.0)) {
             if let Some(ref state) = self.combat_state {
                 if state.get_result() == CombatResult::Ongoing {
                     self.execute_round();
@@ -676,14 +685,15 @@ impl CombatGUI {
             }
         }
         
-        if self.draw_button(center_x + 120.0, controls_y, 140.0, 45.0, if self.auto_play { "Stop Auto" } else { "Auto Play" }, Color::new(0.8, 0.5, 0.2, 1.0)) {
+        if self.draw_button(top_row_start_x + 2.0 * (button_width + button_spacing), controls_y, button_width, button_height, if self.auto_play { "Stop Auto" } else { "Auto Play" }, Color::new(0.8, 0.5, 0.2, 1.0)) {
             if self.combat_state.is_some() {
                 self.auto_play = !self.auto_play;
                 self.auto_play_timer = 0.0;
             }
         }
         
-        if self.draw_button(center_x - 120.0, controls_y + 60.0, 140.0, 45.0, "Reset", Color::new(0.7, 0.3, 0.3, 1.0)) {
+        // Bottom row: Reset button centered
+        if self.draw_button(center_x - button_width / 2.0, controls_y + button_height + button_spacing, button_width, button_height, "Reset", Color::new(0.7, 0.3, 0.3, 1.0)) {
             self.reset_combat();
         }
 
