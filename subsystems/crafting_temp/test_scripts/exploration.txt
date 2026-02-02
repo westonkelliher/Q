@@ -1,0 +1,31 @@
+# Exploration Script
+# Use this to explore the crafting system interactively
+
+# Show help
+help
+
+# List all available items
+list items
+
+# List all available recipes
+list recipes
+
+# Show some interesting items
+show item sword
+show item pickaxe
+show item forge
+
+# Show some recipes
+show recipe smelt_bronze_bar
+show recipe craft_pickaxe
+
+# Create some basic materials (defaults to common quality)
+new copper_ore
+new tin_ore
+new coal
+
+# List what we created
+list instances
+
+# Exit
+exit

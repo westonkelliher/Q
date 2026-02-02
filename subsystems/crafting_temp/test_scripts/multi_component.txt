@@ -1,0 +1,30 @@
+# Multi-Component Item Crafting Test
+# This script tests crafting items with multiple component slots
+
+# Create materials for pickaxe
+new bronze_bar common
+new oak_planks common
+
+# Show what a pickaxe looks like
+show item pickaxe
+
+# Craft a pickaxe with bronze head and oak handle
+craft craft_pickaxe 0 1
+
+# Show the crafted pickaxe
+show instance 2
+
+# Verify components are tracked
+trace 2
+
+# Create another pickaxe with different materials
+new iron_bar uncommon
+new willow_planks uncommon
+craft craft_pickaxe 3 4
+
+# Show both pickaxes
+show instance 2
+show instance 5
+
+# List all instances
+list instances
