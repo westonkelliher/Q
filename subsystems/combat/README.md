@@ -1,7 +1,7 @@
 # Combat Subsystem
 
 > **Last Updated**: 2026-02-01  
-> **Previous Commit**: `b73d980`  
+> **Previous Commit**: `311d7fe`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -34,7 +34,7 @@ A simple one-v-one combat system with simultaneous attack resolution, similar to
 - **State Management**: Set up combatants for each side and run multiple combats without re-entering stats
 - **Predefined Combatants**: Static constants for common combatant archetypes (Tank, Glass Cannon, Balanced, etc.)
 - **One-shot Commands**: Direct combat simulation without interactive mode
-- **Graphical User Interface**: Visual combat simulator with health bars, round-by-round execution, and auto-play mode
+- **Graphical User Interface**: Super Auto Pets-style visual combat simulator with cute pet sprites, health bars, round-by-round execution, and auto-play mode
 
 ## File Structure
 
@@ -56,10 +56,14 @@ cargo run --bin combat-gui
 ```
 
 **GUI Features:**
-- **Combatant Selection**: Choose from predefined combatant types or create custom stats
-- **Visual Health Bars**: Real-time health visualization with color-coded status (green/yellow/red)
+- **Super Auto Pets Style**: Cute, colorful pet sprites with rounded UI elements matching the Super Auto Pets aesthetic
+- **Visual Pet Sprites**: Each preset combatant has a unique color-coded pet sprite with eyes and expressions
+- **Combatant Selection**: Choose from predefined combatant types (color-coded) or create custom stats
+- **Visual Health Bars**: Real-time health visualization with color-coded status (green/yellow/red) displayed below each pet
+- **Attack Indicators**: Red attack badges showing each pet's attack value
 - **Round-by-Round Control**: Execute combat rounds manually or use auto-play mode
-- **Combat History**: View detailed round-by-round combat history
+- **Attack Animations**: Visual feedback when pets attack (shaking animation)
+- **Defeat Animation**: Defeated pets show X eyes and darker colors
 - **Interactive Input**: Click on health/attack fields to enter custom values using keyboard
 
 **Controls:**
