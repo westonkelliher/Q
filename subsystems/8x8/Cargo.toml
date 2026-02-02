@@ -1,0 +1,14 @@
+[package]
+name = "eight_by_eight"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "eight_by_eight"
+path = "src/lib.rs"
+
+[[bin]]
+name = "eightxeight"
+path = "src/main.rs"
+
+[dependencies]
