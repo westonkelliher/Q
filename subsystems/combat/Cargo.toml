@@ -11,4 +11,9 @@ path = "src/lib.rs"
 name = "combat"
 path = "src/main.rs"
 
+[[bin]]
+name = "combat-gui"
+path = "src/gui.rs"
+
 [dependencies]
+macroquad = "0.4"
