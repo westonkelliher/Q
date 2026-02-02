@@ -1,0 +1,37 @@
+# Quality Progression Test
+# This script tests different quality tiers
+
+# Create materials of different qualities
+new copper_ore makeshift
+new copper_ore crude
+new copper_ore common
+new copper_ore uncommon
+new copper_ore rare
+new copper_ore epic
+new copper_ore legendary
+
+# List all instances to see quality differences
+list instances
+
+# Show individual instances
+show instance 0
+show instance 3
+show instance 6
+
+# Create pairs of materials for crafting at different qualities
+new copper_ore common
+new tin_ore common
+new copper_ore uncommon
+new tin_ore uncommon
+
+# Craft bars at different qualities (need 2 copper + 1 tin each)
+craft smelt_bronze_bar 2 2 7
+craft smelt_bronze_bar 3 3 8
+
+# Compare the results
+show instance 9
+show instance 10
+
+# Trace both to see quality inheritance
+trace 9
+trace 10

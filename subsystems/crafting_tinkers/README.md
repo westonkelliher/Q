@@ -1,0 +1,451 @@
+# Crafting Subsystem
+
+A crafting system with tag-based material compatibility, multi-component items, and full provenance tracking.
+
+> **Last Updated**: 2026-02-01  
+> **Previous Commit**: `22777f0`  
+> Check this commit hash against the previous commit to verify documentation is up-to-date.
+
+## Features
+
+- **Tag-based material compatibility**: Materials have tags (e.g., `metal`, `wood`), and component slots accept materials with matching tags
+- **Tag-based world object requirements**: Recipes can require specific world objects OR any with matching tags (e.g., `high_heat` matches forge, kiln, bonfire)
+- **Multi-component items**: Tinker's Construct-style items with named slots (blade, handle, pommel)
+- **Quality tiers**: Makeshift → Crude → Common → Uncommon → Rare → Epic → Legendary
+- **Lossless provenance tracking**: Full traceability of crafting chains for quests and lore
+- **LLM-friendly**: String-based IDs designed for content generation
+
+## Quality System
+
+Quality represents **craftsmanship and process**, not material superiority.
+
+### Quality Tiers
+
+**Makeshift** → **Crude** → **Common** → **Uncommon** → **Rare** → **Epic** → **Legendary**
+
+### Understanding Quality
+
+**Makeshift Quality** is special - it represents using **substitute items or alternate recipes** for early-game progression:
+- Using a `flint_blade` item **as** a knife (substitution, not crafting)
+- Using a `stone` item **as** a hammer
+- Using a `sharp_bone` **as** an awl
+
+Makeshift items are **hugely disadvantageous**:
+- ~25% normal durability (1/4th)
+- ~2x slower to use
+- May have reduced effectiveness
+
+**No item which is a material only is inherently Makeshift** - Makeshift applies to items used in substitute roles or crafted via alternate early-progression recipes. (Note: A tool can also be a material, so tools may be inherently Makeshift.)
+
+### Quality and Crafting Process
+
+Quality is determined by the **crafting process**, not the materials used.
+
+**General guidelines** (not hard rules):
+
+- **Crude Quality**: Typically hand-crafted items
+  - Generally: no crafting station, no tools
+  - Example: Hammering iron on a rock into a rough blade shape
+
+- **Common Quality**: Standard craftsmanship (the default)
+  - Generally: crafted at proper workstation + with proper tools
+  - Example: Iron sword forged at anvil with hammer
+  - Common metals like iron, steel, bronze, and copper typically default to Common quality
+
+- **Uncommon+ Quality**: Enhanced craftsmanship
+  - Achieved through special crafting processes
+  - Can be raised post-craft through various means
+
+### Materials vs. Quality
+
+Materials affect effectiveness and properties, NOT quality tier:
+- A steel sword may be functionally superior to an iron sword
+- But if both are properly crafted, both are Common quality
+
+Quality can be raised:
+- During crafting: Special recipes, blessed workstations, master craftsman skill
+- After crafting: Enchantments, tempering, polishing, magical enhancement
+
+### Recipe-Driven Quality
+
+Recipes encode quality through their requirements. Examples:
+- Hand-crafted recipes (no tool, no station) typically produce Crude quality
+- Standard recipes (tool + station) typically produce Common quality  
+- Special recipes (blessed tools, rare stations) may produce Uncommon+ quality
+
+## Multi-Component Items: Key Concept
+
+**You define ONE item with component slots, not separate items per material.**
+
+For example, you define a single `sword` item with component slots. Different swords are created by choosing different materials for each component:
+
+```rust
+// ONE item definition
+ItemDefinition {
+    id: "sword",
+    name: "Sword",
+    component_slots: vec![
+        ComponentSlot {
+            name: "blade",
+            required_tags: vec![MaterialTag("metal")],
+        },
+        ComponentSlot {
+            name: "handle",
+            required_tags: vec![MaterialTag("wood"), MaterialTag("leather")],
+        },
+        ComponentSlot {
+            name: "pommel",
+            required_tags: vec![MaterialTag("metal"), MaterialTag("gem")],
+        },
+    ],
+    // ...
+}
+
+// Many instances from the SAME definition
+Instance 1: blade=bronze_bar, handle=oak_wood, pommel=iron_bar
+Instance 2: blade=steel_bar, handle=leather_wrap, pommel=ruby_gem
+Instance 3: blade=manasteel_bar, handle=ebony_wood, pommel=diamond_gem
+```
+
+**There is no `bronze_sword` item definition** - only a `sword` crafted with bronze components.
+
+This means:
+- **Fewer item definitions** → easier content management
+- **More variety** → material combinations create unique instances
+- **Material matters** → different materials grant different properties
+- **Provenance tracking** → can query "show me all swords with manasteel blades"
+
+**Simple items** (like `iron_ore` or `health_potion`) have no component slots - they're just single-material items.
+
+## Everything is an Item: Key Concept
+
+**All game objects in this system are items** - ores, tools, weapons, crafting stations, carcasses, and resource nodes.
+
+Some items are **placeable** (`is_placeable: true`). When placed in the world, they become **world object instances**. This includes:
+
+- **Crafting stations**: A `forge` is an item. Craft it, place it, then use the placed instance to smelt ores.
+- **Resource nodes**: A `copper_boulder` is an item definition. Instances exist as placed world objects that can be mined.
+- **Carcasses**: A `wolf_carcass` is an item. When a wolf dies, a carcass item instance is placed in the world and can be harvested.
+
+```
+ItemDefinition (forge)
+    ↓ craft
+ItemInstance (a specific forge you made)
+    ↓ place in world
+WorldObjectInstance (the forge at position X,Y - referenced by WorldObjectInstanceId)
+    ↓ use for smelting
+Provenance records which WorldObjectInstanceId was used
+```
+
+This means:
+- **Recipes can output anything** - a recipe can produce a sword, a bronze_bar, or a forge
+- **Crafting stations are craftable** - you craft a forge item, then place it
+- **World objects have provenance** - you can track who built a forge and what materials they used
+- **Carcasses track kill context** - a wolf_carcass knows what weapon killed it and where
+
+The `WorldObjectKind` enum (`ResourceNode` or `CraftingStation`) categorizes placed items. The ID (e.g., `CraftingStationId("forge")`) matches the `ItemId` of the placed item.
+
+## Architecture
+
+```
+ItemDefinition  ─┬─> ComponentSlot ─> MaterialTag (required_tags AND, accepted_tags OR)
+                 └─> ItemCategories (material, tool, weapon, armor, placeable, consumable, creature)
+
+Recipe ─> Construction ─┬─> ToolRequirement
+                        ├─> WorldObjectRequirement (kind OR tags)
+                        └─> MaterialInput (item_id OR tags, fills_slot for components)
+
+ItemInstance ─┬─> ComponentInstance (slot → material)
+              └─> Provenance (recipe, consumed inputs, tool, world object instance)
+```
+
+## Modules
+
+| Module | Purpose |
+|--------|---------|
+| `ids` | Identifier types (`ItemId`, `RecipeId`, `MaterialTag`, `WorldObjectTag`, `ItemInstanceId`, `WorldObjectInstanceId`) |
+| `quality` | Quality tier enum |
+| `world_object` | `WorldObjectKind` (ResourceNode, CraftingStation) |
+| `item_def` | Item definitions with component slots and categories |
+| `recipe` | Recipes, constructions, material/world object requirements |
+| `instance` | Runtime item instances with component tracking |
+| `provenance` | Crafting history tracking (immediate inputs) |
+| `registry` | Central storage for definitions and instances |
+
+## Key Types
+
+### Requirements (for recipes)
+
+**MaterialInput**: Specifies what materials a recipe consumes, with optional recursive provenance requirements
+```rust
+MaterialInput {
+    item_id: Option<ItemId>,              // specific item, OR
+    required_tags: Vec<MaterialTag>,      // any item with ALL these tags
+    quantity: u32,
+    min_quality: Option<Quality>,
+    fills_slot: Option<String>,           // which component slot this input fills (for multi-part outputs)
+    component_reqs: Vec<ComponentRequirement>,      // requirements on item's components
+    provenance_reqs: Option<Box<ProvenanceRequirements>>,  // recursive!
+}
+```
+
+**ComponentSlot**: Defines a slot in a multi-part item that must be filled with a material
+```rust
+ComponentSlot {
+    name: String,                    // e.g., "blade", "handle", "pommel"
+    required_tags: Vec<MaterialTag>, // material must have ALL these tags (AND logic)
+    accepted_tags: Vec<MaterialTag>, // material must have at least ONE of these (OR logic)
+    optional_tags: Vec<MaterialTag>, // bonus properties if material has these
+}
+```
+
+Use `required_tags` for strict requirements (e.g., must be `magical` AND `metal`).
+Use `accepted_tags` for alternatives (e.g., handle can be `wood` OR `leather` OR `bone`).
+
+**ComponentRequirement**: Requirements on a specific component of a multi-part item
+```rust
+ComponentRequirement {
+    slot_name: String,                      // e.g., "blade"
+    required_material_tags: Vec<MaterialTag>, // e.g., ["manasteel"]
+}
+```
+
+**ProvenanceRequirements**: Recursive requirements on how an item was made
+```rust
+ProvenanceRequirements {
+    consumed_inputs: Vec<MaterialInput>,  // requirements on consumed materials
+    tool: Option<MaterialInput>,          // requirements on tool used (recursive!)
+    world_object: Option<MaterialInput>,  // requirements on world object used (recursive!)
+}
+```
+
+**WorldObjectRequirement**: Specifies what world object is needed
+```rust
+WorldObjectRequirement {
+    kind: Option<WorldObjectKind>,      // specific kind, OR
+    required_tags: Vec<WorldObjectTag>, // any with ALL these tags
+}
+```
+
+### Provenance (for traceability)
+
+Tracks immediate inputs only - recursive queries traverse the chain:
+```rust
+Provenance {
+    recipe_id: RecipeId,
+    consumed_inputs: Vec<ConsumedInput>,  // ItemInstanceId + quantity
+    tool_used: Option<ItemInstanceId>,
+    world_object_used: Option<WorldObjectInstanceId>,
+    crafted_at: i64,
+}
+```
+
+The recipe's `Construction.world_object` tells you the *kind* requirement; provenance tells you *which specific instance* was used.
+
+## Usage
+
+```rust
+use crafting::{ItemDefinition, Recipe, Registry, Quality, MaterialTag};
+
+let mut registry = Registry::new();
+
+// Register item definitions, recipes, then craft instances
+// Provenance is tracked automatically through the crafting chain
+```
+
+## Design Decisions
+
+### Why String IDs?
+LLM content generation produces strings naturally. Newtype wrappers (`ItemId(String)`) provide type safety while keeping serialization simple.
+
+### Why Immediate Provenance Only?
+Storing full recursive history would duplicate data. Storing immediate inputs allows reconstruction via registry queries while keeping `ItemInstance` lightweight.
+
+### Why Separate Tags for Materials and World Objects?
+Different namespaces prevent confusion (a `metal` material tag vs a `metal` world object tag could mean different things).
+
+---
+
+## Translating Natural Language to MaterialInput
+
+Recipe requirements are often expressed in natural language. Here's how to translate them into `MaterialInput` structures.
+
+### Grammar Pattern
+
+Natural language requirements follow this pattern:
+```
+[item] (whose [source] came from [item] (that was [verb] with [tool/material]))
+```
+
+Each nested clause maps to a level of `ProvenanceRequirements`.
+
+### Translation Rules
+
+| Natural Language | Code Structure |
+|-----------------|----------------|
+| "a heart" | `required_tags: vec![MaterialTag("heart")]` |
+| "whose source..." | `provenance_reqs: Some(Box::new(...))` |
+| "came from [X]" (world object) | `world_object: Some(MaterialInput { ... })` |
+| "made with [X]" (consumed) | `consumed_inputs: vec![MaterialInput { ... }]` |
+| "using [tool]" | `tool: Some(MaterialInput { ... })` |
+| "whose [slot] is [material]" | `component_reqs: vec![ComponentRequirement { slot_name, required_material_tags }]` |
+
+### Example: Complex Provenance Requirement
+
+**Natural language**: 
+> "A heart, whose source carcass came from a wolf slain with a weapon whose blade is manasteel."
+
+**Parse tree**:
+```
+A heart
+└── whose source carcass came from
+    └── a wolf
+        └── slain with
+            └── a weapon
+                └── whose blade is manasteel
+```
+
+**Translation**:
+```rust
+MaterialInput {
+    // "A heart"
+    required_tags: vec![MaterialTag("heart".into())],
+    quantity: 1,
+    
+    // "whose source carcass came from..."
+    provenance_reqs: Some(Box::new(ProvenanceRequirements {
+        // "came from" a world object (the placed carcass)
+        world_object: Some(MaterialInput {
+            // "a wolf" (wolf_carcass)
+            required_tags: vec![MaterialTag("wolf_carcass".into())],
+            
+            // "slain with..."
+            provenance_reqs: Some(Box::new(ProvenanceRequirements {
+                // "slain with a weapon"
+                tool: Some(MaterialInput {
+                    required_tags: vec![MaterialTag("weapon".into())],
+                    
+                    // "whose blade is manasteel"
+                    component_reqs: vec![
+                        ComponentRequirement {
+                            slot_name: "blade".into(),
+                            required_material_tags: vec![MaterialTag("manasteel".into())],
+                        }
+                    ],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })),
+            ..Default::default()
+        }),
+        ..Default::default()
+    })),
+    ..Default::default()
+}
+```
+
+### More Examples
+
+**"Iron ore"** (simple):
+```rust
+MaterialInput {
+    required_tags: vec![MaterialTag("iron_ore".into())],
+    quantity: 1,
+    ..Default::default()
+}
+```
+
+**"A gem polished with a rare or better tool"**:
+```rust
+MaterialInput {
+    required_tags: vec![MaterialTag("gem".into())],
+    provenance_reqs: Some(Box::new(ProvenanceRequirements {
+        tool: Some(MaterialInput {
+            min_quality: Some(Quality::Rare),
+            ..Default::default()
+        }),
+        ..Default::default()
+    })),
+    ..Default::default()
+}
+```
+
+**"Leather from a beast killed at a sacrificial altar"**:
+```rust
+MaterialInput {
+    required_tags: vec![MaterialTag("leather".into())],
+    provenance_reqs: Some(Box::new(ProvenanceRequirements {
+        consumed_inputs: vec![
+            MaterialInput {
+                required_tags: vec![MaterialTag("hide".into())],
+                provenance_reqs: Some(Box::new(ProvenanceRequirements {
+                    world_object: Some(MaterialInput {
+                        required_tags: vec![MaterialTag("beast_carcass".into())],
+                        provenance_reqs: Some(Box::new(ProvenanceRequirements {
+                            world_object: Some(MaterialInput {
+                                required_tags: vec![MaterialTag("sacrificial_altar".into())],
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }
+        ],
+        ..Default::default()
+    })),
+    ..Default::default()
+}
+```
+
+### Translation Checklist
+
+1. **Identify the base item** → `required_tags` or `item_id`
+2. **Find "whose/from/with" clauses** → each creates a `ProvenanceRequirements` level
+3. **Determine relationship type**:
+   - "made from/using [material]" → `consumed_inputs`
+   - "made with [tool]" → `tool`
+   - "at/from [place/object]" → `world_object`
+4. **Check for component requirements** → "whose [slot] is [material]" → `component_reqs`
+5. **Recurse** for nested clauses
+
+---
+
+## Notes for LLMs
+
+When modifying this subsystem:
+
+1. **Maintain Type Safety**: Use the newtype IDs, don't pass raw strings
+2. **Preserve Losslessness**: Provenance must capture all information needed to reconstruct crafting history
+3. **Keep It Isolated**: This subsystem should not depend on stats, combat, or other game systems
+4. **Update Tests**: Add tests for new features
+5. **Update This README**: Keep documentation current with changes
+6. **Update Commit Hash Before Committing**: When asked to commit, update the "Previous Commit" hash at the top of this file to reference the commit that existed BEFORE the changes being committed
+
+### Commit Workflow
+
+When the user says "commit":
+1. Check `git log --oneline -1` for current commit hash
+2. Update "Previous Commit" in this README to that hash
+3. Update "Last Updated" date if significant changes
+4. Stage changes and commit with descriptive message
+
+---
+
+## File Structure
+
+```
+src/
+├── lib.rs          # Module exports and re-exports
+├── ids.rs          # ItemId, RecipeId, MaterialTag, WorldObjectTag, etc.
+├── quality.rs      # Quality enum
+├── world_object.rs # WorldObjectKind (ResourceNode, CraftingStation)
+├── item_def.rs     # ItemDefinition, ComponentSlot, ItemCategories, ToolType
+├── recipe.rs       # Recipe, Construction, MaterialInput, WorldObjectRequirement
+├── instance.rs     # ItemInstance, ComponentInstance
+├── provenance.rs   # Provenance, ConsumedInput
+└── registry.rs     # Registry for definitions and instances
+```

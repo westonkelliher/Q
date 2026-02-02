@@ -1,0 +1,27 @@
+# Deep Provenance Chain Test
+# This script tests complex multi-stage crafting with full traceability
+
+# Stage 1: Create raw ores (defaults to common quality)
+new copper_ore
+new copper_ore
+new tin_ore
+
+# Stage 2: Smelt bronze bar
+craft smelt_bronze_bar 0 1 2
+
+# Show smelted bar
+show instance 3
+
+# Stage 3: Create wood materials
+new oak_logs
+
+# Stage 4: Craft tools from bars and wood
+# Note: bronze_bar needs head_material tag and oak_logs needs handle_material tag
+# craft craft_pickaxe 3 4
+
+# Show all instances
+list instances
+
+# Show recipes involved
+show recipe smelt_bronze_bar
+show recipe craft_pickaxe

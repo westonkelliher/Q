@@ -1,0 +1,23 @@
+# Basic Crafting Flow Test
+# This script tests basic ore smelting
+
+# Create raw materials (smelt_bronze_bar needs 2 copper_ore + 1 tin_ore)
+# Quality defaults to common if not specified
+new copper_ore
+new copper_ore
+new tin_ore
+
+# List instances to verify creation
+list instances
+
+# Craft bronze bar from the ores
+craft smelt_bronze_bar 0 1 2
+
+# Show the crafted instance
+show instance 3
+
+# Trace its provenance
+trace 3
+
+# List all instances to see the result
+list instances
