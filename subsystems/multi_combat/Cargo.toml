@@ -1,0 +1,19 @@
+[package]
+name = "combat"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "combat"
+path = "src/lib.rs"
+
+[[bin]]
+name = "combat"
+path = "src/main.rs"
+
+[[bin]]
+name = "combat-gui"
+path = "src/gui.rs"
+
+[dependencies]
+macroquad = "0.4"
