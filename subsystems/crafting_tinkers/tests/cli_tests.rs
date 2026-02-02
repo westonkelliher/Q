@@ -851,3 +851,191 @@ fn test_full_crafting_hierarchy() {
 
     println!("\n=== ALL HIERARCHY TESTS PASSED ===\n");
 }
+
+// ============================================================================
+// COMBAT TESTS
+// ============================================================================
+
+#[test]
+fn test_parse_combat_command() {
+    let cmd = cli::parse_command("combat 10 5 8 3").unwrap();
+    assert!(matches!(cmd, crafting::cli::Command::Combat { health1: 10, attack1: 5, health2: 8, attack2: 3 }));
+    
+    let cmd = cli::parse_command("comb 20 10 15 7").unwrap();
+    assert!(matches!(cmd, crafting::cli::Command::Combat { health1: 20, attack1: 10, health2: 15, attack2: 7 }));
+}
+
+#[test]
+fn test_parse_combat_round_command() {
+    let cmd = cli::parse_command("combat-round 10 5 8 3").unwrap();
+    assert!(matches!(cmd, crafting::cli::Command::CombatRound { health1: 10, attack1: 5, health2: 8, attack2: 3 }));
+    
+    let cmd = cli::parse_command("cr 20 10 15 7").unwrap();
+    assert!(matches!(cmd, crafting::cli::Command::CombatRound { health1: 20, attack1: 10, health2: 15, attack2: 7 }));
+}
+
+#[test]
+fn test_parse_combat_invalid_args() {
+    // Missing arguments
+    let result = cli::parse_command("combat 10 5 8");
+    assert!(result.is_err());
+    
+    let result = cli::parse_command("combat-round 10 5");
+    assert!(result.is_err());
+    
+    // Invalid numbers
+    let result = cli::parse_command("combat 10 5 abc 3");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_combat_simulation_combatant1_wins() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat 10 5 3 2", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    assert_eq!(data["result"], "Combatant1Wins");
+    
+    let final_state = &data["final_state"];
+    assert!(final_state["combatant1"]["health"].as_i64().unwrap() > 0);
+    assert!(final_state["combatant2"]["health"].as_i64().unwrap() <= 0);
+    assert!(final_state["round"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn test_combat_simulation_combatant2_wins() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat 3 2 10 5", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    assert_eq!(data["result"], "Combatant2Wins");
+    
+    let final_state = &data["final_state"];
+    assert!(final_state["combatant1"]["health"].as_i64().unwrap() <= 0);
+    assert!(final_state["combatant2"]["health"].as_i64().unwrap() > 0);
+}
+
+#[test]
+fn test_combat_simulation_draw() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat 5 5 5 5", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    assert_eq!(data["result"], "Draw");
+    
+    let final_state = &data["final_state"];
+    assert!(final_state["combatant1"]["health"].as_i64().unwrap() <= 0);
+    assert!(final_state["combatant2"]["health"].as_i64().unwrap() <= 0);
+}
+
+#[test]
+fn test_combat_simulation_multiple_rounds() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat 20 3 15 2", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    let final_state = &data["final_state"];
+    let rounds = final_state["round"].as_u64().unwrap();
+    
+    // Should take multiple rounds (c1 deals 3, c2 deals 2 per round)
+    // c1 needs 5 rounds to defeat c2 (15/3 = 5), but c2 deals 2*5=10 damage
+    // So c1 should win in 5 rounds with 20-10=10 health remaining
+    assert!(rounds > 1);
+    
+    // Verify history exists
+    let history = data["history"].as_array().unwrap();
+    assert_eq!(history.len(), rounds as usize);
+}
+
+#[test]
+fn test_combat_round_single_round() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat-round 10 5 8 3", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    assert_eq!(data["round"], 1);
+    
+    // After round 1: c1 takes 3 damage (10 -> 7), c2 takes 5 damage (8 -> 3)
+    assert_eq!(data["combatant1"]["health_before"], 10);
+    assert_eq!(data["combatant1"]["health_after"], 7);
+    assert_eq!(data["combatant2"]["health_before"], 8);
+    assert_eq!(data["combatant2"]["health_after"], 3);
+    assert_eq!(data["result"], "Ongoing");
+}
+
+#[test]
+fn test_combat_round_combatant1_wins() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat-round 10 5 3 2", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    // After round 1: c1 takes 2 damage (10 -> 8), c2 takes 5 damage (3 -> -2, defeated)
+    assert_eq!(data["combatant1"]["health_after"], 8);
+    assert_eq!(data["combatant2"]["health_after"], -2);
+    assert_eq!(data["result"], "Combatant1Wins");
+}
+
+#[test]
+fn test_combat_round_combatant2_wins() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat-round 3 2 10 5", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    // After round 1: c1 takes 5 damage (3 -> -2, defeated), c2 takes 2 damage (10 -> 8)
+    assert_eq!(data["combatant1"]["health_after"], -2);
+    assert_eq!(data["combatant2"]["health_after"], 8);
+    assert_eq!(data["result"], "Combatant2Wins");
+}
+
+#[test]
+fn test_combat_round_draw() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    let response = exec_command("combat-round 5 5 5 5", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    // After round 1: Both take 5 damage (5 -> 0), both defeated simultaneously
+    assert_eq!(data["combatant1"]["health_after"], 0);
+    assert_eq!(data["combatant2"]["health_after"], 0);
+    assert_eq!(data["result"], "Draw");
+}
+
+#[test]
+fn test_combat_with_negative_stats() {
+    let mut registry = Registry::new();
+    crafting::content::register_sample_content(&mut registry);
+    
+    // Negative stats should be allowed (they're just i32 values)
+    // The combat system will handle them appropriately
+    let response = exec_command("combat -5 3 10 2", &mut registry);
+    assert!(is_success(&response));
+    
+    let data = get_data(&response);
+    // Combatant 1 starts with negative health, so should lose immediately
+    // Actually, let's check - combat should still run, c1 will just be defeated
+    let final_state = &data["final_state"];
+    assert!(final_state["combatant1"]["health"].as_i64().unwrap() <= 0);
+}

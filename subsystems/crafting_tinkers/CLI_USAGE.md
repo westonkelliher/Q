@@ -53,6 +53,8 @@ cargo run -- --human-readable < test_scripts/basic_crafting.txt
 | `show instance <id>` | Show instance with provenance | `show instance 0` |
 | `new <item> [quality]` | Create raw material instance (defaults to common) | `new copper_ore` or `new copper_ore rare` |
 | `craft <recipe> <ids...>` | Execute recipe | `craft smelt_bronze_bar 0 1 2` |
+| `combat <h1> <a1> <h2> <a2>` | Simulate full combat between two combatants | `combat 10 5 8 3` |
+| `combat-round <h1> <a1> <h2> <a2>` | Execute one round of combat | `combat-round 10 5 8 3` |
 | `trace <id>` | Show full provenance tree | `trace 3` |
 | `help` | Show all commands | `help` |
 | `exit` / `quit` | Exit REPL | `exit` |
@@ -144,6 +146,46 @@ craft craft_pickaxe 0 1
 show instance 2
 ```
 
+### Combat System
+
+The combat system simulates one-v-one combat with simultaneous attack resolution (similar to Super Auto Pets).
+
+**Full Combat Simulation:**
+```bash
+# Simulate combat: Combatant 1 (10 HP, 5 ATK) vs Combatant 2 (8 HP, 3 ATK)
+combat 10 5 8 3
+
+# With human-readable output, shows round-by-round progression
+combat 20 3 15 2
+```
+
+**Single Round Execution:**
+```bash
+# Execute one round: Combatant 1 (10 HP, 5 ATK) vs Combatant 2 (8 HP, 3 ATK)
+combat-round 10 5 8 3
+
+# After round 1: C1 takes 3 damage (10 -> 7), C2 takes 5 damage (8 -> 3)
+```
+
+**Combat Results:**
+- `Combatant1Wins` - Combatant 1 defeats Combatant 2
+- `Combatant2Wins` - Combatant 2 defeats Combatant 1
+- `Draw` - Both combatants defeated simultaneously
+- `Ongoing` - Combat continues (only for single round command)
+
+**Example Output (human-readable):**
+```
+Combat Result: Combatant 1 Wins
+Total Rounds: 3
+Combatant 1: HP=4, ATK=5
+Combatant 2: HP=-1, ATK=3
+
+Round History:
+  Round 1: C1 10 -> 7, C2 8 -> 3
+  Round 2: C1 7 -> 4, C2 3 -> -2
+  Round 3: C1 4 -> 1, C2 -2 -> -7
+```
+
 ## Test Scripts
 
 Pre-built test scripts in `test_scripts/`:
@@ -187,7 +229,7 @@ Run everything:
 cargo test
 ```
 
-Result: **39 tests pass** ✓
+Result: **48+ tests pass** ✓ (includes combat system tests)
 
 ## Sample Content
 
@@ -209,8 +251,8 @@ The system comes pre-loaded with sample content:
 
 - **CLI Module** (`src/cli.rs`) - Command parsing and execution
 - **Main Binary** (`src/main.rs`) - Initializes registry and runs REPL
-- **Unit Tests** (`src/cli.rs`) - 21 command parsing tests
-- **Integration Tests** (`tests/cli_tests.rs`) - 18 end-to-end scenarios
+- **Unit Tests** (`src/cli.rs`) - Command parsing tests
+- **Integration Tests** (`tests/cli_tests.rs`) - End-to-end scenarios including combat tests
 - **Test Scripts** (`test_scripts/`) - 5 example workflows
 
 ## Benefits

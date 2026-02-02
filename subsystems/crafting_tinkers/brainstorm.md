@@ -216,3 +216,84 @@ See [items_list.md](./items_list.md) for the complete 100-item catalog, includin
 - Complex provenance examples (7 legendary items)
 - Crafting chains and material dependencies
 
+---
+
+# Combat System Brainstorm
+
+## Core Design
+
+### One-v-One Combat System
+- **Simultaneous Resolution**: Both combatants' attacks resolve at the same time (similar to Super Auto Pets)
+- **Round-Based**: Combat progresses in rounds where both combatants attack each other simultaneously
+- **Simple Stats**: Each combatant has:
+  - **Health**: Current hit points
+  - **Attack**: Damage dealt per attack
+
+### Combat Flow
+1. Each round, both combatants attack simultaneously
+2. Each combatant deals damage equal to their attack stat
+3. Damage is applied to the opponent's health
+4. Combat continues until one or both combatants reach 0 or below health
+5. Combat ends when at least one combatant is defeated
+
+### Design Principles
+- **Simplicity**: Minimal stats (just health and attack)
+- **Simultaneous**: No turn order, both attacks happen at once
+- **Deterministic**: Same inputs produce same results (no randomness for now)
+
+## Type Design
+
+### Combatant
+```rust
+pub struct Combatant {
+    pub health: i32,
+    pub attack: i32,
+}
+```
+
+### Combat State
+```rust
+pub struct CombatState {
+    pub combatant1: Combatant,
+    pub combatant2: Combatant,
+    pub round: u32,
+}
+```
+
+### Combat Result
+```rust
+pub enum CombatResult {
+    Ongoing,           // Combat continues
+    Combatant1Wins,   // Combatant 1 defeated combatant 2
+    Combatant2Wins,   // Combatant 2 defeated combatant 1
+    Draw,             // Both defeated simultaneously
+}
+```
+
+## Function Design
+
+### Core Functions
+1. **`new_combatant(health: i32, attack: i32) -> Combatant`**
+   - Create a new combatant with specified stats
+
+2. **`new_combat_state(combatant1: Combatant, combatant2: Combatant) -> CombatState`**
+   - Initialize a new combat state with two combatants
+
+3. **`execute_round(state: &mut CombatState) -> CombatResult`**
+   - Execute one round of combat (both attack simultaneously)
+   - Update both combatants' health
+   - Increment round counter
+   - Return the result (Ongoing, or winner/draw)
+
+4. **`simulate_combat(mut state: CombatState) -> (CombatState, CombatResult)`**
+   - Run combat to completion
+   - Execute rounds until someone wins or draw
+   - Return final state and result
+
+### Helper Functions
+- **`is_defeated(combatant: &Combatant) -> bool`**
+  - Check if a combatant is defeated (health <= 0)
+
+- **`get_combat_result(state: &CombatState) -> CombatResult`**
+  - Determine the current combat result without executing a round
+

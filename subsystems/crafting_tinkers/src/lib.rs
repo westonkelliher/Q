@@ -9,6 +9,7 @@ pub mod provenance;
 pub mod registry;
 pub mod content;
 pub mod cli;
+pub mod combat;
 
 // Re-export commonly used types
 pub use ids::{
@@ -26,3 +27,4 @@ pub use recipe::{
 };
 pub use registry::Registry;
 pub use world_object::{WorldObjectKind, WorldObjectInstance};
+pub use combat::{Combatant, CombatState, CombatResult};
