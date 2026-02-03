@@ -1,4 +1,4 @@
-use super::types::{World, Substrate, Object, Biome};
+use super::world::types::{World, Substrate, Object, Biome};
 
 /// Information about a tile
 #[derive(Debug, Clone)]
@@ -8,8 +8,8 @@ pub struct TileInfo {
     pub biome: Biome,
 }
 
-use super::terrain_view::TerrainCamera;
-use super::land_view::LandCamera;
+use super::world::terrain_view::TerrainCamera;
+use super::world::land_view::LandCamera;
 
 /// View mode enum for tracking which view is active
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,7 +64,7 @@ impl GameState {
 
     /// Get the biome for a specific tile within a land
     /// Based on tile position: corners, edges, or center
-    fn get_tile_biome(land: &super::types::Land, tile_x: usize, tile_y: usize) -> &super::types::Biome {
+    fn get_tile_biome(land: &super::world::types::Land, tile_x: usize, tile_y: usize) -> &super::world::types::Biome {
         let is_top = tile_y == 0;
         let is_bottom = tile_y == 7;
         let is_left = tile_x == 0;

@@ -13,7 +13,7 @@ use tower_http::services::ServeDir;
 pub mod display;
 
 use crate::game::game_state::{GameState, ViewMode};
-use crate::game::types::{Biome, Object, Substrate};
+use crate::game::world::types::{Biome, Object, Substrate};
 
 /// Shared game state wrapped in Arc<Mutex<>> for thread safety
 pub type SharedGameState = Arc<Mutex<GameState>>;
