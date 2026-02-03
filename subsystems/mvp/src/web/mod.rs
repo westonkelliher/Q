@@ -329,6 +329,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                         (false, "Not in land view".to_string())
                     }
                 }
+                ViewMode::DeathScreen | ViewMode::WinScreen => {
+                    (false, "Press ENTER to continue.".to_string())
+                }
             }
         }
         "d" | "down" => {
@@ -348,6 +351,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     } else {
                         (false, "Not in land view".to_string())
                     }
+                }
+                ViewMode::DeathScreen | ViewMode::WinScreen => {
+                    (false, "Press ENTER to continue.".to_string())
                 }
             }
         }
@@ -369,6 +375,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                         (false, "Not in land view".to_string())
                     }
                 }
+                ViewMode::DeathScreen | ViewMode::WinScreen => {
+                    (false, "Press ENTER to continue.".to_string())
+                }
             }
         }
         "r" | "right" => {
@@ -389,20 +398,34 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                         (false, "Not in land view".to_string())
                     }
                 }
+                ViewMode::DeathScreen | ViewMode::WinScreen => {
+                    (false, "Press ENTER to continue.".to_string())
+                }
             }
         }
         "enter" | "e" => {
-            if state.view_mode == ViewMode::Terrain {
-                let (land_x, land_y) = state.current_land();
-                state.enter_land();
-                
-                if state.view_mode == ViewMode::Combat {
-                    (true, "⚔️ Combat!".to_string())
-                } else {
-                    (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
+            match state.view_mode {
+                ViewMode::Terrain => {
+                    let (land_x, land_y) = state.current_land();
+                    state.enter_land();
+                    
+                    if state.view_mode == ViewMode::Combat {
+                        (true, "⚔️ Combat!".to_string())
+                    } else {
+                        (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
+                    }
                 }
-            } else {
-                (false, "Already in land view".to_string())
+                ViewMode::DeathScreen => {
+                    state.dismiss_death_screen();
+                    (true, "💀 Resurrected!".to_string())
+                }
+                ViewMode::WinScreen => {
+                    state.dismiss_win_screen();
+                    (true, "🎉 Victory!".to_string())
+                }
+                _ => {
+                    (false, "Already in land view".to_string())
+                }
             }
         }
         "exit" | "x" => {
@@ -451,21 +474,38 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             }
         }
         "help" | "h" | "?" => {
-            let help_text = if state.view_mode == ViewMode::Combat {
-                r#"
+            let help_text = match state.view_mode {
+                ViewMode::Combat => {
+                    r#"
 Combat Commands:
   A, ATTACK - Attack the enemy
   F, FLEE   - Flee combat (restores all health)
   H, HELP   - Show this help
 "#
-            } else {
-                r#"
+                }
+                ViewMode::DeathScreen => {
+                    r#"
+Death Screen:
+  E, ENTER  - Continue (restore health and return to terrain view)
+  H, HELP   - Show this help
+"#
+                }
+                ViewMode::WinScreen => {
+                    r#"
+Victory Screen:
+  E, ENTER  - Continue (enter land view)
+  H, HELP   - Show this help
+"#
+                }
+                _ => {
+                    r#"
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Enter land view (may trigger combat if enemy present)
   X, EXIT    - Exit land view
   H, HELP, ? - Show this help
 "#
+                }
             };
             (true, help_text.trim().to_string())
         }

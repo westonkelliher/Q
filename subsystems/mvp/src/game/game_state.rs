@@ -22,6 +22,10 @@ pub enum ViewMode {
     Combat,
     /// Land view: Shows detailed 8x8 tile grid of selected land
     Land,
+    /// Death screen: Shows when player dies in combat
+    DeathScreen,
+    /// Win screen: Shows when player wins combat
+    WinScreen,
 }
 
 /// Game state that tracks the current world and player position
@@ -236,13 +240,12 @@ impl GameState {
             // Check if combat is over
             match result {
                 CombatResult::PlayerWins | CombatResult::Draw => {
-                    // Combat won, enter land view
-                    self.combat_state = None;
-                    self.enter_land_view_internal(land_x, land_y);
+                    // Combat won, show win screen
+                    self.view_mode = ViewMode::WinScreen;
                 }
                 CombatResult::EnemyWins => {
-                    // Player defeated, exit combat (same as fleeing)
-                    self.combat_flee();
+                    // Player defeated, show death screen
+                    self.view_mode = ViewMode::DeathScreen;
                 }
                 CombatResult::Ongoing => {
                     // Combat continues
@@ -305,6 +308,56 @@ impl GameState {
         self.terrain_camera.sync_position_from(land_center_x, land_center_y);
         
         self.view_mode = ViewMode::Terrain;
+    }
+
+    /// Dismiss death screen (restore health and return to terrain view)
+    pub fn dismiss_death_screen(&mut self) {
+        if self.view_mode != ViewMode::DeathScreen {
+            return;
+        }
+
+        // Restore health (same as fleeing)
+        if let Some(ref mut combat) = self.combat_state {
+            // Restore health
+            combat.restore_health(
+                self.character.get_max_health(),
+                // Get enemy max health from world
+                self.world.terrain.get(&self.character.get_land_position())
+                    .and_then(|land| land.enemy.as_ref())
+                    .map(|enemy| enemy.max_health)
+                    .unwrap_or(0),
+            );
+            
+            // Restore character health
+            self.character.heal(self.character.get_max_health());
+            
+            // Restore enemy health in world
+            let (land_x, land_y) = self.character.get_land_position();
+            if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+                if let Some(ref mut enemy) = land.enemy {
+                    enemy.restore_health();
+                }
+            }
+        }
+        
+        // Exit combat and return to terrain view
+        self.combat_state = None;
+        self.view_mode = ViewMode::Terrain;
+    }
+
+    /// Dismiss win screen (enter land view)
+    pub fn dismiss_win_screen(&mut self) {
+        if self.view_mode != ViewMode::WinScreen {
+            return;
+        }
+
+        let (land_x, land_y) = self.character.get_land_position();
+        
+        // Clear combat state
+        self.combat_state = None;
+        
+        // Enter land view
+        self.enter_land_view_internal(land_x, land_y);
     }
 
     /// Check if a land exists at the given coordinates

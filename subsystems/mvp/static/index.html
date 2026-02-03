@@ -510,6 +510,52 @@
             border-radius: 3px;
             color: #4a9eff;
         }
+
+        .screen-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .screen-title {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .screen-message {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #e0e0e0;
+        }
+
+        .screen-instruction {
+            font-size: 16px;
+            color: #888;
+            margin-top: 40px;
+            font-style: italic;
+        }
+
+        .death-screen .screen-title {
+            color: #ff6b6b;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .win-screen .screen-title {
+            color: #51cf66;
+            text-shadow: 0 0 20px rgba(81, 207, 102, 0.5);
+        }
+
+        .screen-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -665,10 +711,38 @@
             } else if (gameState.view_mode === 'Combat') {
                 display.innerHTML = '<div class="combat-view" id="combat-view"></div>';
                 renderCombatView();
+            } else if (gameState.view_mode === 'DeathScreen') {
+                display.innerHTML = '<div class="screen-view death-screen" id="death-screen"></div>';
+                renderDeathScreen();
+            } else if (gameState.view_mode === 'WinScreen') {
+                display.innerHTML = '<div class="screen-view win-screen" id="win-screen"></div>';
+                renderWinScreen();
             } else {
                 display.innerHTML = '<div class="land-view" id="land-grid"></div>';
                 renderLandView();
             }
+        }
+
+        // Render death screen
+        function renderDeathScreen() {
+            const screen = document.getElementById('death-screen');
+            screen.innerHTML = `
+                <div class="screen-icon">💀</div>
+                <div class="screen-title">Defeated</div>
+                <div class="screen-message">You have been defeated in combat!</div>
+                <div class="screen-instruction">Press ENTER to continue</div>
+            `;
+        }
+
+        // Render win screen
+        function renderWinScreen() {
+            const screen = document.getElementById('win-screen');
+            screen.innerHTML = `
+                <div class="screen-icon">🎉</div>
+                <div class="screen-title">Victory</div>
+                <div class="screen-message">You have defeated your enemy!</div>
+                <div class="screen-instruction">Press ENTER to continue</div>
+            `;
         }
 
         // Render terrain view (5x5 grid)

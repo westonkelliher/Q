@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-02  
-> **Previous Commit**: `8b9d6d7`  
+> **Previous Commit**: `bdafc93`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -54,6 +54,8 @@ The project currently has:
 - ✅ Enemy system integrated into lands (enemies block land entry until defeated)
 - ✅ Enemies with varying difficulty (weak early, medium mid, strong late, boss at 4,4)
 - ✅ Combat commands (attack, flee) with health restoration on flee
+- ✅ Death screen shown when player dies in combat (press Enter to continue)
+- ✅ Win screen shown when player wins combat (press Enter to continue)
 
 **Not Yet Implemented**:
 - ❌ Crafting system integration
