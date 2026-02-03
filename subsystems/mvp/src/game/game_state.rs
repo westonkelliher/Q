@@ -62,6 +62,12 @@ impl GameState {
         }
     }
 
+    /// Get the center biome of the current land
+    pub fn current_biome(&self) -> Option<&Biome> {
+        let (x, y) = self.current_land();
+        self.world.terrain.get(&(x, y)).map(|land| &land.center)
+    }
+
     /// Get the biome for a specific tile within a land
     /// Based on tile position: corners, edges, or center
     fn get_tile_biome(land: &super::world::types::Land, tile_x: usize, tile_y: usize) -> &super::world::types::Biome {

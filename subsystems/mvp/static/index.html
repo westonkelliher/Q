@@ -40,8 +40,8 @@
         .terrain-view {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 5px;
-            max-width: 250px;
+            gap: 6.25px;
+            max-width: 312.5px;
             margin: 0 auto;
         }
 
@@ -52,7 +52,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 30px;
             background: #333;
             position: relative;
         }
@@ -235,6 +235,13 @@
             padding: 10px;
             border-radius: 4px;
             background: #333;
+            min-height: 20px;
+        }
+        
+        .message:empty {
+            padding: 0;
+            margin-top: 0;
+            min-height: 0;
         }
     </style>
 </head>
@@ -250,6 +257,10 @@
                 <div class="status-item">
                     <span class="status-label">Current Land</span>
                     <span class="status-value" id="current-land">Loading...</span>
+                </div>
+                <div class="status-item" id="biome-item" style="display: none;">
+                    <span class="status-label">Biome</span>
+                    <span class="status-value" id="current-biome">-</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">Current Tile</span>
@@ -289,7 +300,7 @@
             <button class="command-button" id="command-button">Execute</button>
         </div>
 
-        <div class="message" id="message" style="display: none;"></div>
+        <div class="message" id="message"></div>
     </div>
 
     <div class="sidebar">
@@ -527,7 +538,16 @@
                 document.getElementById('current-tile').textContent = '-';
             }
 
-            // Update tile information if available
+            // Show biome in Terrain view
+            const biomeItem = document.getElementById('biome-item');
+            if (gameState.view_mode === 'Terrain' && gameState.current_biome) {
+                document.getElementById('current-biome').textContent = gameState.current_biome;
+                biomeItem.style.display = 'flex';
+            } else {
+                biomeItem.style.display = 'none';
+            }
+
+            // Update tile information if available (Land view)
             const tileInfoSection = document.getElementById('tile-info-section');
             if (gameState.current_tile_info) {
                 const info = gameState.current_tile_info;
@@ -569,16 +589,12 @@
             });
         }
 
-        // Show message
+        // Show message (permanently visible)
         function showMessage(text, type) {
             const messageEl = document.getElementById('message');
             messageEl.textContent = text;
             messageEl.className = `message ${type}`;
-            messageEl.style.display = 'block';
-            
-            setTimeout(() => {
-                messageEl.style.display = 'none';
-            }, 3000);
+            // Message stays visible permanently - no auto-hide
         }
 
         // Set up event listeners

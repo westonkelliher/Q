@@ -109,6 +109,7 @@ pub struct GameStateResponse {
     pub current_land: (i32, i32),
     pub current_tile: Option<(usize, usize)>,
     pub current_tile_info: Option<SerializableTileInfo>,
+    pub current_biome: Option<String>, // Center biome of current land (for Terrain view)
     pub world: SerializableWorld,
 }
 
@@ -152,11 +153,14 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
         biome: format!("{:?}", info.biome),
     });
     
+    let current_biome = state.current_biome().map(|b| format!("{:?}", b));
+    
     Ok(Json(GameStateResponse {
         view_mode: format!("{:?}", state.view_mode),
         current_land: state.current_land(),
         current_tile: state.current_tile(),
         current_tile_info,
+        current_biome,
         world: SerializableWorld {
             name: state.world.name.clone(),
             terrain: state.world.terrain.clone(),
@@ -181,6 +185,8 @@ async fn handle_command(
         biome: format!("{:?}", info.biome),
     });
     
+    let current_biome = state.current_biome().map(|b| format!("{:?}", b));
+    
     let response = CommandResponse {
         success,
         message,
@@ -189,6 +195,7 @@ async fn handle_command(
             current_land: state.current_land(),
             current_tile: state.current_tile(),
             current_tile_info,
+            current_biome,
             world: SerializableWorld {
                 name: state.world.name.clone(),
                 terrain: state.world.terrain.clone(),
