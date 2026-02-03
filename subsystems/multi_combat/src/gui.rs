@@ -845,14 +845,20 @@ impl CombatGUI {
         
         // Get teams (either from combat state or from team setup)
         let (side1_pets, side2_pets) = if let Some(ref state) = self.combat_state {
-            // Use combat state - color by class
+            // Use combat state - color by class using original stats
             let s1: Vec<(Combatant, i32, Color)> = state.side1.iter().enumerate().map(|(i, c)| {
-                let max_hp = if let Some((_, s1_before, _, _, _, _)) = self.combat_history.first() {
-                    if i < s1_before.len() { s1_before[i].0 } else { c.health }
+                let (max_hp, original_attack) = if let Some((_, s1_before, _, _, _, _)) = self.combat_history.first() {
+                    if i < s1_before.len() { 
+                        (s1_before[i].0, s1_before[i].1)
+                    } else { 
+                        (c.health, c.attack)
+                    }
                 } else {
-                    c.health
+                    (c.health, c.attack)
                 };
-                let base_color = get_combatant_color(c);
+                // Use original stats to determine color (so it doesn't change after damage)
+                let original_combatant = Combatant::new(max_hp, original_attack, c.leadership);
+                let base_color = get_combatant_color(&original_combatant);
                 // Add slight gold tint for leader, but keep class color visible
                 let color = if i == 0 {
                     Color::new(
@@ -867,12 +873,18 @@ impl CombatGUI {
                 (*c, max_hp, color)
             }).collect();
             let s2: Vec<(Combatant, i32, Color)> = state.side2.iter().enumerate().map(|(i, c)| {
-                let max_hp = if let Some((_, _, s2_before, _, _, _)) = self.combat_history.first() {
-                    if i < s2_before.len() { s2_before[i].0 } else { c.health }
+                let (max_hp, original_attack) = if let Some((_, _, s2_before, _, _, _)) = self.combat_history.first() {
+                    if i < s2_before.len() { 
+                        (s2_before[i].0, s2_before[i].1)
+                    } else { 
+                        (c.health, c.attack)
+                    }
                 } else {
-                    c.health
+                    (c.health, c.attack)
                 };
-                let base_color = get_combatant_color(c);
+                // Use original stats to determine color (so it doesn't change after damage)
+                let original_combatant = Combatant::new(max_hp, original_attack, c.leadership);
+                let base_color = get_combatant_color(&original_combatant);
                 // Add slight gold tint for leader, but keep class color visible
                 let color = if i == 0 {
                     Color::new(
