@@ -603,7 +603,7 @@
                 type="text" 
                 class="command-input" 
                 id="command-input" 
-                placeholder="Enter command (U/D/L/R/E/X/HELP)"
+                placeholder="Enter command (U/D/L/R/E/HELP)"
                 autocomplete="off"
             />
             <button class="command-button" id="command-button">Execute</button>
@@ -640,8 +640,7 @@
                 <p><code>D</code> / <code>↓</code> - Move Down</p>
                 <p><code>L</code> / <code>←</code> - Move Left</p>
                 <p><code>R</code> / <code>→</code> - Move Right</p>
-                <p><code>E</code> / <code>ENTER</code> - Enter Land</p>
-                <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
+                <p><code>E</code> / <code>ENTER</code> - Enter/Exit/Flee (context-dependent)</p>
                 <p><code>H</code> - Help</p>
             </div>
         </div>
@@ -988,7 +987,7 @@
                 <div class="combat-actions">
                     <h3>Combat Commands</h3>
                     <p><code>A</code> or <code>ATTACK</code> - Attack the enemy</p>
-                    <p><code>F</code> or <code>FLEE</code> - Flee combat (restores all health)</p>
+                    <p><code>E</code> / <code>ENTER</code> - Flee combat</p>
                 </div>
             `;
         }
@@ -1061,7 +1060,16 @@
             if (gameState.view_mode === 'Combat') {
                 helpContent.innerHTML = `
                     <p><code>A</code> / <code>ATTACK</code> - Attack the enemy</p>
-                    <p><code>F</code> / <code>FLEE</code> - Flee combat (restores all health)</p>
+                    <p><code>E</code> / <code>ENTER</code> - Flee combat</p>
+                    <p><code>H</code> - Help</p>
+                `;
+            } else if (gameState.view_mode === 'Land') {
+                helpContent.innerHTML = `
+                    <p><code>U</code> / <code>↑</code> - Move Up</p>
+                    <p><code>D</code> / <code>↓</code> - Move Down</p>
+                    <p><code>L</code> / <code>←</code> - Move Left</p>
+                    <p><code>R</code> / <code>→</code> - Move Right</p>
+                    <p><code>E</code> / <code>ENTER</code> - Exit Land</p>
                     <p><code>H</code> - Help</p>
                 `;
             } else {
@@ -1071,7 +1079,6 @@
                     <p><code>L</code> / <code>←</code> - Move Left</p>
                     <p><code>R</code> / <code>→</code> - Move Right</p>
                     <p><code>E</code> / <code>ENTER</code> - Enter Land</p>
-                    <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
                     <p><code>H</code> - Help</p>
                 `;
             }

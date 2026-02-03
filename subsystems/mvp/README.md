@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-02  
-> **Previous Commit**: `978e8f1`  
+> **Previous Commit**: `c2d47ba`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -54,10 +54,12 @@ The project currently has:
 - ✅ Enemy system integrated into lands (enemies block land entry until defeated)
 - ✅ Enemies with varying difficulty (weak early, medium mid, strong late, boss at 4,4)
 - ✅ Combat commands (attack, flee) - character health persists after battles
-- ✅ Death screen shown when player dies in combat (press Enter to continue)
+- ✅ Death screen shown when player dies in combat (restores to half health on continue)
 - ✅ Win screen shown when player wins combat (press Enter to continue)
-- ✅ Character health persists across battles (not restored when fleeing/dying)
+- ✅ Character health persists across battles (not restored when fleeing)
+- ✅ Character restores to half health when dying and continuing
 - ✅ Enemies always start at full health when combat begins
+- ✅ Unified 'E' command for enter/exit/flee (context-dependent)
 
 **Not Yet Implemented**:
 - ❌ Crafting system integration
@@ -111,12 +113,11 @@ The web server will start on `http://127.0.0.1:3000`. Open this URL in your brow
 
 **Movement Commands:**
 - `U`, `D`, `L`, `R` - Move up, down, left, right (in terrain or land view)
-- `E` or `ENTER` - Enter land view (may trigger combat if enemy present)
-- `X` or `EXIT` - Exit land view
+- `E` or `ENTER` - Context-dependent: Enter land (terrain view), Exit land (land view), or Flee combat (combat view)
 
 **Combat Commands (when in combat):**
 - `A` or `ATTACK` - Attack the enemy (executes one combat round)
-- `F` or `FLEE` - Flee combat (returns to terrain view, character health persists)
+- `E` or `ENTER` - Flee combat (returns to terrain view, character health persists)
 
 **General:**
 - `H` or `HELP` - Show help (context-aware based on current view mode)

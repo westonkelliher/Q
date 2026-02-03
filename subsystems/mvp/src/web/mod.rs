@@ -415,6 +415,15 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                         (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
                     }
                 }
+                ViewMode::Land => {
+                    let (x, y) = state.current_land();
+                    state.exit_land();
+                    (true, format!("🔼 Exit L[{},{}]", x, y))
+                }
+                ViewMode::Combat => {
+                    state.combat_flee();
+                    (true, "🏃 Flee!".to_string())
+                }
                 ViewMode::DeathScreen => {
                     state.dismiss_death_screen();
                     (true, "💀 Resurrected!".to_string())
@@ -423,18 +432,17 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     state.dismiss_win_screen();
                     (true, "🎉 Victory!".to_string())
                 }
-                _ => {
-                    (false, "Already in land view".to_string())
-                }
             }
         }
         "exit" | "x" => {
+            // 'E' is now the primary command for exit (and enter/flee)
+            // Keep this for backward compatibility
             if state.view_mode == ViewMode::Land {
                 let (x, y) = state.current_land();
                 state.exit_land();
                 (true, format!("🔼 Exit L[{},{}]", x, y))
             } else {
-                (false, "Already in terrain view".to_string())
+                (false, "Use 'E' to exit land view (or enter/flee based on context)".to_string())
             }
         }
         "attack" | "a" => {
@@ -462,15 +470,17 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     }
                 }
             } else {
-                (false, "Not in combat. Use 'E' or 'ENTER' to enter a land with enemies.".to_string())
+                (false, "Not in combat. Use 'E' to enter a land with enemies.".to_string())
             }
         }
         "flee" | "f" => {
+            // 'E' is now the primary command for flee (and enter/exit)
+            // Keep this for backward compatibility
             if state.view_mode == ViewMode::Combat {
                 state.combat_flee();
                 (true, "🏃 Flee!".to_string())
             } else {
-                (false, "Not in combat.".to_string())
+                (false, "Use 'E' to flee combat (or enter/exit based on context)".to_string())
             }
         }
         "help" | "h" | "?" => {
@@ -479,14 +489,14 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     r#"
 Combat Commands:
   A, ATTACK - Attack the enemy
-  F, FLEE   - Flee combat (returns to terrain view)
+  E, ENTER  - Flee combat (returns to terrain view)
   H, HELP   - Show this help
 "#
                 }
                 ViewMode::DeathScreen => {
                     r#"
 Death Screen:
-  E, ENTER  - Continue (restore health and return to terrain view)
+  E, ENTER  - Continue (restore to half health and return to terrain view)
   H, HELP   - Show this help
 "#
                 }
@@ -497,12 +507,19 @@ Victory Screen:
   H, HELP   - Show this help
 "#
                 }
+                ViewMode::Land => {
+                    r#"
+Commands:
+  U, D, L, R - Move up, down, left, right
+  E, ENTER   - Exit land view
+  H, HELP, ? - Show this help
+"#
+                }
                 _ => {
                     r#"
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Enter land view (may trigger combat if enemy present)
-  X, EXIT    - Exit land view
   H, HELP, ? - Show this help
 "#
                 }

@@ -307,8 +307,8 @@ impl GameState {
         self.view_mode = ViewMode::Terrain;
     }
 
-    /// Dismiss death screen (restore enemy health and return to terrain view)
-    /// Character health persists (not restored)
+    /// Dismiss death screen (restore character to half health and return to terrain view)
+    /// Enemy health is restored to full for next encounter
     pub fn dismiss_death_screen(&mut self) {
         if self.view_mode != ViewMode::DeathScreen {
             return;
@@ -322,8 +322,11 @@ impl GameState {
             }
         }
         
+        // Restore character to half health
+        let half_health = self.character.get_max_health() / 2;
+        self.character.health = half_health;
+        
         // Exit combat and return to terrain view
-        // Character health is NOT restored - it persists
         self.combat_state = None;
         self.view_mode = ViewMode::Terrain;
     }
