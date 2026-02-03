@@ -435,16 +435,29 @@
 
                     const tile = land.tiles[y][x];
                     
-                    // Use substrate color as base
+                    // Use substrate color as base background
                     let backgroundColor = getSubstrateColor(tile.substrate);
-                    
-                    // If there are objects, use object color (objects render on top)
-                    if (tile.objects && tile.objects.length > 0) {
-                        backgroundColor = getObjectColor(tile.objects[0]);
-                    }
-
                     cell.style.backgroundColor = rgbToCss(backgroundColor);
-                    cell.textContent = ''; // No emoji, just color
+                    
+                    // If there are objects, display the object image
+                    if (tile.objects && tile.objects.length > 0) {
+                        const object = tile.objects[0];
+                        const assetFile = getObjectAsset(object);
+                        
+                        if (assetFile) {
+                            const img = document.createElement('img');
+                            img.src = `/assets/${assetFile}`;
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'contain';
+                            img.alt = object;
+                            cell.appendChild(img);
+                        } else {
+                            // Fallback to color if asset not found
+                            cell.style.backgroundColor = rgbToCss(getObjectColor(object));
+                        }
+                    }
+                    
                     cell.title = `Tile (${x}, ${y}): ${tile.substrate}${tile.objects.length > 0 ? ' + ' + tile.objects[0] : ''}`;
 
                     grid.appendChild(cell);
@@ -483,6 +496,16 @@
                 'Stick': [0.5, 0.3, 0.1],         // Brown
             };
             return objectMap[object] || [0.5, 0.5, 0.5];
+        }
+
+        // Map Object enum values to asset filenames from parent project
+        function getObjectAsset(object) {
+            const assetMap = {
+                'Rock': 'boulder.png',
+                'Tree': 'tree.png',
+                'Stick': 'stick.png',
+            };
+            return assetMap[object] || null;
         }
 
         // Convert RGB (0.0-1.0) to CSS color string
@@ -570,6 +593,23 @@
                 const input = document.getElementById('command-input');
                 executeCommand(input.value);
                 input.value = '';
+            }
+        });
+
+        // Arrow key shortcuts for movement
+        document.addEventListener('keydown', (e) => {
+            // Map arrow keys to movement commands
+            const arrowKeyMap = {
+                'ArrowUp': 'U',
+                'ArrowDown': 'D',
+                'ArrowLeft': 'L',
+                'ArrowRight': 'R',
+            };
+            
+            const command = arrowKeyMap[e.key];
+            if (command) {
+                e.preventDefault(); // Prevent default arrow key behavior (scrolling, etc.)
+                executeCommand(command);
             }
         });
 

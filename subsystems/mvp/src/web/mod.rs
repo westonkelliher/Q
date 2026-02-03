@@ -133,6 +133,7 @@ pub fn create_router(game_state: SharedGameState) -> Router {
         .route("/api/state", get(get_state))
         .route("/api/command", post(handle_command))
         .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/assets", ServeDir::new("../../assets"))
         .with_state(game_state)
 }
 
