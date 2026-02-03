@@ -5,6 +5,7 @@ pub mod land_view;
 pub mod world;
 pub mod game_state;
 pub mod display;
+pub mod web;
 
 // Re-export commonly used types for convenience
 pub use types::{Biome, Land, Object, Substrate, Tile, World};

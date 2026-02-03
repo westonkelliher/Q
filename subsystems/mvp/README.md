@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-02  
-> **Previous Commit**: `2f0398c`  
+> **Previous Commit**: `0d8bb6a`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -30,7 +30,7 @@ The MVP (Minimum Viable Product) is a simplified version of the Q game that comb
 
 ## Current State
 
-**Step 1 Complete**: Movement/Terrain Foundation (No UI)
+**Step 1 Complete**: Movement/Terrain Foundation with Web Interface
 
 The project currently has:
 - ✅ Hardcoded 5x5 world with lands at coordinates (0,0) through (4,4)
@@ -40,9 +40,11 @@ The project currently has:
 - ✅ Coordinate clamping (0-4 for lands, 0-7 for tiles)
 - ✅ View switching between terrain view and land view
 - ✅ Text-based display utilities for testing
+- ✅ Web interface with REPL-style command input
+- ✅ Visual game display (terrain view and land view)
+- ✅ Command history and status display
 
 **Not Yet Implemented**:
-- ❌ REPL/CLI interface for user interaction
 - ❌ Combat system integration
 - ❌ Crafting system integration
 - ❌ Inventory system
@@ -56,8 +58,10 @@ subsystems/mvp/
 ├── Cargo.toml
 ├── README.md
 ├── MVP_BRAINSTORM.md    # Original brainstorm document
+├── static/
+│   └── index.html       # Web interface frontend
 └── src/
-    ├── main.rs          # Test/demo program
+    ├── main.rs          # Web server entry point
     ├── lib.rs           # Module exports
     ├── types.rs         # Core data types
     ├── camera.rs        # CameraCore for view management
@@ -65,7 +69,8 @@ subsystems/mvp/
     ├── land_view.rs     # LandCamera (tile-level view)
     ├── world.rs         # Hardcoded world generation
     ├── game_state.rs    # GameState and movement logic
-    └── display.rs       # Text-based display utilities
+    ├── display.rs       # Text-based display utilities
+    └── web.rs           # Web server and API
 ```
 
 ## Usage
@@ -78,20 +83,20 @@ cargo build
 cargo run
 ```
 
-The current `main.rs` includes test code that demonstrates:
-- World creation
-- Movement between lands (terrain view)
-- Movement within lands (land view)
-- View switching
-- Coordinate clamping
+The web server will start on `http://127.0.0.1:3000`. Open this URL in your browser to play the game.
 
-### Testing Movement
+### Commands
 
-The test program verifies:
-- Terrain movement with coordinate clamping (0-4)
-- Land movement with coordinate clamping (0-7)
-- Entering/exiting land view
-- World structure and land details
+- `U`, `D`, `L`, `R` - Move up, down, left, right
+- `E` or `ENTER` - Enter land view
+- `X` or `EXIT` - Exit land view
+- `H` or `HELP` - Show help
+
+The web interface provides:
+- Visual display of terrain (5x5 biome grid) and land (8x8 tile grid)
+- Command input with keyboard support
+- Command history sidebar
+- Status bar showing current position and view mode
 
 ## Next Steps
 
@@ -105,6 +110,7 @@ See `MVP_BRAINSTORM.md` for the complete implementation plan. The next steps are
 ## Dependencies
 
 - `serde` with derive feature - Serialization support
-- `serde_json` - JSON serialization (for potential future save/load)
-
-No graphics dependencies yet - the UI/REPL will be added in a future step.
+- `serde_json` - JSON serialization (for API responses)
+- `axum` - Web framework for HTTP server
+- `tokio` - Async runtime
+- `tower-http` - Static file serving and middleware

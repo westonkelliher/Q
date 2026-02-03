@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVP Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .game-display {
+            flex: 1;
+            background: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            overflow: auto;
+            margin-bottom: 20px;
+        }
+
+        .terrain-view {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .terrain-cell {
+            aspect-ratio: 1;
+            border: 2px solid #555;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            background: #333;
+            position: relative;
+        }
+
+        .terrain-cell.current {
+            border-color: #4a9eff;
+            border-width: 4px;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+        }
+
+        .land-view {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .tile-cell {
+            aspect-ratio: 1;
+            border: 1px solid #555;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: #333;
+            position: relative;
+        }
+
+        .tile-cell.current {
+            border-color: #4a9eff;
+            border-width: 3px;
+            box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
+        }
+
+        .status-bar {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-bar h2 {
+            margin-bottom: 10px;
+            color: #4a9eff;
+        }
+
+        .status-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .status-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .command-section {
+            display: flex;
+            gap: 10px;
+        }
+
+        .command-input {
+            flex: 1;
+            background: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+        }
+
+        .command-input:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        .command-button {
+            background: #4a9eff;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 30px;
+            color: white;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .command-button:hover {
+            background: #5aaeff;
+        }
+
+        .command-button:active {
+            background: #3a8eef;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #2a2a2a;
+            border-left: 2px solid #444;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .history-section {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .history-section h3 {
+            margin-bottom: 10px;
+            color: #4a9eff;
+        }
+
+        .history-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #333;
+            border-radius: 4px;
+            font-size: 12px;
+            border-left: 3px solid #4a9eff;
+        }
+
+        .history-command {
+            color: #4a9eff;
+            font-weight: bold;
+        }
+
+        .history-response {
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .help-section {
+            background: #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .help-section h3 {
+            margin-bottom: 10px;
+            color: #4a9eff;
+        }
+
+        .help-section code {
+            background: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #4a9eff;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .success {
+            color: #51cf66;
+        }
+
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="status-bar">
+            <h2>Game Status</h2>
+            <div class="status-info">
+                <div class="status-item">
+                    <span class="status-label">View Mode</span>
+                    <span class="status-value" id="view-mode">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Current Land</span>
+                    <span class="status-value" id="current-land">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Current Tile</span>
+                    <span class="status-value" id="current-tile">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-display" id="game-display">
+            <div style="text-align: center; padding: 40px; color: #888;">
+                Loading game state...
+            </div>
+        </div>
+
+        <div class="command-section">
+            <input 
+                type="text" 
+                class="command-input" 
+                id="command-input" 
+                placeholder="Enter command (U/D/L/R/E/X/HELP)"
+                autocomplete="off"
+            />
+            <button class="command-button" id="command-button">Execute</button>
+        </div>
+
+        <div class="message" id="message" style="display: none;"></div>
+    </div>
+
+    <div class="sidebar">
+        <div class="history-section">
+            <h3>Command History</h3>
+            <div id="history-list"></div>
+        </div>
+
+        <div class="help-section">
+            <h3>Commands</h3>
+            <p><code>U</code> - Move Up</p>
+            <p><code>D</code> - Move Down</p>
+            <p><code>L</code> - Move Left</p>
+            <p><code>R</code> - Move Right</p>
+            <p><code>E</code> - Enter Land</p>
+            <p><code>X</code> - Exit Land</p>
+            <p><code>H</code> - Help</p>
+        </div>
+    </div>
+
+    <script>
+        let gameState = null;
+        let commandHistory = [];
+
+        // Load initial game state
+        async function loadGameState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                gameState = data;
+                renderGame();
+                updateStatus();
+            } catch (error) {
+                console.error('Failed to load game state:', error);
+                showMessage('Failed to load game state', 'error');
+            }
+        }
+
+        // Execute a command
+        async function executeCommand(command) {
+            if (!command.trim()) return;
+
+            try {
+                const response = await fetch('/api/command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command.trim() }),
+                });
+
+                const data = await response.json();
+                gameState = data.game_state;
+
+                // Add to history
+                commandHistory.push({
+                    command: command.trim(),
+                    response: data.message,
+                    success: data.success,
+                });
+                if (commandHistory.length > 50) {
+                    commandHistory.shift();
+                }
+
+                renderHistory();
+                renderGame();
+                updateStatus();
+                showMessage(data.message, data.success ? 'success' : 'error');
+            } catch (error) {
+                console.error('Failed to execute command:', error);
+                showMessage('Failed to execute command', 'error');
+            }
+        }
+
+        // Render the game display
+        function renderGame() {
+            const display = document.getElementById('game-display');
+            
+            if (gameState.view_mode === 'Terrain') {
+                display.innerHTML = '<div class="terrain-view" id="terrain-grid"></div>';
+                renderTerrainView();
+            } else {
+                display.innerHTML = '<div class="land-view" id="land-grid"></div>';
+                renderLandView();
+            }
+        }
+
+        // Render terrain view (5x5 grid)
+        function renderTerrainView() {
+            const grid = document.getElementById('terrain-grid');
+            const [currentX, currentY] = gameState.current_land;
+
+            for (let y = 0; y < 5; y++) {
+                for (let x = 0; x < 5; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'terrain-cell';
+                    
+                    if (x === currentX && y === currentY) {
+                        cell.classList.add('current');
+                    }
+
+                    const landKey = `${x},${y}`;
+                    const land = gameState.world.terrain[landKey];
+                    
+                    if (land) {
+                        cell.textContent = getBiomeChar(land.center);
+                        cell.title = `Land (${x}, ${y}): ${land.center}`;
+                    } else {
+                        cell.textContent = '⬛';
+                        cell.title = `Ungenerated (${x}, ${y})`;
+                    }
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Render land view (8x8 grid)
+        function renderLandView() {
+            const grid = document.getElementById('land-grid');
+            const [landX, landY] = gameState.current_land;
+            const [tileX, tileY] = gameState.current_tile || [0, 0];
+
+            const landKey = `${landX},${landY}`;
+            const land = gameState.world.terrain[landKey];
+
+            if (!land) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">Land not found</div>';
+                return;
+            }
+
+            for (let y = 0; y < 8; y++) {
+                for (let x = 0; x < 8; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'tile-cell';
+                    
+                    if (x === tileX && y === tileY) {
+                        cell.classList.add('current');
+                    }
+
+                    const tile = land.tiles[y][x];
+                    let displayChar = getSubstrateChar(tile.substrate);
+                    
+                    if (tile.objects && tile.objects.length > 0) {
+                        displayChar = getObjectChar(tile.objects[0]);
+                    }
+
+                    cell.textContent = displayChar;
+                    cell.title = `Tile (${x}, ${y}): ${tile.substrate}${tile.objects.length > 0 ? ' + ' + tile.objects[0] : ''}`;
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Helper functions for rendering characters
+        function getBiomeChar(biome) {
+            const biomeMap = {
+                'Forest': '🟩',
+                'Meadow': '🟨',
+                'Lake': '🟦',
+                'Mountain': '⬜',
+                'Plains': '🟫',
+            };
+            return biomeMap[biome] || '?';
+        }
+
+        function getSubstrateChar(substrate) {
+            const substrateMap = {
+                'Grass': '🟢',
+                'Dirt': '🟤',
+                'Stone': '⚪',
+                'Mud': '🟫',
+                'Water': '🔵',
+                'Brush': '🟡',
+            };
+            return substrateMap[substrate] || '?';
+        }
+
+        function getObjectChar(object) {
+            const objectMap = {
+                'Rock': '⚫',
+                'Tree': '🟩',
+                'Stick': '🟤',
+            };
+            return objectMap[object] || '?';
+        }
+
+        // Update status bar
+        function updateStatus() {
+            document.getElementById('view-mode').textContent = gameState.view_mode;
+            document.getElementById('current-land').textContent = 
+                `(${gameState.current_land[0]}, ${gameState.current_land[1]})`;
+            
+            if (gameState.current_tile) {
+                document.getElementById('current-tile').textContent = 
+                    `(${gameState.current_tile[0]}, ${gameState.current_tile[1]})`;
+            } else {
+                document.getElementById('current-tile').textContent = '-';
+            }
+        }
+
+        // Render command history
+        function renderHistory() {
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+
+            if (commandHistory.length === 0) {
+                historyList.innerHTML = '<div style="color: #888; font-style: italic;">No commands yet</div>';
+                return;
+            }
+
+            // Show most recent first
+            const reversed = [...commandHistory].reverse();
+            reversed.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <div class="history-command">${item.command}</div>
+                    <div class="history-response ${item.success ? 'success' : 'error'}">${item.response}</div>
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // Set up event listeners
+        document.getElementById('command-button').addEventListener('click', () => {
+            const input = document.getElementById('command-input');
+            executeCommand(input.value);
+            input.value = '';
+        });
+
+        document.getElementById('command-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const input = document.getElementById('command-input');
+                executeCommand(input.value);
+                input.value = '';
+            }
+        });
+
+        // Focus command input on load
+        document.getElementById('command-input').focus();
+
+        // Load initial state
+        loadGameState();
+    </script>
+</body>
+</html>
