@@ -256,6 +256,20 @@
                     <span class="status-value" id="current-tile">-</span>
                 </div>
             </div>
+            <div class="status-info" id="tile-info-section" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #444;">
+                <div class="status-item">
+                    <span class="status-label">Biome</span>
+                    <span class="status-value" id="tile-biome">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Substrate</span>
+                    <span class="status-value" id="tile-substrate">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Objects</span>
+                    <span class="status-value" id="tile-objects">-</span>
+                </div>
+            </div>
         </div>
 
         <div class="game-display" id="game-display">
@@ -488,6 +502,24 @@
                     `(${gameState.current_tile[0]}, ${gameState.current_tile[1]})`;
             } else {
                 document.getElementById('current-tile').textContent = '-';
+            }
+
+            // Update tile information if available
+            const tileInfoSection = document.getElementById('tile-info-section');
+            if (gameState.current_tile_info) {
+                const info = gameState.current_tile_info;
+                document.getElementById('tile-biome').textContent = info.biome;
+                document.getElementById('tile-substrate').textContent = info.substrate;
+                
+                if (info.objects && info.objects.length > 0) {
+                    document.getElementById('tile-objects').textContent = info.objects.join(', ');
+                } else {
+                    document.getElementById('tile-objects').textContent = 'None';
+                }
+                
+                tileInfoSection.style.display = 'flex';
+            } else {
+                tileInfoSection.style.display = 'none';
             }
         }
 

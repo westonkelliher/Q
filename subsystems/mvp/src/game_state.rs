@@ -1,4 +1,13 @@
-use crate::types::World;
+use crate::types::{World, Substrate, Object, Biome};
+
+/// Information about a tile
+#[derive(Debug, Clone)]
+pub struct TileInfo {
+    pub substrate: Substrate,
+    pub objects: Vec<Object>,
+    pub biome: Biome,
+}
+
 use crate::terrain_view::TerrainCamera;
 use crate::land_view::LandCamera;
 
@@ -51,6 +60,51 @@ impl GameState {
             ViewMode::Terrain => None,
             ViewMode::Land => Some((self.land_camera.selected_tile_x, self.land_camera.selected_tile_y)),
         }
+    }
+
+    /// Get the biome for a specific tile within a land
+    /// Based on tile position: corners, edges, or center
+    fn get_tile_biome(land: &crate::types::Land, tile_x: usize, tile_y: usize) -> &crate::types::Biome {
+        let is_top = tile_y == 0;
+        let is_bottom = tile_y == 7;
+        let is_left = tile_x == 0;
+        let is_right = tile_x == 7;
+        
+        match (is_left, is_right, is_top, is_bottom) {
+            // Corners
+            (true, false, true, false) => &land.top_left,
+            (false, true, true, false) => &land.top_right,
+            (true, false, false, true) => &land.bottom_left,
+            (false, true, false, true) => &land.bottom_right,
+            // Edges
+            (_, _, true, false) => &land.top,
+            (_, _, false, true) => &land.bottom,
+            (true, false, _, _) => &land.left,
+            (false, true, _, _) => &land.right,
+            // Center
+            _ => &land.center,
+        }
+    }
+
+    /// Get current tile information (substrate, objects, biome)
+    /// Returns None if in terrain view or if land doesn't exist
+    pub fn current_tile_info(&self) -> Option<TileInfo> {
+        if self.view_mode != ViewMode::Land {
+            return None;
+        }
+
+        let (land_x, land_y) = self.current_land();
+        let (tile_x, tile_y) = self.current_tile()?;
+        
+        let land = self.world.terrain.get(&(land_x, land_y))?;
+        let tile = &land.tiles[tile_y][tile_x];
+        let biome = Self::get_tile_biome(land, tile_x, tile_y);
+        
+        Some(TileInfo {
+            substrate: tile.substrate.clone(),
+            objects: tile.objects.clone(),
+            biome: biome.clone(),
+        })
     }
 
     /// Move between lands (terrain view)

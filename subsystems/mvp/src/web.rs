@@ -92,12 +92,21 @@ where
     map.end()
 }
 
+/// Serializable tile information
+#[derive(Debug, Serialize)]
+pub struct SerializableTileInfo {
+    pub substrate: String,
+    pub objects: Vec<String>,
+    pub biome: String,
+}
+
 /// Response containing the current game state
 #[derive(Debug, Serialize)]
 pub struct GameStateResponse {
     pub view_mode: String,
     pub current_land: (i32, i32),
     pub current_tile: Option<(usize, usize)>,
+    pub current_tile_info: Option<SerializableTileInfo>,
     pub world: SerializableWorld,
 }
 
@@ -134,10 +143,17 @@ async fn index() -> Html<&'static str> {
 async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<GameStateResponse>, StatusCode> {
     let state = game_state.lock().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
+    let current_tile_info = state.current_tile_info().map(|info| SerializableTileInfo {
+        substrate: format!("{:?}", info.substrate),
+        objects: info.objects.iter().map(|o| format!("{:?}", o)).collect(),
+        biome: format!("{:?}", info.biome),
+    });
+    
     Ok(Json(GameStateResponse {
         view_mode: format!("{:?}", state.view_mode),
         current_land: state.current_land(),
         current_tile: state.current_tile(),
+        current_tile_info,
         world: SerializableWorld {
             name: state.world.name.clone(),
             terrain: state.world.terrain.clone(),
@@ -156,6 +172,12 @@ async fn handle_command(
     let command = req.command.trim().to_lowercase();
     let (success, message) = execute_command(&mut state, &command);
     
+    let current_tile_info = state.current_tile_info().map(|info| SerializableTileInfo {
+        substrate: format!("{:?}", info.substrate),
+        objects: info.objects.iter().map(|o| format!("{:?}", o)).collect(),
+        biome: format!("{:?}", info.biome),
+    });
+    
     let response = CommandResponse {
         success,
         message,
@@ -163,6 +185,7 @@ async fn handle_command(
             view_mode: format!("{:?}", state.view_mode),
             current_land: state.current_land(),
             current_tile: state.current_tile(),
+            current_tile_info,
             world: SerializableWorld {
                 name: state.world.name.clone(),
                 terrain: state.world.terrain.clone(),
