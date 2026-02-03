@@ -12,7 +12,7 @@ use tower_http::services::ServeDir;
 
 pub mod display;
 
-use crate::game::game_state::{GameState, ViewMode};
+use crate::game::game_state::{GameState, ViewMode, DisplayOverlay};
 use crate::game::world::types::{Biome, Object, Substrate};
 use crate::game::combat::CombatResult;
 
@@ -133,6 +133,7 @@ pub struct SerializableCombatState {
 #[derive(Debug, Serialize)]
 pub struct GameStateResponse {
     pub view_mode: String,
+    pub display_overlay: String,
     pub current_land: (i32, i32),
     pub current_tile: Option<(usize, usize)>,
     pub current_tile_info: Option<SerializableTileInfo>,
@@ -214,6 +215,7 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
     
     Ok(Json(GameStateResponse {
         view_mode: format!("{:?}", state.view_mode),
+        display_overlay: format!("{:?}", state.display_overlay),
         current_land: state.current_land(),
         current_tile: state.current_tile(),
         current_tile_info,
@@ -285,6 +287,7 @@ async fn handle_command(
         message,
         game_state: GameStateResponse {
             view_mode: format!("{:?}", state.view_mode),
+            display_overlay: format!("{:?}", state.display_overlay),
             current_land: state.current_land(),
             current_tile: state.current_tile(),
             current_tile_info,
@@ -312,125 +315,139 @@ async fn handle_command(
 fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
     match command {
         "u" | "up" => {
-            match state.view_mode {
-                ViewMode::Terrain => {
-                    state.move_terrain(0, -1);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬆️ L[{},{}]", x, y))
-                }
-                ViewMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
-                }
-                ViewMode::Land => {
-                    state.move_land(0, -1);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬆️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
+            // Check for display overlay first
+            if state.display_overlay != DisplayOverlay::None {
+                (false, "Press ENTER to continue.".to_string())
+            } else {
+                match state.view_mode {
+                    ViewMode::Terrain => {
+                        state.move_terrain(0, -1);
+                        let (x, y) = state.current_land();
+                        (true, format!("⬆️ L[{},{}]", x, y))
                     }
-                }
-                ViewMode::DeathScreen | ViewMode::WinScreen => {
-                    (false, "Press ENTER to continue.".to_string())
+                    ViewMode::Combat => {
+                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    }
+                    ViewMode::Land => {
+                        state.move_land(0, -1);
+                        if let Some((x, y)) = state.current_tile() {
+                            (true, format!("⬆️ T[{},{}]", x, y))
+                        } else {
+                            (false, "Not in land view".to_string())
+                        }
+                    }
                 }
             }
         }
         "d" | "down" => {
-            match state.view_mode {
-                ViewMode::Terrain => {
-                    state.move_terrain(0, 1);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬇️ L[{},{}]", x, y))
-                }
-                ViewMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
-                }
-                ViewMode::Land => {
-                    state.move_land(0, 1);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬇️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
+            // Check for display overlay first
+            if state.display_overlay != DisplayOverlay::None {
+                (false, "Press ENTER to continue.".to_string())
+            } else {
+                match state.view_mode {
+                    ViewMode::Terrain => {
+                        state.move_terrain(0, 1);
+                        let (x, y) = state.current_land();
+                        (true, format!("⬇️ L[{},{}]", x, y))
                     }
-                }
-                ViewMode::DeathScreen | ViewMode::WinScreen => {
-                    (false, "Press ENTER to continue.".to_string())
+                    ViewMode::Combat => {
+                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    }
+                    ViewMode::Land => {
+                        state.move_land(0, 1);
+                        if let Some((x, y)) = state.current_tile() {
+                            (true, format!("⬇️ T[{},{}]", x, y))
+                        } else {
+                            (false, "Not in land view".to_string())
+                        }
+                    }
                 }
             }
         }
         "l" | "left" => {
-            match state.view_mode {
-                ViewMode::Terrain => {
-                    state.move_terrain(-1, 0);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬅️ L[{},{}]", x, y))
-                }
-                ViewMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
-                }
-                ViewMode::Land => {
-                    state.move_land(-1, 0);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬅️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
+            // Check for display overlay first
+            if state.display_overlay != DisplayOverlay::None {
+                (false, "Press ENTER to continue.".to_string())
+            } else {
+                match state.view_mode {
+                    ViewMode::Terrain => {
+                        state.move_terrain(-1, 0);
+                        let (x, y) = state.current_land();
+                        (true, format!("⬅️ L[{},{}]", x, y))
                     }
-                }
-                ViewMode::DeathScreen | ViewMode::WinScreen => {
-                    (false, "Press ENTER to continue.".to_string())
+                    ViewMode::Combat => {
+                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    }
+                    ViewMode::Land => {
+                        state.move_land(-1, 0);
+                        if let Some((x, y)) = state.current_tile() {
+                            (true, format!("⬅️ T[{},{}]", x, y))
+                        } else {
+                            (false, "Not in land view".to_string())
+                        }
+                    }
                 }
             }
         }
         "r" | "right" => {
-            match state.view_mode {
-                ViewMode::Terrain => {
-                    state.move_terrain(1, 0);
-                    let (x, y) = state.current_land();
-                    (true, format!("➡️ L[{},{}]", x, y))
-                }
-                ViewMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
-                }
-                ViewMode::Land => {
-                    state.move_land(1, 0);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("➡️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
+            // Check for display overlay first
+            if state.display_overlay != DisplayOverlay::None {
+                (false, "Press ENTER to continue.".to_string())
+            } else {
+                match state.view_mode {
+                    ViewMode::Terrain => {
+                        state.move_terrain(1, 0);
+                        let (x, y) = state.current_land();
+                        (true, format!("➡️ L[{},{}]", x, y))
                     }
-                }
-                ViewMode::DeathScreen | ViewMode::WinScreen => {
-                    (false, "Press ENTER to continue.".to_string())
+                    ViewMode::Combat => {
+                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    }
+                    ViewMode::Land => {
+                        state.move_land(1, 0);
+                        if let Some((x, y)) = state.current_tile() {
+                            (true, format!("➡️ T[{},{}]", x, y))
+                        } else {
+                            (false, "Not in land view".to_string())
+                        }
+                    }
                 }
             }
         }
         "enter" | "e" => {
-            match state.view_mode {
-                ViewMode::Terrain => {
-                    let (land_x, land_y) = state.current_land();
-                    state.enter_land();
-                    
-                    if state.view_mode == ViewMode::Combat {
-                        (true, "⚔️ Combat!".to_string())
-                    } else {
-                        (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
-                    }
-                }
-                ViewMode::Land => {
-                    let (x, y) = state.current_land();
-                    state.exit_land();
-                    (true, format!("🔼 Exit L[{},{}]", x, y))
-                }
-                ViewMode::Combat => {
-                    state.combat_flee();
-                    (true, "🏃 Flee!".to_string())
-                }
-                ViewMode::DeathScreen => {
+            // Check for display overlays first (these take priority)
+            match state.display_overlay {
+                DisplayOverlay::DeathScreen => {
                     state.dismiss_death_screen();
-                    (true, "💀 Resurrected!".to_string())
+                    (true, "💀 Continue".to_string())
                 }
-                ViewMode::WinScreen => {
+                DisplayOverlay::WinScreen => {
                     state.dismiss_win_screen();
-                    (true, "🎉 Victory!".to_string())
+                    (true, "🎉 Continue".to_string())
+                }
+                DisplayOverlay::None => {
+                    // No overlay, handle based on view mode
+                    match state.view_mode {
+                        ViewMode::Terrain => {
+                            let (land_x, land_y) = state.current_land();
+                            state.enter_land();
+                            
+                            if state.view_mode == ViewMode::Combat {
+                                (true, "⚔️ Combat!".to_string())
+                            } else {
+                                (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
+                            }
+                        }
+                        ViewMode::Land => {
+                            let (x, y) = state.current_land();
+                            state.exit_land();
+                            (true, format!("🔼 Exit L[{},{}]", x, y))
+                        }
+                        ViewMode::Combat => {
+                            state.combat_flee();
+                            (true, "🏃 Flee!".to_string())
+                        }
+                    }
                 }
             }
         }
@@ -462,11 +479,8 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     CombatResult::PlayerWins => {
                         (true, "⚔️ Victory!".to_string())
                     }
-                    CombatResult::EnemyWins => {
+                    CombatResult::EnemyWins | CombatResult::Draw => {
                         (true, "⚔️ Defeated!".to_string())
-                    }
-                    CombatResult::Draw => {
-                        (true, "⚔️ Draw!".to_string())
                     }
                 }
             } else {
@@ -484,44 +498,48 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             }
         }
         "help" | "h" | "?" => {
-            let help_text = match state.view_mode {
-                ViewMode::Combat => {
+            let help_text = match state.display_overlay {
+                DisplayOverlay::DeathScreen => {
                     r#"
+Death Screen:
+  E, ENTER  - Continue (dismiss overlay)
+  H, HELP   - Show this help
+"#
+                }
+                DisplayOverlay::WinScreen => {
+                    r#"
+Victory Screen:
+  E, ENTER  - Continue (dismiss overlay)
+  H, HELP   - Show this help
+"#
+                }
+                DisplayOverlay::None => {
+                    match state.view_mode {
+                        ViewMode::Combat => {
+                            r#"
 Combat Commands:
   A, ATTACK - Attack the enemy
   E, ENTER  - Flee combat (returns to terrain view)
   H, HELP   - Show this help
 "#
-                }
-                ViewMode::DeathScreen => {
-                    r#"
-Death Screen:
-  E, ENTER  - Continue (restore to half health and return to terrain view)
-  H, HELP   - Show this help
-"#
-                }
-                ViewMode::WinScreen => {
-                    r#"
-Victory Screen:
-  E, ENTER  - Continue (enter land view)
-  H, HELP   - Show this help
-"#
-                }
-                ViewMode::Land => {
-                    r#"
+                        }
+                        ViewMode::Land => {
+                            r#"
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Exit land view
   H, HELP, ? - Show this help
 "#
-                }
-                _ => {
-                    r#"
+                        }
+                        _ => {
+                            r#"
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Enter land view (may trigger combat if enemy present)
   H, HELP, ? - Show this help
 "#
+                        }
+                    }
                 }
             };
             (true, help_text.trim().to_string())

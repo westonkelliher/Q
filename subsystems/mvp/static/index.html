@@ -704,18 +704,19 @@
         function renderGame() {
             const display = document.getElementById('game-display');
             
-            if (gameState.view_mode === 'Terrain') {
+            // Check for display overlay first (these are shown on top of the actual view)
+            if (gameState.display_overlay === 'DeathScreen') {
+                display.innerHTML = '<div class="screen-view death-screen" id="death-screen"></div>';
+                renderDeathScreen();
+            } else if (gameState.display_overlay === 'WinScreen') {
+                display.innerHTML = '<div class="screen-view win-screen" id="win-screen"></div>';
+                renderWinScreen();
+            } else if (gameState.view_mode === 'Terrain') {
                 display.innerHTML = '<div class="terrain-view" id="terrain-grid"></div>';
                 renderTerrainView();
             } else if (gameState.view_mode === 'Combat') {
                 display.innerHTML = '<div class="combat-view" id="combat-view"></div>';
                 renderCombatView();
-            } else if (gameState.view_mode === 'DeathScreen') {
-                display.innerHTML = '<div class="screen-view death-screen" id="death-screen"></div>';
-                renderDeathScreen();
-            } else if (gameState.view_mode === 'WinScreen') {
-                display.innerHTML = '<div class="screen-view win-screen" id="win-screen"></div>';
-                renderWinScreen();
             } else {
                 display.innerHTML = '<div class="land-view" id="land-grid"></div>';
                 renderLandView();
@@ -1139,8 +1140,15 @@
             }
         });
 
-        // Arrow key shortcuts for movement
+        // Arrow key shortcuts for movement and Enter key for overlays
         document.addEventListener('keydown', (e) => {
+            // Handle Enter key for dismissing overlays (works anywhere on page)
+            if (e.key === 'Enter' && gameState && (gameState.display_overlay === 'DeathScreen' || gameState.display_overlay === 'WinScreen')) {
+                e.preventDefault();
+                executeCommand('e');
+                return;
+            }
+            
             // Map arrow keys to movement commands
             const arrowKeyMap = {
                 'ArrowUp': 'U',

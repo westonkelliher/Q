@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-02  
-> **Previous Commit**: `c2d47ba`  
+> **Previous Commit**: `9bcfe01`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -56,10 +56,13 @@ The project currently has:
 - ✅ Combat commands (attack, flee) - character health persists after battles
 - ✅ Death screen shown when player dies in combat (restores to half health on continue)
 - ✅ Win screen shown when player wins combat (press Enter to continue)
+- ✅ Death/win screens are non-stateful display overlays (don't persist across page refreshes)
+- ✅ Simultaneous defeat (Draw) counts as a death for the player
 - ✅ Character health persists across battles (not restored when fleeing)
 - ✅ Character restores to half health when dying and continuing
 - ✅ Enemies always start at full health when combat begins
 - ✅ Unified 'E' command for enter/exit/flee (context-dependent)
+- ✅ Enter key works anywhere on page to dismiss death/win screens
 
 **Not Yet Implemented**:
 - ❌ Crafting system integration

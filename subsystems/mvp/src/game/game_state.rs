@@ -22,9 +22,16 @@ pub enum ViewMode {
     Combat,
     /// Land view: Shows detailed 8x8 tile grid of selected land
     Land,
-    /// Death screen: Shows when player dies in combat
+}
+
+/// Display overlay for showing temporary screens
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DisplayOverlay {
+    /// No overlay
+    None,
+    /// Death screen overlay (shown after dying in combat)
     DeathScreen,
-    /// Win screen: Shows when player wins combat
+    /// Win screen overlay (shown after winning combat)
     WinScreen,
 }
 
@@ -37,6 +44,8 @@ pub struct GameState {
     pub character: Character,
     /// Active combat state (Some when in Combat view mode)
     pub combat_state: Option<CombatState>,
+    /// Display overlay for temporary screens (not persisted across refreshes)
+    pub display_overlay: DisplayOverlay,
 }
 
 impl GameState {
@@ -59,6 +68,7 @@ impl GameState {
             land_camera,
             character,
             combat_state: None,
+            display_overlay: DisplayOverlay::None,
         }
     }
 
@@ -249,13 +259,32 @@ impl GameState {
             
             // Check if combat is over
             match result {
-                CombatResult::PlayerWins | CombatResult::Draw => {
-                    // Combat won, show win screen
-                    self.view_mode = ViewMode::WinScreen;
+                CombatResult::PlayerWins => {
+                    // Combat won - immediately enter land view and show win screen overlay
+                    let (land_x, land_y) = self.character.get_land_position();
+                    self.combat_state = None;
+                    self.enter_land_view_internal(land_x, land_y);
+                    self.display_overlay = DisplayOverlay::WinScreen;
                 }
-                CombatResult::EnemyWins => {
-                    // Player defeated, show death screen
-                    self.view_mode = ViewMode::DeathScreen;
+                CombatResult::EnemyWins | CombatResult::Draw => {
+                    // Player defeated - restore to half health, return to terrain view, show death screen overlay
+                    let (land_x, land_y) = self.character.get_land_position();
+                    
+                    // Restore enemy health in world (so they're full health next time)
+                    if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+                        if let Some(ref mut enemy) = land.enemy {
+                            enemy.restore_health();
+                        }
+                    }
+                    
+                    // Restore character to half health
+                    let half_health = self.character.get_max_health() / 2;
+                    self.character.health = half_health;
+                    
+                    // Exit combat and return to terrain view
+                    self.combat_state = None;
+                    self.view_mode = ViewMode::Terrain;
+                    self.display_overlay = DisplayOverlay::DeathScreen;
                 }
                 CombatResult::Ongoing => {
                     // Combat continues
@@ -307,43 +336,18 @@ impl GameState {
         self.view_mode = ViewMode::Terrain;
     }
 
-    /// Dismiss death screen (restore character to half health and return to terrain view)
-    /// Enemy health is restored to full for next encounter
+    /// Dismiss death screen overlay (just hides the overlay, state already updated)
     pub fn dismiss_death_screen(&mut self) {
-        if self.view_mode != ViewMode::DeathScreen {
-            return;
+        if self.display_overlay == DisplayOverlay::DeathScreen {
+            self.display_overlay = DisplayOverlay::None;
         }
-
-        // Restore enemy health in world (so they're full health next time)
-        let (land_x, land_y) = self.character.get_land_position();
-        if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
-            if let Some(ref mut enemy) = land.enemy {
-                enemy.restore_health();
-            }
-        }
-        
-        // Restore character to half health
-        let half_health = self.character.get_max_health() / 2;
-        self.character.health = half_health;
-        
-        // Exit combat and return to terrain view
-        self.combat_state = None;
-        self.view_mode = ViewMode::Terrain;
     }
 
-    /// Dismiss win screen (enter land view)
+    /// Dismiss win screen overlay (just hides the overlay, state already updated)
     pub fn dismiss_win_screen(&mut self) {
-        if self.view_mode != ViewMode::WinScreen {
-            return;
+        if self.display_overlay == DisplayOverlay::WinScreen {
+            self.display_overlay = DisplayOverlay::None;
         }
-
-        let (land_x, land_y) = self.character.get_land_position();
-        
-        // Clear combat state
-        self.combat_state = None;
-        
-        // Enter land view
-        self.enter_land_view_internal(land_x, land_y);
     }
 
     /// Check if a land exists at the given coordinates
