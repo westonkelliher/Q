@@ -22,7 +22,7 @@ The primary activity you'll do to progress towards the final boss is going to be
 
 ### Workstation Placement
 
-Oh, and then another thing that's gonna be necessary is placement of workstations. The way we'll do it is that if you're within a land that has that workstation, then it's available to you for crafting. You don't have to actually go and walk over it.
+Oh, and then another thing that's gonna be necessary is placement of workstations, then enabling additional crafting when player in on the workstation or next to it (so 5 spots are valid, on it, and in 4 adjacent spaces)
 
 ### Crafting GUI
 
