@@ -1,4 +1,4 @@
-use crate::types::{Land, World};
+use crate::game::types::{Land, World};
 
 pub fn print_world(world: &World, x1: i32, y1: i32, x2: i32, y2: i32) {
     // Iterate through rows (y coordinates)

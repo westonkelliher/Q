@@ -1,4 +1,4 @@
-use mvp::{create_hardcoded_world, GameState};
+use mvp::game::{create_hardcoded_world, GameState};
 use mvp::web::{create_router, SharedGameState};
 use std::sync::Arc;
 use tokio::net::TcpListener;

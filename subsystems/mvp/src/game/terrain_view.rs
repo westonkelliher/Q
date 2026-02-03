@@ -1,4 +1,4 @@
-use crate::camera::CameraCore;
+use super::camera::CameraCore;
 
 /// Camera for terrain view - manages land-level selection and camera following
 pub struct TerrainCamera {

@@ -1,4 +1,4 @@
-use crate::camera::CameraCore;
+use super::camera::CameraCore;
 
 /// Spacing between adjacent lands in pixels
 const LAND_SPACING: f32 = 30.0;

@@ -1,4 +1,4 @@
-use crate::types::{Biome, Land, Substrate, Tile, World};
+use super::types::{Biome, Land, Substrate, Tile, World};
 use std::collections::HashMap;
 
 /// Creates a hardcoded 5x5 world for the MVP
@@ -90,11 +90,11 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Add trees throughout (more dense)
                     if ((x + y) as i32 + land_x + land_y) % 3 == 0 {
-                        tile.objects.push(crate::types::Object::Tree);
+                        tile.objects.push(super::types::Object::Tree);
                     }
                     // Some sticks on the ground
                     if (x + y) % 5 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(crate::types::Object::Stick);
+                        tile.objects.push(super::types::Object::Stick);
                     }
                 }
             }
@@ -106,11 +106,11 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     let tile = &mut tiles[y][x];
                     // Occasional trees
                     if ((x + y) as i32 + land_x) % 4 == 0 {
-                        tile.objects.push(crate::types::Object::Tree);
+                        tile.objects.push(super::types::Object::Tree);
                     }
                     // Some sticks
                     if (x + y) % 6 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(crate::types::Object::Stick);
+                        tile.objects.push(super::types::Object::Stick);
                     }
                 }
             }
@@ -129,7 +129,7 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Rocks near water edges
                     if dist_from_center > 2.0 && dist_from_center < 3.0 && (x + y) % 3 == 0 {
-                        tile.objects.push(crate::types::Object::Rock);
+                        tile.objects.push(super::types::Object::Rock);
                     }
                 }
             }
@@ -147,7 +147,7 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Many rocks
                     if ((x + y) as i32 + land_x + land_y) % 2 == 0 {
-                        tile.objects.push(crate::types::Object::Rock);
+                        tile.objects.push(super::types::Object::Rock);
                     }
                 }
             }
@@ -163,15 +163,15 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Occasional trees
                     if ((x + y) as i32 + land_x) % 5 == 0 {
-                        tile.objects.push(crate::types::Object::Tree);
+                        tile.objects.push(super::types::Object::Tree);
                     }
                     // Some rocks
                     if (x + y) % 6 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(crate::types::Object::Rock);
+                        tile.objects.push(super::types::Object::Rock);
                     }
                     // Some sticks
                     if (x + y) % 7 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(crate::types::Object::Stick);
+                        tile.objects.push(super::types::Object::Stick);
                     }
                 }
             }

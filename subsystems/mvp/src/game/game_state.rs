@@ -1,4 +1,4 @@
-use crate::types::{World, Substrate, Object, Biome};
+use super::types::{World, Substrate, Object, Biome};
 
 /// Information about a tile
 #[derive(Debug, Clone)]
@@ -8,8 +8,8 @@ pub struct TileInfo {
     pub biome: Biome,
 }
 
-use crate::terrain_view::TerrainCamera;
-use crate::land_view::LandCamera;
+use super::terrain_view::TerrainCamera;
+use super::land_view::LandCamera;
 
 /// View mode enum for tracking which view is active
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,7 +64,7 @@ impl GameState {
 
     /// Get the biome for a specific tile within a land
     /// Based on tile position: corners, edges, or center
-    fn get_tile_biome(land: &crate::types::Land, tile_x: usize, tile_y: usize) -> &crate::types::Biome {
+    fn get_tile_biome(land: &super::types::Land, tile_x: usize, tile_y: usize) -> &super::types::Biome {
         let is_top = tile_y == 0;
         let is_bottom = tile_y == 7;
         let is_left = tile_x == 0;
@@ -175,7 +175,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::create_hardcoded_world;
+    use crate::game::world::create_hardcoded_world;
 
     #[test]
     fn test_initial_state() {

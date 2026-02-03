@@ -10,8 +10,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tower_http::services::ServeDir;
 
-use crate::game_state::{GameState, ViewMode};
-use crate::types::{Biome, Object, Substrate};
+pub mod display;
+
+use crate::game::game_state::{GameState, ViewMode};
+use crate::game::types::{Biome, Object, Substrate};
 
 /// Shared game state wrapped in Arc<Mutex<>> for thread safety
 pub type SharedGameState = Arc<Mutex<GameState>>;
@@ -136,7 +138,7 @@ pub fn create_router(game_state: SharedGameState) -> Router {
 
 /// Serve the main HTML page
 async fn index() -> Html<&'static str> {
-    Html(include_str!("../static/index.html"))
+    Html(include_str!("../../static/index.html"))
 }
 
 /// Get the current game state
@@ -307,7 +309,7 @@ Commands:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::create_hardcoded_world;
+    use crate::game::world::create_hardcoded_world;
 
     #[test]
     fn test_command_move_up_terrain() {
