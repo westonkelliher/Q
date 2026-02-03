@@ -40,38 +40,12 @@
         .terrain-view {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            max-width: 500px;
+            gap: 5px;
+            max-width: 250px;
             margin: 0 auto;
         }
 
         .terrain-cell {
-            aspect-ratio: 1;
-            border: 2px solid #555;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            background: #333;
-            position: relative;
-        }
-
-        .terrain-cell.current {
-            border-color: #4a9eff;
-            border-width: 4px;
-            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
-        }
-
-        .land-view {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 4px;
-            max-width: 640px;
-            margin: 0 auto;
-        }
-
-        .tile-cell {
             aspect-ratio: 1;
             border: 1px solid #555;
             border-radius: 2px;
@@ -83,10 +57,36 @@
             position: relative;
         }
 
+        .terrain-cell.current {
+            border-color: #4a9eff;
+            border-width: 2px;
+            box-shadow: 0 0 5px rgba(74, 158, 255, 0.5);
+        }
+
+        .land-view {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .tile-cell {
+            aspect-ratio: 1;
+            border: 1px solid #555;
+            border-radius: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            background: #333;
+            position: relative;
+        }
+
         .tile-cell.current {
             border-color: #4a9eff;
-            border-width: 3px;
-            box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
+            border-width: 2px;
+            box-shadow: 0 0 4px rgba(74, 158, 255, 0.5);
         }
 
         .status-bar {
