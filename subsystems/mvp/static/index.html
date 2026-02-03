@@ -100,6 +100,29 @@
             pointer-events: none;
         }
 
+        .enemy-indicator {
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            top: 5%;
+            right: 5%;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9;
+            pointer-events: none;
+            background: rgba(255, 107, 107, 0.2);
+            border-radius: 50%;
+            border: 2px solid #ff6b6b;
+        }
+
+        .enemy-indicator.defeated {
+            opacity: 0.5;
+            background: rgba(128, 128, 128, 0.2);
+            border-color: #888;
+        }
+
         .character-stats {
             background: #333;
             border-radius: 8px;
@@ -657,7 +680,26 @@
                         const color = getBiomeColor(land.center);
                         cell.style.backgroundColor = rgbToCss(color);
                         cell.textContent = ''; // No emoji, just color
-                        cell.title = `Land (${x}, ${y}): ${land.center}`;
+                        
+                        // Build title with enemy info if present
+                        let title = `Land (${x}, ${y}): ${land.center}`;
+                        if (land.enemy) {
+                            const enemyStatus = land.enemy.health > 0 ? 'Alive' : 'Defeated';
+                            title += ` | Enemy: ${enemyStatus} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
+                        }
+                        cell.title = title;
+                        
+                        // Add enemy indicator if enemy exists
+                        if (land.enemy) {
+                            const enemyIndicator = document.createElement('div');
+                            enemyIndicator.className = 'enemy-indicator';
+                            if (land.enemy.health <= 0) {
+                                enemyIndicator.classList.add('defeated');
+                            }
+                            enemyIndicator.textContent = '👹';
+                            enemyIndicator.title = `Enemy: ${land.enemy.health > 0 ? 'Alive' : 'Defeated'} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
+                            cell.appendChild(enemyIndicator);
+                        }
                     } else {
                         cell.style.backgroundColor = '#1a1a1a'; // Dark background for ungenerated
                         cell.textContent = '';

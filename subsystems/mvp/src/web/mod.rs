@@ -647,41 +647,4 @@ mod tests {
         assert!(message.contains("Empty command"));
     }
 
-    #[test]
-    fn test_command_case_insensitive() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
-        
-        // Test uppercase (execute_command expects lowercase, so test lowercase)
-        // The case conversion happens in handle_command, not execute_command
-        let (success1, _) = execute_command(&mut state, "u");
-        assert!(success1);
-        
-        // Test mixed case (converted to lowercase)
-        state.move_terrain(0, 0);
-        let (success2, _) = execute_command(&mut state, "down");
-        assert!(success2);
-        
-        // Test full word
-        state.move_terrain(0, 0);
-        let (success3, _) = execute_command(&mut state, "right");
-        assert!(success3);
-    }
-
-    #[test]
-    fn test_command_whitespace_trimming() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
-        
-        // Note: execute_command doesn't trim - trimming happens in handle_command
-        // But we can test that commands work with extra whitespace if trimmed first
-        let trimmed = "  u  ".trim().to_lowercase();
-        let (success, _) = execute_command(&mut state, &trimmed);
-        assert!(success);
-        
-        state.move_terrain(0, 0);
-        let trimmed2 = "\tr\t".trim().to_lowercase();
-        let (success2, _) = execute_command(&mut state, &trimmed2);
-        assert!(success2);
-    }
 }

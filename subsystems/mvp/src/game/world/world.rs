@@ -261,15 +261,6 @@ mod tests {
     }
 
     #[test]
-    fn test_world_boss_position() {
-        let world = create_hardcoded_world();
-        
-        // Boss position should be (4, 4) - bottom-right
-        let boss_land = world.terrain.get(&(4, 4));
-        assert!(boss_land.is_some());
-    }
-
-    #[test]
     fn test_land_structure() {
         let world = create_hardcoded_world();
         

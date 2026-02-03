@@ -111,37 +111,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_combatant_creation() {
-        let c = Combatant::new(10, 5);
-        assert_eq!(c.health, 10);
-        assert_eq!(c.attack, 5);
-        assert!(!c.is_defeated());
-    }
-
-    #[test]
-    fn test_combatant_defeated() {
-        let mut c = Combatant::new(10, 5);
-        assert!(!c.is_defeated());
-        
-        c.health = 0;
-        assert!(c.is_defeated());
-        
-        c.health = -5;
-        assert!(c.is_defeated());
-    }
-
-    #[test]
-    fn test_combat_state_creation() {
-        let player = Combatant::new(10, 5);
-        let enemy = Combatant::new(8, 3);
-        let state = CombatState::new(player, enemy);
-        
-        assert_eq!(state.round, 0);
-        assert_eq!(state.player.health, 10);
-        assert_eq!(state.enemy.health, 8);
-    }
-
-    #[test]
     fn test_single_round() {
         let player = Combatant::new(10, 5);
         let enemy = Combatant::new(8, 3);

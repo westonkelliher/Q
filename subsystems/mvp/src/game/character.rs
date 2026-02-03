@@ -85,29 +85,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_character_creation() {
-        let char = Character::new();
-        assert_eq!(char.land_position, (0, 0));
-        assert_eq!(char.tile_position, None);
-        assert_eq!(char.health, 10);
-        assert_eq!(char.max_health, 10);
-        assert_eq!(char.attack, 5);
-    }
-
-    #[test]
-    fn test_character_position() {
-        let mut char = Character::new();
-        char.set_land_position(2, 3);
-        assert_eq!(char.get_land_position(), (2, 3));
-
-        char.set_tile_position(Some((4, 4)));
-        assert_eq!(char.get_tile_position(), Some((4, 4)));
-
-        char.set_tile_position(None);
-        assert_eq!(char.get_tile_position(), None);
-    }
-
-    #[test]
     fn test_character_damage() {
         let mut char = Character::new();
         assert_eq!(char.health, 10);

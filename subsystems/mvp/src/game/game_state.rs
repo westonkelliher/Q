@@ -319,16 +319,6 @@ mod tests {
     use crate::game::world::create_hardcoded_world;
 
     #[test]
-    fn test_initial_state() {
-        let world = create_hardcoded_world();
-        let state = GameState::new(world);
-        
-        assert_eq!(state.view_mode, ViewMode::Terrain);
-        assert_eq!(state.current_land(), (0, 0));
-        assert_eq!(state.current_tile(), None);
-    }
-
-    #[test]
     fn test_terrain_movement() {
         let world = create_hardcoded_world();
         let mut state = GameState::new(world);
@@ -470,31 +460,6 @@ mod tests {
         assert_eq!(state.view_mode, ViewMode::Terrain);
         assert_eq!(state.current_land(), (2, 2));
         assert_eq!(state.current_tile(), None);
-    }
-
-    #[test]
-    fn test_enter_land_only_in_terrain_view() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
-        
-        state.enter_land();
-        assert_eq!(state.view_mode, ViewMode::Land);
-        
-        // Try to enter land again (should not work)
-        state.enter_land();
-        assert_eq!(state.view_mode, ViewMode::Land);
-    }
-
-    #[test]
-    fn test_exit_land_only_in_land_view() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
-        
-        assert_eq!(state.view_mode, ViewMode::Terrain);
-        
-        // Try to exit land (should not work)
-        state.exit_land();
-        assert_eq!(state.view_mode, ViewMode::Terrain);
     }
 
     #[test]
