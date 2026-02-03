@@ -234,7 +234,7 @@
         }
 
         .sidebar {
-            width: 300px;
+            width: 400px;
             background: #2a2a2a;
             border-left: 2px solid #444;
             display: flex;
@@ -310,6 +310,165 @@
             padding: 0;
             margin-top: 0;
             min-height: 0;
+        }
+
+        /* Combat View Styles */
+        .combat-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .combat-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .combat-round {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a9eff;
+            margin-bottom: 10px;
+        }
+
+        .combat-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .combat-panels {
+            display: flex;
+            gap: 40px;
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .combatant-panel {
+            flex: 1;
+            max-width: 300px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .combatant-panel.player {
+            border-color: #4a9eff;
+        }
+
+        .combatant-panel.enemy {
+            border-color: #ff6b6b;
+        }
+
+        .combatant-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .combatant-panel.player .combatant-name {
+            color: #4a9eff;
+        }
+
+        .combatant-panel.enemy .combatant-name {
+            color: #ff6b6b;
+        }
+
+        .combatant-sprite {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+            object-fit: contain;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .combatant-stats {
+            width: 100%;
+        }
+
+        .combat-stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .combat-stat-label {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .combat-stat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .combat-health-bar-container {
+            width: 100%;
+            height: 25px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .combat-health-bar {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            border-radius: 12px;
+        }
+
+        .combat-health-bar.high {
+            background: #51cf66; /* Green */
+        }
+
+        .combat-health-bar.medium {
+            background: #ffd43b; /* Yellow */
+        }
+
+        .combat-health-bar.low {
+            background: #ff6b6b; /* Red */
+        }
+
+        .combat-actions {
+            text-align: center;
+            padding: 20px;
+            background: #333;
+            border-radius: 8px;
+            border: 2px solid #555;
+            margin-top: 20px;
+        }
+
+        .combat-actions h3 {
+            color: #4a9eff;
+            margin-bottom: 10px;
+        }
+
+        .combat-actions p {
+            margin: 5px 0;
+            color: #e0e0e0;
+        }
+
+        .combat-actions code {
+            background: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #4a9eff;
         }
     </style>
 </head>
@@ -392,15 +551,17 @@
             <div id="history-list"></div>
         </div>
 
-        <div class="help-section">
+        <div class="help-section" id="help-section">
             <h3>Commands</h3>
-            <p><code>U</code> - Move Up</p>
-            <p><code>D</code> - Move Down</p>
-            <p><code>L</code> - Move Left</p>
-            <p><code>R</code> - Move Right</p>
-            <p><code>E</code> - Enter Land</p>
-            <p><code>X</code> - Exit Land</p>
-            <p><code>H</code> - Help</p>
+            <div id="help-content">
+                <p><code>U</code> - Move Up</p>
+                <p><code>D</code> - Move Down</p>
+                <p><code>L</code> - Move Left</p>
+                <p><code>R</code> - Move Right</p>
+                <p><code>E</code> - Enter Land</p>
+                <p><code>X</code> - Exit Land</p>
+                <p><code>H</code> - Help</p>
+            </div>
         </div>
     </div>
 
@@ -465,6 +626,9 @@
             if (gameState.view_mode === 'Terrain') {
                 display.innerHTML = '<div class="terrain-view" id="terrain-grid"></div>';
                 renderTerrainView();
+            } else if (gameState.view_mode === 'Combat') {
+                display.innerHTML = '<div class="combat-view" id="combat-view"></div>';
+                renderCombatView();
             } else {
                 display.innerHTML = '<div class="land-view" id="land-grid"></div>';
                 renderLandView();
@@ -628,6 +792,78 @@
             return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
         }
 
+        // Render combat view
+        function renderCombatView() {
+            const combatView = document.getElementById('combat-view');
+            
+            if (!gameState.combat_state) {
+                combatView.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">No combat data available</div>';
+                return;
+            }
+
+            const combat = gameState.combat_state;
+            const player = combat.player;
+            const enemy = combat.enemy;
+            const playerMaxHealth = gameState.character.max_health;
+            const enemyMaxHealth = combat.enemy_max_health;
+
+            // Calculate health percentages
+            const playerHealthPercent = (player.health / playerMaxHealth) * 100;
+            const enemyHealthPercent = (enemy.health / enemyMaxHealth) * 100;
+
+            // Determine health bar color classes
+            const playerHealthClass = playerHealthPercent > 60 ? 'high' : (playerHealthPercent > 30 ? 'medium' : 'low');
+            const enemyHealthClass = enemyHealthPercent > 60 ? 'high' : (enemyHealthPercent > 30 ? 'medium' : 'low');
+
+            combatView.innerHTML = `
+                <div class="combat-header">
+                    <div class="combat-title">Combat</div>
+                    <div class="combat-round">Round ${combat.round}</div>
+                </div>
+                <div class="combat-panels">
+                    <div class="combatant-panel player">
+                        <div class="combatant-name">Player</div>
+                        <img src="/assets/viking_player.png" alt="Player" class="combatant-sprite" />
+                        <div class="combatant-stats">
+                            <div class="combat-stat-row">
+                                <span class="combat-stat-label">HP</span>
+                                <span class="combat-stat-value">${player.health}/${playerMaxHealth}</span>
+                            </div>
+                            <div class="combat-health-bar-container">
+                                <div class="combat-health-bar ${playerHealthClass}" style="width: ${playerHealthPercent}%"></div>
+                            </div>
+                            <div class="combat-stat-row">
+                                <span class="combat-stat-label">ATK</span>
+                                <span class="combat-stat-value">${player.attack}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="combatant-panel enemy">
+                        <div class="combatant-name">Enemy</div>
+                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;">👹</div>
+                        <div class="combatant-stats">
+                            <div class="combat-stat-row">
+                                <span class="combat-stat-label">HP</span>
+                                <span class="combat-stat-value">${enemy.health}/${enemyMaxHealth}</span>
+                            </div>
+                            <div class="combat-health-bar-container">
+                                <div class="combat-health-bar ${enemyHealthClass}" style="width: ${enemyHealthPercent}%"></div>
+                            </div>
+                            <div class="combat-stat-row">
+                                <span class="combat-stat-label">ATK</span>
+                                <span class="combat-stat-value">${enemy.attack}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="combat-actions">
+                    <h3>Combat Commands</h3>
+                    <p><code>A</code> or <code>ATTACK</code> - Attack the enemy</p>
+                    <p><code>F</code> or <code>FLEE</code> - Flee combat (restores all health)</p>
+                </div>
+            `;
+        }
+
         // Update status bar
         function updateStatus() {
             document.getElementById('view-mode').textContent = gameState.view_mode;
@@ -641,7 +877,7 @@
                 document.getElementById('current-tile').textContent = '-';
             }
 
-            // Show biome in Terrain view
+            // Show biome in Terrain view (hide during combat)
             const biomeItem = document.getElementById('biome-item');
             if (gameState.view_mode === 'Terrain' && gameState.current_biome) {
                 document.getElementById('current-biome').textContent = gameState.current_biome;
@@ -650,9 +886,9 @@
                 biomeItem.style.display = 'none';
             }
 
-            // Update tile information if available (Land view)
+            // Update tile information if available (Land view only, hide during combat)
             const tileInfoSection = document.getElementById('tile-info-section');
-            if (gameState.current_tile_info) {
+            if (gameState.view_mode === 'Land' && gameState.current_tile_info) {
                 const info = gameState.current_tile_info;
                 document.getElementById('tile-biome').textContent = info.biome;
                 document.getElementById('tile-substrate').textContent = info.substrate;
@@ -688,6 +924,34 @@
                 } else {
                     healthBar.classList.add('low');
                 }
+            }
+
+            // Update command input placeholder based on view mode
+            const commandInput = document.getElementById('command-input');
+            if (gameState.view_mode === 'Combat') {
+                commandInput.placeholder = 'Enter command (A/ATTACK, F/FLEE, H/HELP)';
+            } else {
+                commandInput.placeholder = 'Enter command (U/D/L/R/E/X/HELP)';
+            }
+
+            // Update help section based on view mode
+            const helpContent = document.getElementById('help-content');
+            if (gameState.view_mode === 'Combat') {
+                helpContent.innerHTML = `
+                    <p><code>A</code> or <code>ATTACK</code> - Attack the enemy</p>
+                    <p><code>F</code> or <code>FLEE</code> - Flee combat (restores all health)</p>
+                    <p><code>H</code> - Help</p>
+                `;
+            } else {
+                helpContent.innerHTML = `
+                    <p><code>U</code> - Move Up</p>
+                    <p><code>D</code> - Move Down</p>
+                    <p><code>L</code> - Move Left</p>
+                    <p><code>R</code> - Move Right</p>
+                    <p><code>E</code> - Enter Land</p>
+                    <p><code>X</code> - Exit Land</p>
+                    <p><code>H</code> - Help</p>
+                `;
             }
         }
 

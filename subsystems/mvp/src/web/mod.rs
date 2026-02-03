@@ -113,6 +113,22 @@ pub struct SerializableCharacter {
     pub attack: i32,
 }
 
+/// Serializable combatant information
+#[derive(Debug, Serialize)]
+pub struct SerializableCombatant {
+    pub health: i32,
+    pub attack: i32,
+}
+
+/// Serializable combat state
+#[derive(Debug, Serialize)]
+pub struct SerializableCombatState {
+    pub player: SerializableCombatant,
+    pub enemy: SerializableCombatant,
+    pub enemy_max_health: i32,
+    pub round: u32,
+}
+
 /// Response containing the current game state
 #[derive(Debug, Serialize)]
 pub struct GameStateResponse {
@@ -123,6 +139,7 @@ pub struct GameStateResponse {
     pub current_biome: Option<String>, // Center biome of current land (for Terrain view)
     pub world: SerializableWorld,
     pub character: SerializableCharacter,
+    pub combat_state: Option<SerializableCombatState>,
 }
 
 /// Command request from the client
@@ -167,6 +184,34 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
     
     let current_biome = state.current_biome().map(|b| format!("{:?}", b));
     
+    // Serialize combat state if in combat mode
+    let combat_state = if state.view_mode == ViewMode::Combat {
+        if let Some(ref combat) = state.combat_state {
+            let (land_x, land_y) = state.current_land();
+            let enemy_max_health = state.world.terrain.get(&(land_x, land_y))
+                .and_then(|land| land.enemy.as_ref())
+                .map(|enemy| enemy.max_health)
+                .unwrap_or(combat.enemy.health); // Fallback to current health if max not available
+            
+            Some(SerializableCombatState {
+                player: SerializableCombatant {
+                    health: combat.player.health,
+                    attack: combat.player.attack,
+                },
+                enemy: SerializableCombatant {
+                    health: combat.enemy.health,
+                    attack: combat.enemy.attack,
+                },
+                enemy_max_health,
+                round: combat.round,
+            })
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    
     Ok(Json(GameStateResponse {
         view_mode: format!("{:?}", state.view_mode),
         current_land: state.current_land(),
@@ -185,6 +230,7 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
             max_health: state.character.get_max_health(),
             attack: state.character.get_attack(),
         },
+        combat_state,
     }))
 }
 
@@ -205,6 +251,34 @@ async fn handle_command(
     });
     
     let current_biome = state.current_biome().map(|b| format!("{:?}", b));
+    
+    // Serialize combat state if in combat mode
+    let combat_state = if state.view_mode == ViewMode::Combat {
+        if let Some(ref combat) = state.combat_state {
+            let (land_x, land_y) = state.current_land();
+            let enemy_max_health = state.world.terrain.get(&(land_x, land_y))
+                .and_then(|land| land.enemy.as_ref())
+                .map(|enemy| enemy.max_health)
+                .unwrap_or(combat.enemy.health); // Fallback to current health if max not available
+            
+            Some(SerializableCombatState {
+                player: SerializableCombatant {
+                    health: combat.player.health,
+                    attack: combat.player.attack,
+                },
+                enemy: SerializableCombatant {
+                    health: combat.enemy.health,
+                    attack: combat.enemy.attack,
+                },
+                enemy_max_health,
+                round: combat.round,
+            })
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     
     let response = CommandResponse {
         success,
@@ -227,6 +301,7 @@ async fn handle_command(
                 max_health: state.character.get_max_health(),
                 attack: state.character.get_attack(),
             },
+            combat_state,
         },
     };
     
