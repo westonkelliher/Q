@@ -14,6 +14,7 @@ pub mod display;
 
 use crate::game::game_state::{GameState, ViewMode};
 use crate::game::world::types::{Biome, Object, Substrate};
+use crate::game::combat::CombatResult;
 
 /// Shared game state wrapped in Arc<Mutex<>> for thread safety
 pub type SharedGameState = Arc<Mutex<GameState>>;
@@ -242,6 +243,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     let (x, y) = state.current_land();
                     (true, format!("Moved up to land ({}, {})", x, y))
                 }
+                ViewMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
+                }
                 ViewMode::Land => {
                     state.move_land(0, -1);
                     if let Some((x, y)) = state.current_tile() {
@@ -258,6 +262,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     state.move_terrain(0, 1);
                     let (x, y) = state.current_land();
                     (true, format!("Moved down to land ({}, {})", x, y))
+                }
+                ViewMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
                 }
                 ViewMode::Land => {
                     state.move_land(0, 1);
@@ -276,6 +283,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     let (x, y) = state.current_land();
                     (true, format!("Moved left to land ({}, {})", x, y))
                 }
+                ViewMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
+                }
                 ViewMode::Land => {
                     state.move_land(-1, 0);
                     if let Some((x, y)) = state.current_tile() {
@@ -292,6 +302,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     state.move_terrain(1, 0);
                     let (x, y) = state.current_land();
                     (true, format!("Moved right to land ({}, {})", x, y))
+                }
+                ViewMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
                 }
                 ViewMode::Land => {
                     state.move_land(1, 0);
@@ -324,14 +337,59 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 (false, "Already in terrain view".to_string())
             }
         }
+        "attack" | "a" => {
+            if state.view_mode == ViewMode::Combat {
+                let result = state.combat_attack();
+                match result {
+                    CombatResult::Ongoing => {
+                        let combat = state.combat_state.as_ref().unwrap();
+                        (true, format!("You attack! Player HP: {}/{} | Enemy HP: {}/{}", 
+                            combat.player.health, state.character.get_max_health(),
+                            combat.enemy.health, 
+                            state.world.terrain.get(&state.current_land())
+                                .and_then(|land| land.enemy.as_ref())
+                                .map(|e| e.max_health)
+                                .unwrap_or(0)))
+                    }
+                    CombatResult::PlayerWins => {
+                        (true, "You defeated the enemy! Entering land view...".to_string())
+                    }
+                    CombatResult::EnemyWins => {
+                        (true, "You were defeated! Fleeing combat...".to_string())
+                    }
+                    CombatResult::Draw => {
+                        (true, "Both combatants defeated! Entering land view...".to_string())
+                    }
+                }
+            } else {
+                (false, "Not in combat. Use 'E' or 'ENTER' to enter a land with enemies.".to_string())
+            }
+        }
+        "flee" | "f" => {
+            if state.view_mode == ViewMode::Combat {
+                state.combat_flee();
+                (true, "You fled! All parties restored to full health. Returned to terrain view.".to_string())
+            } else {
+                (false, "Not in combat.".to_string())
+            }
+        }
         "help" | "h" | "?" => {
-            let help_text = r#"
+            let help_text = if state.view_mode == ViewMode::Combat {
+                r#"
+Combat Commands:
+  A, ATTACK - Attack the enemy
+  F, FLEE   - Flee combat (restores all health)
+  H, HELP   - Show this help
+"#
+            } else {
+                r#"
 Commands:
   U, D, L, R - Move up, down, left, right
-  E, ENTER   - Enter land view
+  E, ENTER   - Enter land view (may trigger combat if enemy present)
   X, EXIT    - Exit land view
   H, HELP, ? - Show this help
-"#;
+"#
+            };
             (true, help_text.trim().to_string())
         }
         "" => (false, "Empty command".to_string()),
@@ -458,14 +516,15 @@ mod tests {
         let world = create_hardcoded_world();
         let mut state = GameState::new(world);
         
-        state.move_terrain(3, 3);
+        // Use (2,2) which has no enemy
+        state.move_terrain(2, 2);
         state.enter_land();
         let (success, message) = execute_command(&mut state, "x");
         
         assert!(success);
         assert!(message.contains("Exited to terrain view"));
         assert_eq!(state.view_mode, ViewMode::Terrain);
-        assert_eq!(state.current_land(), (3, 3));
+        assert_eq!(state.current_land(), (2, 2));
     }
 
     #[test]

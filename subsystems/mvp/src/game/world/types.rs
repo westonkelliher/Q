@@ -1,6 +1,15 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
+/// Simple enemy stats (copied from combat module)
+/// Stored separately to avoid circular dependencies
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Enemy {
+    pub health: i32,
+    pub attack: i32,
+    pub max_health: i32, // Store max health for restoration when fleeing
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Substrate {
     Grass,
@@ -46,6 +55,8 @@ pub struct Land {
     pub top_right: Biome,    // corner (1 tile)
     pub bottom_left: Biome,  // corner (1 tile)
     pub bottom_right: Biome, // corner (1 tile)
+    /// Optional enemy that blocks this land (must be defeated to enter)
+    pub enemy: Option<Enemy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,5 +130,26 @@ impl Object {
             Object::Tree => (0.1, 0.6, 0.1),          // Green
             Object::Stick => (0.5, 0.3, 0.1),         // Brown
         }
+    }
+}
+
+impl Enemy {
+    /// Create a new enemy with specified stats
+    pub fn new(health: i32, attack: i32) -> Self {
+        Self {
+            health,
+            attack,
+            max_health: health,
+        }
+    }
+
+    /// Check if enemy is defeated
+    pub fn is_defeated(&self) -> bool {
+        self.health <= 0
+    }
+
+    /// Restore enemy to full health (used when fleeing)
+    pub fn restore_health(&mut self) {
+        self.health = self.max_health;
     }
 }

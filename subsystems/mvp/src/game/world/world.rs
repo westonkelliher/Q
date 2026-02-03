@@ -1,4 +1,4 @@
-use super::types::{Biome, Land, Substrate, Tile, World};
+use super::types::{Biome, Land, Substrate, Tile, World, Enemy};
 use std::collections::HashMap;
 
 /// Creates a hardcoded 5x5 world for the MVP
@@ -44,6 +44,30 @@ pub fn create_hardcoded_world() -> World {
             // Generate tiles based on biome
             let tiles = generate_tiles_for_biome(&center_biome, x as i32, y as i32);
 
+            // Determine if this land has an enemy
+            // Start position (0,0) has no enemy
+            // Boss position (4,4) has a strong enemy
+            // Some intermediate lands have enemies
+            let enemy = if (x, y) == (0, 0) {
+                // Start position - no enemy
+                None
+            } else if (x, y) == (4, 4) {
+                // Boss - strong enemy
+                Some(Enemy::new(20, 8)) // High health, high attack
+            } else if (x, y) == (1, 0) || (x, y) == (0, 1) {
+                // Early enemies - weak
+                Some(Enemy::new(8, 3)) // Low health, low attack
+            } else if (x, y) == (2, 1) || (x, y) == (1, 2) || (x, y) == (3, 2) {
+                // Mid-game enemies - medium
+                Some(Enemy::new(12, 5)) // Medium health, medium attack
+            } else if (x, y) == (3, 3) || (x, y) == (4, 3) {
+                // Late-game enemies - strong
+                Some(Enemy::new(15, 6)) // High health, medium-high attack
+            } else {
+                // Most lands have no enemy (for now)
+                None
+            };
+
             // Create land with proper biome borders
             let land = Land {
                 tiles,
@@ -56,6 +80,7 @@ pub fn create_hardcoded_world() -> World {
                 top_right: top_right_biome,
                 bottom_left: bottom_left_biome,
                 bottom_right: bottom_right_biome,
+                enemy,
             };
 
             terrain.insert((x as i32, y as i32), land);

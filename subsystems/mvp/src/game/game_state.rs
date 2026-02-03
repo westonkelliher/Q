@@ -1,5 +1,6 @@
 use super::world::types::{World, Substrate, Object, Biome};
 use super::character::Character;
+use super::combat::{CombatState, Combatant, CombatResult};
 
 /// Information about a tile
 #[derive(Debug, Clone)]
@@ -17,6 +18,8 @@ use super::world::land_view::LandCamera;
 pub enum ViewMode {
     /// Terrain view: Shows biome overview (one tile per land)
     Terrain,
+    /// Combat view: Combat sequence before entering a land
+    Combat,
     /// Land view: Shows detailed 8x8 tile grid of selected land
     Land,
 }
@@ -28,6 +31,8 @@ pub struct GameState {
     pub terrain_camera: TerrainCamera,
     pub land_camera: LandCamera,
     pub character: Character,
+    /// Active combat state (Some when in Combat view mode)
+    pub combat_state: Option<CombatState>,
 }
 
 impl GameState {
@@ -49,6 +54,7 @@ impl GameState {
             terrain_camera,
             land_camera,
             character,
+            combat_state: None,
         }
     }
 
@@ -156,6 +162,7 @@ impl GameState {
     }
 
     /// Enter land view for the currently selected land
+    /// If the land has an enemy, enters combat mode instead
     pub fn enter_land(&mut self) {
         if self.view_mode != ViewMode::Terrain {
             return;
@@ -163,6 +170,26 @@ impl GameState {
 
         let (land_x, land_y) = self.character.get_land_position();
         
+        // Check if land has an enemy
+        if let Some(land) = self.world.terrain.get(&(land_x, land_y)) {
+            if let Some(enemy) = &land.enemy {
+                // Check if enemy is already defeated
+                if enemy.is_defeated() {
+                    // Enemy defeated, proceed to land view
+                    self.enter_land_view_internal(land_x, land_y);
+                } else {
+                    // Start combat
+                    self.start_combat(land_x, land_y, enemy.clone());
+                }
+            } else {
+                // No enemy, proceed to land view
+                self.enter_land_view_internal(land_x, land_y);
+            }
+        }
+    }
+
+    /// Internal helper to enter land view (after combat or if no enemy)
+    fn enter_land_view_internal(&mut self, land_x: i32, land_y: i32) {
         // Update character to have a tile position (default to center)
         self.character.set_tile_position(Some((4, 4)));
         
@@ -175,6 +202,87 @@ impl GameState {
         self.land_camera.sync_position_from(land_center_x, land_center_y);
         
         self.view_mode = ViewMode::Land;
+    }
+
+    /// Start combat with an enemy
+    fn start_combat(&mut self, _land_x: i32, _land_y: i32, enemy: super::world::types::Enemy) {
+        let player_combatant = Combatant::new(
+            self.character.get_health(),
+            self.character.get_attack(),
+        );
+        let enemy_combatant = Combatant::new(enemy.health, enemy.attack);
+        
+        self.combat_state = Some(CombatState::new(player_combatant, enemy_combatant));
+        self.view_mode = ViewMode::Combat;
+    }
+
+    /// Execute a combat round (attack)
+    /// Returns the combat result
+    pub fn combat_attack(&mut self) -> CombatResult {
+        if let Some(ref mut combat) = self.combat_state {
+            let result = combat.execute_round();
+            
+            // Update character health from combat
+            self.character.health = combat.player.health;
+            
+            // Update enemy health in world
+            let (land_x, land_y) = self.character.get_land_position();
+            if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+                if let Some(ref mut enemy) = land.enemy {
+                    enemy.health = combat.enemy.health;
+                }
+            }
+            
+            // Check if combat is over
+            match result {
+                CombatResult::PlayerWins | CombatResult::Draw => {
+                    // Combat won, enter land view
+                    self.combat_state = None;
+                    self.enter_land_view_internal(land_x, land_y);
+                }
+                CombatResult::EnemyWins => {
+                    // Player defeated, exit combat (same as fleeing)
+                    self.combat_flee();
+                }
+                CombatResult::Ongoing => {
+                    // Combat continues
+                }
+            }
+            
+            result
+        } else {
+            CombatResult::Ongoing
+        }
+    }
+
+    /// Flee from combat (restore all health and return to terrain view)
+    pub fn combat_flee(&mut self) {
+        if let Some(ref mut combat) = self.combat_state {
+            // Restore health
+            combat.restore_health(
+                self.character.get_max_health(),
+                // Get enemy max health from world
+                self.world.terrain.get(&self.character.get_land_position())
+                    .and_then(|land| land.enemy.as_ref())
+                    .map(|enemy| enemy.max_health)
+                    .unwrap_or(0),
+            );
+            
+            // Restore character health
+            self.character.heal(self.character.get_max_health());
+            
+            // Restore enemy health in world
+            let (land_x, land_y) = self.character.get_land_position();
+            if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+                if let Some(ref mut enemy) = land.enemy {
+                    enemy.restore_health();
+                }
+            }
+        }
+        
+        // Exit combat and return to terrain view
+        self.combat_state = None;
+        self.view_mode = ViewMode::Terrain;
     }
 
     /// Exit land view and return to terrain view
@@ -353,13 +461,14 @@ mod tests {
         let world = create_hardcoded_world();
         let mut state = GameState::new(world);
         
-        state.move_terrain(3, 3);
+        // Use (2,2) which has no enemy, or (0,0) which is the start
+        state.move_terrain(2, 2);
         state.enter_land();
         assert_eq!(state.view_mode, ViewMode::Land);
         
         state.exit_land();
         assert_eq!(state.view_mode, ViewMode::Terrain);
-        assert_eq!(state.current_land(), (3, 3));
+        assert_eq!(state.current_land(), (2, 2));
         assert_eq!(state.current_tile(), None);
     }
 
