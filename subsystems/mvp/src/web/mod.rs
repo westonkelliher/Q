@@ -479,7 +479,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     r#"
 Combat Commands:
   A, ATTACK - Attack the enemy
-  F, FLEE   - Flee combat (restores all health)
+  F, FLEE   - Flee combat (returns to terrain view)
   H, HELP   - Show this help
 "#
                 }

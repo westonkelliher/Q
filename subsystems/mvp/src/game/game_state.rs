@@ -209,7 +209,17 @@ impl GameState {
     }
 
     /// Start combat with an enemy
-    fn start_combat(&mut self, _land_x: i32, _land_y: i32, enemy: super::world::types::Enemy) {
+    fn start_combat(&mut self, land_x: i32, land_y: i32, mut enemy: super::world::types::Enemy) {
+        // Restore enemy to full health when starting combat
+        enemy.restore_health();
+        
+        // Update enemy in world to full health
+        if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+            if let Some(ref mut world_enemy) = land.enemy {
+                world_enemy.restore_health();
+            }
+        }
+        
         let player_combatant = Combatant::new(
             self.character.get_health(),
             self.character.get_attack(),
@@ -258,32 +268,19 @@ impl GameState {
         }
     }
 
-    /// Flee from combat (restore all health and return to terrain view)
+    /// Flee from combat (restore enemy health and return to terrain view)
+    /// Character health persists (not restored)
     pub fn combat_flee(&mut self) {
-        if let Some(ref mut combat) = self.combat_state {
-            // Restore health
-            combat.restore_health(
-                self.character.get_max_health(),
-                // Get enemy max health from world
-                self.world.terrain.get(&self.character.get_land_position())
-                    .and_then(|land| land.enemy.as_ref())
-                    .map(|enemy| enemy.max_health)
-                    .unwrap_or(0),
-            );
-            
-            // Restore character health
-            self.character.heal(self.character.get_max_health());
-            
-            // Restore enemy health in world
-            let (land_x, land_y) = self.character.get_land_position();
-            if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
-                if let Some(ref mut enemy) = land.enemy {
-                    enemy.restore_health();
-                }
+        // Restore enemy health in world (so they're full health next time)
+        let (land_x, land_y) = self.character.get_land_position();
+        if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+            if let Some(ref mut enemy) = land.enemy {
+                enemy.restore_health();
             }
         }
         
         // Exit combat and return to terrain view
+        // Character health is NOT restored - it persists
         self.combat_state = None;
         self.view_mode = ViewMode::Terrain;
     }
@@ -310,37 +307,23 @@ impl GameState {
         self.view_mode = ViewMode::Terrain;
     }
 
-    /// Dismiss death screen (restore health and return to terrain view)
+    /// Dismiss death screen (restore enemy health and return to terrain view)
+    /// Character health persists (not restored)
     pub fn dismiss_death_screen(&mut self) {
         if self.view_mode != ViewMode::DeathScreen {
             return;
         }
 
-        // Restore health (same as fleeing)
-        if let Some(ref mut combat) = self.combat_state {
-            // Restore health
-            combat.restore_health(
-                self.character.get_max_health(),
-                // Get enemy max health from world
-                self.world.terrain.get(&self.character.get_land_position())
-                    .and_then(|land| land.enemy.as_ref())
-                    .map(|enemy| enemy.max_health)
-                    .unwrap_or(0),
-            );
-            
-            // Restore character health
-            self.character.heal(self.character.get_max_health());
-            
-            // Restore enemy health in world
-            let (land_x, land_y) = self.character.get_land_position();
-            if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
-                if let Some(ref mut enemy) = land.enemy {
-                    enemy.restore_health();
-                }
+        // Restore enemy health in world (so they're full health next time)
+        let (land_x, land_y) = self.character.get_land_position();
+        if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+            if let Some(ref mut enemy) = land.enemy {
+                enemy.restore_health();
             }
         }
         
         // Exit combat and return to terrain view
+        // Character health is NOT restored - it persists
         self.combat_state = None;
         self.view_mode = ViewMode::Terrain;
     }

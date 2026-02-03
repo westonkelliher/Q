@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-02  
-> **Previous Commit**: `bdafc93`  
+> **Previous Commit**: `978e8f1`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -53,9 +53,11 @@ The project currently has:
 - ✅ Combat GUI with side-by-side player/enemy panels, health bars, and round display
 - ✅ Enemy system integrated into lands (enemies block land entry until defeated)
 - ✅ Enemies with varying difficulty (weak early, medium mid, strong late, boss at 4,4)
-- ✅ Combat commands (attack, flee) with health restoration on flee
+- ✅ Combat commands (attack, flee) - character health persists after battles
 - ✅ Death screen shown when player dies in combat (press Enter to continue)
 - ✅ Win screen shown when player wins combat (press Enter to continue)
+- ✅ Character health persists across battles (not restored when fleeing/dying)
+- ✅ Enemies always start at full health when combat begins
 
 **Not Yet Implemented**:
 - ❌ Crafting system integration
@@ -114,7 +116,7 @@ The web server will start on `http://127.0.0.1:3000`. Open this URL in your brow
 
 **Combat Commands (when in combat):**
 - `A` or `ATTACK` - Attack the enemy (executes one combat round)
-- `F` or `FLEE` - Flee combat (restores all health, returns to terrain view)
+- `F` or `FLEE` - Flee combat (returns to terrain view, character health persists)
 
 **General:**
 - `H` or `HELP` - Show help (context-aware based on current view mode)
