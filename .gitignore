@@ -1,3 +1,5 @@
 /target
 *.json
 assets/*.svg
+.DS_store
+**/.DS_store
