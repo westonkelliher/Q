@@ -504,13 +504,8 @@
                     if (x === charLandX && y === charLandY) {
                         const sprite = document.createElement('img');
                         sprite.className = 'character-sprite';
-                        sprite.src = '/assets/male_witch.png';
+                        sprite.src = '/assets/viking_player.png';
                         sprite.alt = 'Character';
-                        sprite.onerror = function() {
-                            // Fallback to witch_man if male_witch doesn't exist
-                            this.src = '/assets/witch_man.png';
-                            this.onerror = null; // Prevent infinite loop
-                        };
                         cell.appendChild(sprite);
                     }
 
@@ -572,13 +567,8 @@
                     if (charTilePos && x === charTilePos[0] && y === charTilePos[1]) {
                         const sprite = document.createElement('img');
                         sprite.className = 'character-sprite';
-                        sprite.src = '/assets/male_witch.png';
+                        sprite.src = '/assets/viking_player.png';
                         sprite.alt = 'Character';
-                        sprite.onerror = function() {
-                            // Fallback to witch_man if male_witch doesn't exist
-                            this.src = '/assets/witch_man.png';
-                            this.onerror = null; // Prevent infinite loop
-                        };
                         cell.appendChild(sprite);
                     }
                     
