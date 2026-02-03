@@ -316,7 +316,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Terrain => {
                     state.move_terrain(0, -1);
                     let (x, y) = state.current_land();
-                    (true, format!("Moved up to land ({}, {})", x, y))
+                    (true, format!("⬆️ L[{},{}]", x, y))
                 }
                 ViewMode::Combat => {
                     (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
@@ -324,7 +324,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Land => {
                     state.move_land(0, -1);
                     if let Some((x, y)) = state.current_tile() {
-                        (true, format!("Moved up to tile ({}, {})", x, y))
+                        (true, format!("⬆️ T[{},{}]", x, y))
                     } else {
                         (false, "Not in land view".to_string())
                     }
@@ -336,7 +336,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Terrain => {
                     state.move_terrain(0, 1);
                     let (x, y) = state.current_land();
-                    (true, format!("Moved down to land ({}, {})", x, y))
+                    (true, format!("⬇️ L[{},{}]", x, y))
                 }
                 ViewMode::Combat => {
                     (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
@@ -344,7 +344,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Land => {
                     state.move_land(0, 1);
                     if let Some((x, y)) = state.current_tile() {
-                        (true, format!("Moved down to tile ({}, {})", x, y))
+                        (true, format!("⬇️ T[{},{}]", x, y))
                     } else {
                         (false, "Not in land view".to_string())
                     }
@@ -356,7 +356,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Terrain => {
                     state.move_terrain(-1, 0);
                     let (x, y) = state.current_land();
-                    (true, format!("Moved left to land ({}, {})", x, y))
+                    (true, format!("⬅️ L[{},{}]", x, y))
                 }
                 ViewMode::Combat => {
                     (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
@@ -364,7 +364,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Land => {
                     state.move_land(-1, 0);
                     if let Some((x, y)) = state.current_tile() {
-                        (true, format!("Moved left to tile ({}, {})", x, y))
+                        (true, format!("⬅️ T[{},{}]", x, y))
                     } else {
                         (false, "Not in land view".to_string())
                     }
@@ -376,7 +376,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Terrain => {
                     state.move_terrain(1, 0);
                     let (x, y) = state.current_land();
-                    (true, format!("Moved right to land ({}, {})", x, y))
+                    (true, format!("➡️ L[{},{}]", x, y))
                 }
                 ViewMode::Combat => {
                     (false, "Cannot move during combat. Use 'a' to attack or 'f' to flee.".to_string())
@@ -384,7 +384,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 ViewMode::Land => {
                     state.move_land(1, 0);
                     if let Some((x, y)) = state.current_tile() {
-                        (true, format!("Moved right to tile ({}, {})", x, y))
+                        (true, format!("➡️ T[{},{}]", x, y))
                     } else {
                         (false, "Not in land view".to_string())
                     }
@@ -393,11 +393,13 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         }
         "enter" | "e" => {
             if state.view_mode == ViewMode::Terrain {
+                let (land_x, land_y) = state.current_land();
                 state.enter_land();
-                if let Some((x, y)) = state.current_tile() {
-                    (true, format!("Entered land view at tile ({}, {})", x, y))
+                
+                if state.view_mode == ViewMode::Combat {
+                    (true, "⚔️ Combat!".to_string())
                 } else {
-                    (true, "Entered land view".to_string())
+                    (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
                 }
             } else {
                 (false, "Already in land view".to_string())
@@ -405,9 +407,9 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         }
         "exit" | "x" => {
             if state.view_mode == ViewMode::Land {
-                state.exit_land();
                 let (x, y) = state.current_land();
-                (true, format!("Exited to terrain view at land ({}, {})", x, y))
+                state.exit_land();
+                (true, format!("🔼 Exit L[{},{}]", x, y))
             } else {
                 (false, "Already in terrain view".to_string())
             }
@@ -418,7 +420,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 match result {
                     CombatResult::Ongoing => {
                         let combat = state.combat_state.as_ref().unwrap();
-                        (true, format!("You attack! Player HP: {}/{} | Enemy HP: {}/{}", 
+                        (true, format!("⚔️ Attack! P:{}/{} E:{}/{}", 
                             combat.player.health, state.character.get_max_health(),
                             combat.enemy.health, 
                             state.world.terrain.get(&state.current_land())
@@ -427,13 +429,13 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                                 .unwrap_or(0)))
                     }
                     CombatResult::PlayerWins => {
-                        (true, "You defeated the enemy! Entering land view...".to_string())
+                        (true, "⚔️ Victory!".to_string())
                     }
                     CombatResult::EnemyWins => {
-                        (true, "You were defeated! Fleeing combat...".to_string())
+                        (true, "⚔️ Defeated!".to_string())
                     }
                     CombatResult::Draw => {
-                        (true, "Both combatants defeated! Entering land view...".to_string())
+                        (true, "⚔️ Draw!".to_string())
                     }
                 }
             } else {
@@ -443,7 +445,7 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         "flee" | "f" => {
             if state.view_mode == ViewMode::Combat {
                 state.combat_flee();
-                (true, "You fled! All parties restored to full health. Returned to terrain view.".to_string())
+                (true, "🏃 Flee!".to_string())
             } else {
                 (false, "Not in combat.".to_string())
             }

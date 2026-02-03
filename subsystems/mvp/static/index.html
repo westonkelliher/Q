@@ -285,6 +285,14 @@
             border-left: 3px solid #4a9eff;
         }
 
+        .history-item.mundane {
+            border-left-color: #666;
+        }
+
+        .history-item.combat {
+            border-left-color: #ff6b6b;
+        }
+
         .history-command {
             color: #4a9eff;
             font-weight: bold;
@@ -293,6 +301,15 @@
         .history-response {
             color: #888;
             margin-top: 4px;
+        }
+
+        .history-item.mundane .history-response {
+            color: #999;
+        }
+
+        .history-item.combat .history-response {
+            color: #ff6b6b;
+            font-weight: 500;
         }
 
         .help-section {
@@ -512,10 +529,6 @@
                     <span class="status-label">Biome</span>
                     <span class="status-value" id="current-biome">-</span>
                 </div>
-                <div class="status-item">
-                    <span class="status-label">Current Tile</span>
-                    <span class="status-value" id="current-tile">-</span>
-                </div>
             </div>
             <div class="status-info" id="tile-info-section" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #444;">
                 <div class="status-item">
@@ -577,12 +590,12 @@
         <div class="help-section" id="help-section">
             <h3>Commands</h3>
             <div id="help-content">
-                <p><code>U</code> - Move Up</p>
-                <p><code>D</code> - Move Down</p>
-                <p><code>L</code> - Move Left</p>
-                <p><code>R</code> - Move Right</p>
-                <p><code>E</code> - Enter Land</p>
-                <p><code>X</code> - Exit Land</p>
+                <p><code>U</code> / <code>↑</code> - Move Up</p>
+                <p><code>D</code> / <code>↓</code> - Move Down</p>
+                <p><code>L</code> / <code>←</code> - Move Left</p>
+                <p><code>R</code> / <code>→</code> - Move Right</p>
+                <p><code>E</code> / <code>ENTER</code> - Enter Land</p>
+                <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
                 <p><code>H</code> - Help</p>
             </div>
         </div>
@@ -911,13 +924,6 @@
             document.getElementById('view-mode').textContent = gameState.view_mode;
             document.getElementById('current-land').textContent = 
                 `(${gameState.current_land[0]}, ${gameState.current_land[1]})`;
-            
-            if (gameState.current_tile) {
-                document.getElementById('current-tile').textContent = 
-                    `(${gameState.current_tile[0]}, ${gameState.current_tile[1]})`;
-            } else {
-                document.getElementById('current-tile').textContent = '-';
-            }
 
             // Show biome in Terrain view (hide during combat)
             const biomeItem = document.getElementById('biome-item');
@@ -949,12 +955,12 @@
             // Update character stats
             if (gameState.character) {
                 const char = gameState.character;
-                document.getElementById('character-health').textContent = `${char.health}/${char.max_health}`;
+                const healthPercent = (char.health / char.max_health) * 100;
+                document.getElementById('character-health').textContent = `${char.health}/${char.max_health} (${Math.round(healthPercent)}%)`;
                 document.getElementById('character-attack').textContent = char.attack.toString();
 
                 // Update health bar
                 const healthBar = document.getElementById('health-bar');
-                const healthPercent = (char.health / char.max_health) * 100;
                 healthBar.style.width = `${healthPercent}%`;
 
                 // Set health bar color based on percentage
@@ -980,18 +986,18 @@
             const helpContent = document.getElementById('help-content');
             if (gameState.view_mode === 'Combat') {
                 helpContent.innerHTML = `
-                    <p><code>A</code> or <code>ATTACK</code> - Attack the enemy</p>
-                    <p><code>F</code> or <code>FLEE</code> - Flee combat (restores all health)</p>
+                    <p><code>A</code> / <code>ATTACK</code> - Attack the enemy</p>
+                    <p><code>F</code> / <code>FLEE</code> - Flee combat (restores all health)</p>
                     <p><code>H</code> - Help</p>
                 `;
             } else {
                 helpContent.innerHTML = `
-                    <p><code>U</code> - Move Up</p>
-                    <p><code>D</code> - Move Down</p>
-                    <p><code>L</code> - Move Left</p>
-                    <p><code>R</code> - Move Right</p>
-                    <p><code>E</code> - Enter Land</p>
-                    <p><code>X</code> - Exit Land</p>
+                    <p><code>U</code> / <code>↑</code> - Move Up</p>
+                    <p><code>D</code> / <code>↓</code> - Move Down</p>
+                    <p><code>L</code> / <code>←</code> - Move Left</p>
+                    <p><code>R</code> / <code>→</code> - Move Right</p>
+                    <p><code>E</code> / <code>ENTER</code> - Enter Land</p>
+                    <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
                     <p><code>H</code> - Help</p>
                 `;
             }
@@ -1011,7 +1017,16 @@
             const reversed = [...commandHistory].reverse();
             reversed.forEach(item => {
                 const div = document.createElement('div');
-                div.className = 'history-item';
+                
+                // Determine log type for color coding
+                const response = item.response.toLowerCase();
+                let logType = 'mundane'; // Default grey
+                
+                if (response.includes('⚔️') || response.includes('combat') || response.includes('attack') || response.includes('flee') || response.includes('victory') || response.includes('defeated')) {
+                    logType = 'combat'; // Red for combat
+                }
+                
+                div.className = `history-item ${logType}`;
                 div.innerHTML = `
                     <div class="history-command">${item.command}</div>
                     <div class="history-response ${item.success ? 'success' : 'error'}">${item.response}</div>
