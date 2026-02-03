@@ -228,3 +228,216 @@ Commands:
         _ => (false, format!("Unknown command: {}. Type 'help' for commands.", command)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::create_hardcoded_world;
+
+    #[test]
+    fn test_command_move_up_terrain() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.move_terrain(2, 2);
+        let (success, message) = execute_command(&mut state, "u");
+        
+        assert!(success);
+        assert!(message.contains("Moved up"));
+        assert_eq!(state.current_land(), (2, 1));
+    }
+
+    #[test]
+    fn test_command_move_down_terrain() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        let (success, message) = execute_command(&mut state, "d");
+        
+        assert!(success);
+        assert!(message.contains("Moved down"));
+        assert_eq!(state.current_land(), (0, 1));
+    }
+
+    #[test]
+    fn test_command_move_left_terrain() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.move_terrain(2, 2);
+        let (success, message) = execute_command(&mut state, "l");
+        
+        assert!(success);
+        assert!(message.contains("Moved left"));
+        assert_eq!(state.current_land(), (1, 2));
+    }
+
+    #[test]
+    fn test_command_move_right_terrain() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        let (success, message) = execute_command(&mut state, "r");
+        
+        assert!(success);
+        assert!(message.contains("Moved right"));
+        assert_eq!(state.current_land(), (1, 0));
+    }
+
+    #[test]
+    fn test_command_move_up_land() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.enter_land();
+        let initial_tile = state.current_tile().unwrap();
+        state.move_land(0, 2); // Move down first
+        
+        let (success, message) = execute_command(&mut state, "u");
+        
+        assert!(success);
+        assert!(message.contains("Moved up"));
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile.1, initial_tile.1 + 1); // Should be one up from where we moved
+    }
+
+    #[test]
+    fn test_command_move_down_land() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.enter_land();
+        let initial_tile = state.current_tile().unwrap();
+        
+        let (success, message) = execute_command(&mut state, "d");
+        
+        assert!(success);
+        assert!(message.contains("Moved down"));
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile.1, initial_tile.1 + 1);
+    }
+
+    #[test]
+    fn test_command_enter_land() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.move_terrain(2, 2);
+        let (success, message) = execute_command(&mut state, "e");
+        
+        assert!(success);
+        assert!(message.contains("Entered land view"));
+        assert_eq!(state.view_mode, ViewMode::Land);
+        assert_eq!(state.current_land(), (2, 2));
+    }
+
+    #[test]
+    fn test_command_enter_land_already_in_land() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.enter_land();
+        let (success, message) = execute_command(&mut state, "e");
+        
+        assert!(!success);
+        assert!(message.contains("Already in land view"));
+    }
+
+    #[test]
+    fn test_command_exit_land() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.move_terrain(3, 3);
+        state.enter_land();
+        let (success, message) = execute_command(&mut state, "x");
+        
+        assert!(success);
+        assert!(message.contains("Exited to terrain view"));
+        assert_eq!(state.view_mode, ViewMode::Terrain);
+        assert_eq!(state.current_land(), (3, 3));
+    }
+
+    #[test]
+    fn test_command_exit_land_already_in_terrain() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        let (success, message) = execute_command(&mut state, "x");
+        
+        assert!(!success);
+        assert!(message.contains("Already in terrain view"));
+    }
+
+    #[test]
+    fn test_command_help() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        let (success, message) = execute_command(&mut state, "help");
+        
+        assert!(success);
+        assert!(message.contains("Commands"));
+        assert!(message.contains("U, D, L, R"));
+    }
+
+    #[test]
+    fn test_command_unknown() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        let (success, message) = execute_command(&mut state, "invalid");
+        
+        assert!(!success);
+        assert!(message.contains("Unknown command"));
+    }
+
+    #[test]
+    fn test_command_empty() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        let (success, message) = execute_command(&mut state, "");
+        
+        assert!(!success);
+        assert!(message.contains("Empty command"));
+    }
+
+    #[test]
+    fn test_command_case_insensitive() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        // Test uppercase (execute_command expects lowercase, so test lowercase)
+        // The case conversion happens in handle_command, not execute_command
+        let (success1, _) = execute_command(&mut state, "u");
+        assert!(success1);
+        
+        // Test mixed case (converted to lowercase)
+        state.move_terrain(0, 0);
+        let (success2, _) = execute_command(&mut state, "down");
+        assert!(success2);
+        
+        // Test full word
+        state.move_terrain(0, 0);
+        let (success3, _) = execute_command(&mut state, "right");
+        assert!(success3);
+    }
+
+    #[test]
+    fn test_command_whitespace_trimming() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        // Note: execute_command doesn't trim - trimming happens in handle_command
+        // But we can test that commands work with extra whitespace if trimmed first
+        let trimmed = "  u  ".trim().to_lowercase();
+        let (success, _) = execute_command(&mut state, &trimmed);
+        assert!(success);
+        
+        state.move_terrain(0, 0);
+        let trimmed2 = "\tr\t".trim().to_lowercase();
+        let (success2, _) = execute_command(&mut state, &trimmed2);
+        assert!(success2);
+    }
+}

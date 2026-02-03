@@ -98,16 +98,12 @@ impl LandCamera {
 
     /// Move selection within the land
     pub fn move_selection(&mut self, dx: i32, dy: i32) {
-        let new_x = self.selected_tile_x as i32 + dx;
-        let new_y = self.selected_tile_y as i32 + dy;
+        let new_x = (self.selected_tile_x as i32 + dx).max(0).min(7);
+        let new_y = (self.selected_tile_y as i32 + dy).max(0).min(7);
 
         // Clamp to 0-7 range
-        if new_x >= 0 && new_x < 8 {
-            self.selected_tile_x = new_x as usize;
-        }
-        if new_y >= 0 && new_y < 8 {
-            self.selected_tile_y = new_y as usize;
-        }
+        self.selected_tile_x = new_x as usize;
+        self.selected_tile_y = new_y as usize;
 
         self.update_target();
     }

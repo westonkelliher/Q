@@ -117,3 +117,202 @@ impl GameState {
         self.world.terrain.contains_key(&(x, y))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::create_hardcoded_world;
+
+    #[test]
+    fn test_initial_state() {
+        let world = create_hardcoded_world();
+        let state = GameState::new(world);
+        
+        assert_eq!(state.view_mode, ViewMode::Terrain);
+        assert_eq!(state.current_land(), (0, 0));
+        assert_eq!(state.current_tile(), None);
+    }
+
+    #[test]
+    fn test_terrain_movement() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        // Move right
+        state.move_terrain(1, 0);
+        assert_eq!(state.current_land(), (1, 0));
+        
+        // Move down
+        state.move_terrain(0, 1);
+        assert_eq!(state.current_land(), (1, 1));
+        
+        // Move left
+        state.move_terrain(-1, 0);
+        assert_eq!(state.current_land(), (0, 1));
+        
+        // Move up
+        state.move_terrain(0, -1);
+        assert_eq!(state.current_land(), (0, 0));
+    }
+
+    #[test]
+    fn test_terrain_coordinate_clamping() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        // Try to move beyond bounds
+        state.move_terrain(10, 10);
+        assert_eq!(state.current_land(), (4, 4));
+        
+        // Try to move to negative coordinates
+        state.move_terrain(-10, -10);
+        assert_eq!(state.current_land(), (0, 0));
+    }
+
+    #[test]
+    fn test_terrain_movement_only_in_terrain_view() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        // Enter land view
+        state.enter_land();
+        assert_eq!(state.view_mode, ViewMode::Land);
+        
+        // Try to move terrain (should not work)
+        let original_land = state.current_land();
+        state.move_terrain(1, 0);
+        assert_eq!(state.current_land(), original_land);
+    }
+
+    #[test]
+    fn test_enter_land_view() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.move_terrain(2, 2);
+        assert_eq!(state.view_mode, ViewMode::Terrain);
+        
+        state.enter_land();
+        assert_eq!(state.view_mode, ViewMode::Land);
+        assert_eq!(state.current_land(), (2, 2));
+        assert!(state.current_tile().is_some());
+    }
+
+    #[test]
+    fn test_land_movement() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.enter_land();
+        let initial_tile = state.current_tile().unwrap();
+        
+        // Move right
+        state.move_land(1, 0);
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile.0, initial_tile.0 + 1);
+        assert_eq!(tile.1, initial_tile.1);
+        
+        // Move down
+        state.move_land(0, 1);
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile.0, initial_tile.0 + 1);
+        assert_eq!(tile.1, initial_tile.1 + 1);
+        
+        // Move left
+        state.move_land(-1, 0);
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile.0, initial_tile.0);
+        assert_eq!(tile.1, initial_tile.1 + 1);
+        
+        // Move up
+        state.move_land(0, -1);
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile, initial_tile);
+    }
+
+    #[test]
+    fn test_land_coordinate_clamping() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.enter_land();
+        // Initial position is (4, 4) - center of the land
+        
+        // Try to move beyond bounds from (4, 4)
+        state.move_land(10, 10);
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile, (7, 7)); // Clamped to max
+        
+        // Try to move to negative coordinates from (7, 7)
+        state.move_land(-10, -10);
+        let tile = state.current_tile().unwrap();
+        assert_eq!(tile, (0, 0)); // Clamped to min
+    }
+
+    #[test]
+    fn test_land_movement_only_in_land_view() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        assert_eq!(state.view_mode, ViewMode::Terrain);
+        
+        // Try to move land (should not work)
+        state.move_land(1, 0);
+        assert_eq!(state.current_tile(), None);
+    }
+
+    #[test]
+    fn test_exit_land_view() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.move_terrain(3, 3);
+        state.enter_land();
+        assert_eq!(state.view_mode, ViewMode::Land);
+        
+        state.exit_land();
+        assert_eq!(state.view_mode, ViewMode::Terrain);
+        assert_eq!(state.current_land(), (3, 3));
+        assert_eq!(state.current_tile(), None);
+    }
+
+    #[test]
+    fn test_enter_land_only_in_terrain_view() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        state.enter_land();
+        assert_eq!(state.view_mode, ViewMode::Land);
+        
+        // Try to enter land again (should not work)
+        state.enter_land();
+        assert_eq!(state.view_mode, ViewMode::Land);
+    }
+
+    #[test]
+    fn test_exit_land_only_in_land_view() {
+        let world = create_hardcoded_world();
+        let mut state = GameState::new(world);
+        
+        assert_eq!(state.view_mode, ViewMode::Terrain);
+        
+        // Try to exit land (should not work)
+        state.exit_land();
+        assert_eq!(state.view_mode, ViewMode::Terrain);
+    }
+
+    #[test]
+    fn test_land_exists() {
+        let world = create_hardcoded_world();
+        let state = GameState::new(world);
+        
+        // Test existing lands
+        assert!(state.land_exists(0, 0));
+        assert!(state.land_exists(2, 2));
+        assert!(state.land_exists(4, 4));
+        
+        // Test non-existing lands
+        assert!(!state.land_exists(5, 5));
+        assert!(!state.land_exists(-1, -1));
+    }
+}
