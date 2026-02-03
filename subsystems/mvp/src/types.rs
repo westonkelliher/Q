@@ -65,6 +65,17 @@ impl Biome {
             Biome::Plains => "🟫",  // Brown square
         }
     }
+
+    /// Get RGB color values (0.0-1.0) matching the main Q game
+    pub fn to_color(&self) -> (f32, f32, f32) {
+        match self {
+            Biome::Forest => (0.1, 0.5, 0.1),         // Dark green
+            Biome::Meadow => (0.7, 0.9, 0.4),         // Light green/yellow
+            Biome::Lake => (0.2, 0.5, 0.9),           // Blue
+            Biome::Mountain => (0.8, 0.8, 0.85),      // Gray/white
+            Biome::Plains => (0.6, 0.5, 0.35),        // Brown/tan (dirt-colored)
+        }
+    }
 }
 
 impl Substrate {
@@ -78,6 +89,18 @@ impl Substrate {
             Substrate::Brush => '🟡', // Yellow circle
         }
     }
+
+    /// Get RGB color values (0.0-1.0) matching the main Q game
+    pub fn to_color(&self) -> (f32, f32, f32) {
+        match self {
+            Substrate::Grass => (0.7, 0.9, 0.4),      // Light green/yellow (same as meadow)
+            Substrate::Dirt => (0.6, 0.4, 0.2),       // Brown
+            Substrate::Stone => (0.7, 0.7, 0.7),      // Gray
+            Substrate::Mud => (0.4, 0.3, 0.2),        // Dark brown
+            Substrate::Water => (0.2, 0.4, 0.9),      // Blue
+            Substrate::Brush => (0.2, 0.6, 0.15),    // Dark green, similar to forest
+        }
+    }
 }
 
 impl Object {
@@ -86,6 +109,15 @@ impl Object {
             Object::Rock => '⚫',  // Black circle
             Object::Tree => '🟩',  // Green square (same as Forest biome)
             Object::Stick => '🟤',  // Brown circle (same as Dirt)
+        }
+    }
+
+    /// Get RGB color values (0.0-1.0) matching the main Q game
+    pub fn to_color(&self) -> (f32, f32, f32) {
+        match self {
+            Object::Rock => (0.3, 0.3, 0.3),          // Dark gray
+            Object::Tree => (0.1, 0.6, 0.1),          // Green
+            Object::Stick => (0.5, 0.3, 0.1),         // Brown
         }
     }
 }

@@ -11,9 +11,61 @@ use std::sync::{Arc, Mutex};
 use tower_http::services::ServeDir;
 
 use crate::game_state::{GameState, ViewMode};
+use crate::types::{Biome, Object, Substrate};
 
 /// Shared game state wrapped in Arc<Mutex<>> for thread safety
 pub type SharedGameState = Arc<Mutex<GameState>>;
+
+/// Serializable Biome with color information
+#[derive(Debug, Serialize)]
+pub struct SerializableBiome {
+    pub name: String,
+    pub color: [f32; 3], // RGB values 0.0-1.0
+}
+
+impl From<&Biome> for SerializableBiome {
+    fn from(biome: &Biome) -> Self {
+        let (r, g, b) = biome.to_color();
+        Self {
+            name: format!("{:?}", biome),
+            color: [r, g, b],
+        }
+    }
+}
+
+/// Serializable Substrate with color information
+#[derive(Debug, Serialize)]
+pub struct SerializableSubstrate {
+    pub name: String,
+    pub color: [f32; 3], // RGB values 0.0-1.0
+}
+
+impl From<&Substrate> for SerializableSubstrate {
+    fn from(substrate: &Substrate) -> Self {
+        let (r, g, b) = substrate.to_color();
+        Self {
+            name: format!("{:?}", substrate),
+            color: [r, g, b],
+        }
+    }
+}
+
+/// Serializable Object with color information
+#[derive(Debug, Serialize)]
+pub struct SerializableObject {
+    pub name: String,
+    pub color: [f32; 3], // RGB values 0.0-1.0
+}
+
+impl From<&Object> for SerializableObject {
+    fn from(object: &Object) -> Self {
+        let (r, g, b) = object.to_color();
+        Self {
+            name: format!("{:?}", object),
+            color: [r, g, b],
+        }
+    }
+}
 
 /// Serializable wrapper for World that converts HashMap<(i32, i32), Land> to JSON object
 #[derive(Debug, Serialize)]

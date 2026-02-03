@@ -381,10 +381,13 @@
                     const land = gameState.world.terrain[landKey];
                     
                     if (land) {
-                        cell.textContent = getBiomeChar(land.center);
+                        const color = getBiomeColor(land.center);
+                        cell.style.backgroundColor = rgbToCss(color);
+                        cell.textContent = ''; // No emoji, just color
                         cell.title = `Land (${x}, ${y}): ${land.center}`;
                     } else {
-                        cell.textContent = '⬛';
+                        cell.style.backgroundColor = '#1a1a1a'; // Dark background for ungenerated
+                        cell.textContent = '';
                         cell.title = `Ungenerated (${x}, ${y})`;
                     }
 
@@ -417,13 +420,17 @@
                     }
 
                     const tile = land.tiles[y][x];
-                    let displayChar = getSubstrateChar(tile.substrate);
                     
+                    // Use substrate color as base
+                    let backgroundColor = getSubstrateColor(tile.substrate);
+                    
+                    // If there are objects, use object color (objects render on top)
                     if (tile.objects && tile.objects.length > 0) {
-                        displayChar = getObjectChar(tile.objects[0]);
+                        backgroundColor = getObjectColor(tile.objects[0]);
                     }
 
-                    cell.textContent = displayChar;
+                    cell.style.backgroundColor = rgbToCss(backgroundColor);
+                    cell.textContent = ''; // No emoji, just color
                     cell.title = `Tile (${x}, ${y}): ${tile.substrate}${tile.objects.length > 0 ? ' + ' + tile.objects[0] : ''}`;
 
                     grid.appendChild(cell);
@@ -431,37 +438,43 @@
             }
         }
 
-        // Helper functions for rendering characters
-        function getBiomeChar(biome) {
+        // Helper functions for rendering colors (matching main Q game)
+        function getBiomeColor(biome) {
             const biomeMap = {
-                'Forest': '🟩',
-                'Meadow': '🟨',
-                'Lake': '🟦',
-                'Mountain': '⬜',
-                'Plains': '🟫',
+                'Forest': [0.1, 0.5, 0.1],         // Dark green
+                'Meadow': [0.7, 0.9, 0.4],         // Light green/yellow
+                'Lake': [0.2, 0.5, 0.9],           // Blue
+                'Mountain': [0.8, 0.8, 0.85],      // Gray/white
+                'Plains': [0.6, 0.5, 0.35],        // Brown/tan
             };
-            return biomeMap[biome] || '?';
+            return biomeMap[biome] || [0.5, 0.5, 0.5];
         }
 
-        function getSubstrateChar(substrate) {
+        function getSubstrateColor(substrate) {
             const substrateMap = {
-                'Grass': '🟢',
-                'Dirt': '🟤',
-                'Stone': '⚪',
-                'Mud': '🟫',
-                'Water': '🔵',
-                'Brush': '🟡',
+                'Grass': [0.7, 0.9, 0.4],      // Light green/yellow
+                'Dirt': [0.6, 0.4, 0.2],       // Brown
+                'Stone': [0.7, 0.7, 0.7],      // Gray
+                'Mud': [0.4, 0.3, 0.2],        // Dark brown
+                'Water': [0.2, 0.4, 0.9],      // Blue
+                'Brush': [0.2, 0.6, 0.15],    // Dark green
             };
-            return substrateMap[substrate] || '?';
+            return substrateMap[substrate] || [0.5, 0.5, 0.5];
         }
 
-        function getObjectChar(object) {
+        function getObjectColor(object) {
             const objectMap = {
-                'Rock': '⚫',
-                'Tree': '🟩',
-                'Stick': '🟤',
+                'Rock': [0.3, 0.3, 0.3],          // Dark gray
+                'Tree': [0.1, 0.6, 0.1],          // Green
+                'Stick': [0.5, 0.3, 0.1],         // Brown
             };
-            return objectMap[object] || '?';
+            return objectMap[object] || [0.5, 0.5, 0.5];
+        }
+
+        // Convert RGB (0.0-1.0) to CSS color string
+        function rgbToCss(rgb) {
+            const [r, g, b] = rgb;
+            return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
         }
 
         // Update status bar
