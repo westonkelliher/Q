@@ -1,4 +1,5 @@
 use super::world::types::{World, Substrate, Object, Biome};
+use super::character::Character;
 
 /// Information about a tile
 #[derive(Debug, Clone)]
@@ -26,6 +27,7 @@ pub struct GameState {
     pub view_mode: ViewMode,
     pub terrain_camera: TerrainCamera,
     pub land_camera: LandCamera,
+    pub character: Character,
 }
 
 impl GameState {
@@ -37,29 +39,28 @@ impl GameState {
         let mut land_camera = LandCamera::new();
         land_camera.update_target();
 
+        let mut character = Character::new();
+        character.set_land_position(0, 0);
+        character.set_tile_position(None);
+
         Self {
             world,
             view_mode: ViewMode::Terrain,
             terrain_camera,
             land_camera,
+            character,
         }
     }
 
-    /// Get current land coordinates
+    /// Get current land coordinates (from character)
     pub fn current_land(&self) -> (i32, i32) {
-        match self.view_mode {
-            ViewMode::Terrain => (self.terrain_camera.selected_land_x, self.terrain_camera.selected_land_y),
-            ViewMode::Land => (self.land_camera.selected_land_x, self.land_camera.selected_land_y),
-        }
+        self.character.get_land_position()
     }
 
-    /// Get current tile coordinates within the current land
+    /// Get current tile coordinates within the current land (from character)
     /// Returns None if in terrain view
     pub fn current_tile(&self) -> Option<(usize, usize)> {
-        match self.view_mode {
-            ViewMode::Terrain => None,
-            ViewMode::Land => Some((self.land_camera.selected_tile_x, self.land_camera.selected_tile_y)),
-        }
+        self.character.get_tile_position()
     }
 
     /// Get the center biome of the current land
@@ -120,9 +121,15 @@ impl GameState {
             return;
         }
 
-        let new_x = (self.terrain_camera.selected_land_x + dx).max(0).min(4);
-        let new_y = (self.terrain_camera.selected_land_y + dy).max(0).min(4);
+        let (current_x, current_y) = self.character.get_land_position();
+        let new_x = (current_x + dx).max(0).min(4);
+        let new_y = (current_y + dy).max(0).min(4);
         
+        // Update character position (source of truth)
+        self.character.set_land_position(new_x, new_y);
+        self.character.set_tile_position(None);
+        
+        // Update camera to follow character
         self.terrain_camera.selected_land_x = new_x;
         self.terrain_camera.selected_land_y = new_y;
         self.terrain_camera.update_target();
@@ -135,7 +142,17 @@ impl GameState {
             return;
         }
 
-        self.land_camera.move_selection(dx, dy);
+        let (current_x, current_y) = self.character.get_tile_position().unwrap_or((4, 4));
+        let new_x = ((current_x as i32) + dx).max(0).min(7) as usize;
+        let new_y = ((current_y as i32) + dy).max(0).min(7) as usize;
+        
+        // Update character position (source of truth)
+        self.character.set_tile_position(Some((new_x, new_y)));
+        
+        // Update camera to follow character
+        self.land_camera.selected_tile_x = new_x;
+        self.land_camera.selected_tile_y = new_y;
+        self.land_camera.update_target();
     }
 
     /// Enter land view for the currently selected land
@@ -144,7 +161,12 @@ impl GameState {
             return;
         }
 
-        let (land_x, land_y) = self.current_land();
+        let (land_x, land_y) = self.character.get_land_position();
+        
+        // Update character to have a tile position (default to center)
+        self.character.set_tile_position(Some((4, 4)));
+        
+        // Update camera to follow character
         self.land_camera.set_land(land_x, land_y);
         
         // Sync land camera position from terrain camera
@@ -161,7 +183,12 @@ impl GameState {
             return;
         }
 
-        let (land_x, land_y) = self.current_land();
+        let (land_x, land_y) = self.character.get_land_position();
+        
+        // Update character to remove tile position
+        self.character.set_tile_position(None);
+        
+        // Update camera to follow character
         self.terrain_camera.set_selected_land(land_x, land_y);
         
         // Sync terrain camera position from land camera

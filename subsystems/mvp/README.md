@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-02  
-> **Previous Commit**: `5126ca7`  
+> **Previous Commit**: `9307764`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -30,7 +30,8 @@ The MVP (Minimum Viable Product) is a simplified version of the Q game that comb
 
 ## Current State
 
-**Step 1 Complete**: Movement/Terrain Foundation with Web Interface
+**Step 1 Complete**: Movement/Terrain Foundation with Web Interface  
+**Step 2 In Progress**: Character System Implementation
 
 The project currently has:
 - ✅ Hardcoded 5x5 world with lands at coordinates (0,0) through (4,4)
@@ -43,6 +44,10 @@ The project currently has:
 - ✅ Web interface with REPL-style command input
 - ✅ Visual game display (terrain view and land view)
 - ✅ Command history and status display
+- ✅ Character system with position tracking and stats (health, attack)
+- ✅ Character sprite rendering in terrain and land views
+- ✅ Character stats display with health bar in web UI
+- ✅ Camera follows character (character is source of truth for position)
 
 **Not Yet Implemented**:
 - ❌ Combat system integration
@@ -63,14 +68,21 @@ subsystems/mvp/
 └── src/
     ├── main.rs          # Web server entry point
     ├── lib.rs           # Module exports
-    ├── types.rs         # Core data types
-    ├── camera.rs        # CameraCore for view management
-    ├── terrain_view.rs  # TerrainCamera (land-level view)
-    ├── land_view.rs     # LandCamera (tile-level view)
-    ├── world.rs         # Hardcoded world generation
-    ├── game_state.rs    # GameState and movement logic
-    ├── display.rs       # Text-based display utilities
-    └── web.rs           # Web server and API
+    └── game/
+    │   ├── mod.rs       # Game module exports
+    │   ├── character.rs # Character system with stats and position
+    │   ├── game_state.rs # GameState and movement logic
+    │   ├── world/
+    │   │   ├── mod.rs   # World module exports
+    │   │   ├── camera.rs # CameraCore for view management
+    │   │   ├── terrain_view.rs # TerrainCamera (land-level view)
+    │   │   ├── land_view.rs # LandCamera (tile-level view)
+    │   │   ├── types.rs  # Core data types
+    │   │   └── world.rs  # Hardcoded world generation
+    │   └── ...
+    └── web/
+        ├── mod.rs       # Web server and API
+        └── display.rs   # Text-based display utilities
 ```
 
 ## Usage

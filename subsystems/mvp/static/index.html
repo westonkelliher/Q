@@ -89,6 +89,74 @@
             box-shadow: 0 0 4px rgba(74, 158, 255, 0.5);
         }
 
+        .character-sprite {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+            object-fit: contain;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .character-stats {
+            background: #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .character-stats h3 {
+            margin-bottom: 10px;
+            color: #4a9eff;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .health-bar-container {
+            width: 100%;
+            height: 20px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .health-bar {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .health-bar.high {
+            background: #51cf66; /* Green */
+        }
+
+        .health-bar.medium {
+            background: #ffd43b; /* Yellow */
+        }
+
+        .health-bar.low {
+            background: #ff6b6b; /* Red */
+        }
+
         .status-bar {
             background: #2a2a2a;
             border: 2px solid #444;
@@ -303,7 +371,22 @@
         <div class="message" id="message"></div>
     </div>
 
-    <div class="sidebar">
+        <div class="sidebar">
+        <div class="character-stats">
+            <h3>Character Stats</h3>
+            <div class="stat-row">
+                <span class="stat-label">Health</span>
+                <span class="stat-value" id="character-health">-</span>
+            </div>
+            <div class="health-bar-container">
+                <div class="health-bar" id="health-bar"></div>
+            </div>
+            <div class="stat-row" style="margin-top: 10px;">
+                <span class="stat-label">Attack</span>
+                <span class="stat-value" id="character-attack">-</span>
+            </div>
+        </div>
+
         <div class="history-section">
             <h3>Command History</h3>
             <div id="history-list"></div>
@@ -391,13 +474,14 @@
         // Render terrain view (5x5 grid)
         function renderTerrainView() {
             const grid = document.getElementById('terrain-grid');
-            const [currentX, currentY] = gameState.current_land;
+            const [charLandX, charLandY] = gameState.character.land_position;
 
             for (let y = 0; y < 5; y++) {
                 for (let x = 0; x < 5; x++) {
                     const cell = document.createElement('div');
                     cell.className = 'terrain-cell';
                     
+                    const [currentX, currentY] = gameState.current_land;
                     if (x === currentX && y === currentY) {
                         cell.classList.add('current');
                     }
@@ -416,6 +500,20 @@
                         cell.title = `Ungenerated (${x}, ${y})`;
                     }
 
+                    // Add character sprite if character is on this land
+                    if (x === charLandX && y === charLandY) {
+                        const sprite = document.createElement('img');
+                        sprite.className = 'character-sprite';
+                        sprite.src = '/assets/male_witch.png';
+                        sprite.alt = 'Character';
+                        sprite.onerror = function() {
+                            // Fallback to witch_man if male_witch doesn't exist
+                            this.src = '/assets/witch_man.png';
+                            this.onerror = null; // Prevent infinite loop
+                        };
+                        cell.appendChild(sprite);
+                    }
+
                     grid.appendChild(cell);
                 }
             }
@@ -426,6 +524,7 @@
             const grid = document.getElementById('land-grid');
             const [landX, landY] = gameState.current_land;
             const [tileX, tileY] = gameState.current_tile || [0, 0];
+            const charTilePos = gameState.character.tile_position;
 
             const landKey = `${landX},${landY}`;
             const land = gameState.world.terrain[landKey];
@@ -467,6 +566,20 @@
                             // Fallback to color if asset not found
                             cell.style.backgroundColor = rgbToCss(getObjectColor(object));
                         }
+                    }
+                    
+                    // Add character sprite if character is on this tile
+                    if (charTilePos && x === charTilePos[0] && y === charTilePos[1]) {
+                        const sprite = document.createElement('img');
+                        sprite.className = 'character-sprite';
+                        sprite.src = '/assets/male_witch.png';
+                        sprite.alt = 'Character';
+                        sprite.onerror = function() {
+                            // Fallback to witch_man if male_witch doesn't exist
+                            this.src = '/assets/witch_man.png';
+                            this.onerror = null; // Prevent infinite loop
+                        };
+                        cell.appendChild(sprite);
                     }
                     
                     cell.title = `Tile (${x}, ${y}): ${tile.substrate}${tile.objects.length > 0 ? ' + ' + tile.objects[0] : ''}`;
@@ -563,6 +676,28 @@
                 tileInfoSection.style.display = 'flex';
             } else {
                 tileInfoSection.style.display = 'none';
+            }
+
+            // Update character stats
+            if (gameState.character) {
+                const char = gameState.character;
+                document.getElementById('character-health').textContent = `${char.health}/${char.max_health}`;
+                document.getElementById('character-attack').textContent = char.attack.toString();
+
+                // Update health bar
+                const healthBar = document.getElementById('health-bar');
+                const healthPercent = (char.health / char.max_health) * 100;
+                healthBar.style.width = `${healthPercent}%`;
+
+                // Set health bar color based on percentage
+                healthBar.className = 'health-bar';
+                if (healthPercent > 60) {
+                    healthBar.classList.add('high');
+                } else if (healthPercent > 30) {
+                    healthBar.classList.add('medium');
+                } else {
+                    healthBar.classList.add('low');
+                }
             }
         }
 

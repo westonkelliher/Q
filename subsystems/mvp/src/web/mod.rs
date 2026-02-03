@@ -102,6 +102,16 @@ pub struct SerializableTileInfo {
     pub biome: String,
 }
 
+/// Serializable character information
+#[derive(Debug, Serialize)]
+pub struct SerializableCharacter {
+    pub land_position: (i32, i32),
+    pub tile_position: Option<(usize, usize)>,
+    pub health: i32,
+    pub max_health: i32,
+    pub attack: i32,
+}
+
 /// Response containing the current game state
 #[derive(Debug, Serialize)]
 pub struct GameStateResponse {
@@ -111,6 +121,7 @@ pub struct GameStateResponse {
     pub current_tile_info: Option<SerializableTileInfo>,
     pub current_biome: Option<String>, // Center biome of current land (for Terrain view)
     pub world: SerializableWorld,
+    pub character: SerializableCharacter,
 }
 
 /// Command request from the client
@@ -166,6 +177,13 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
             terrain: state.world.terrain.clone(),
             seed: state.world.seed,
         },
+        character: SerializableCharacter {
+            land_position: state.character.get_land_position(),
+            tile_position: state.character.get_tile_position(),
+            health: state.character.get_health(),
+            max_health: state.character.get_max_health(),
+            attack: state.character.get_attack(),
+        },
     }))
 }
 
@@ -200,6 +218,13 @@ async fn handle_command(
                 name: state.world.name.clone(),
                 terrain: state.world.terrain.clone(),
                 seed: state.world.seed,
+            },
+            character: SerializableCharacter {
+                land_position: state.character.get_land_position(),
+                tile_position: state.character.get_tile_position(),
+                health: state.character.get_health(),
+                max_health: state.character.get_max_health(),
+                attack: state.character.get_attack(),
             },
         },
     };
