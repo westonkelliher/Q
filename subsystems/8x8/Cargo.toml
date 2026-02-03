@@ -12,3 +12,4 @@ name = "eightxeight"
 path = "src/main.rs"
 
 [dependencies]
+macroquad = "0.4"
