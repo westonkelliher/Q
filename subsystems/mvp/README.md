@@ -114,3 +114,8 @@ See `MVP_BRAINSTORM.md` for the complete implementation plan. The next steps are
 - `axum` - Web framework for HTTP server
 - `tokio` - Async runtime
 - `tower-http` - Static file serving and middleware
+
+
+
+# Note
+- when user mentions parent project they mean "Q" (../../{src,README.md})
