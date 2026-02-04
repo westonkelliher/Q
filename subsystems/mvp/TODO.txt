@@ -7,10 +7,12 @@ THEN: refactor the README
 * early progression content
 * crafting mechanic
 * content
-@ multi display floor items (2x2 then 3x3 max 4x4)
+@
+* durability
 * quest system to guide early progression
 
 
+* multi display floor items (2x2 then 3x3 max 4x4)
 * Have tile position within land stay consistent as long as the player does not
   leave that land in the terrain view. When the player does leave the land and
   enter a new land, their tile position in that land should be based on the

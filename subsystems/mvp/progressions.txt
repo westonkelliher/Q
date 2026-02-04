@@ -45,3 +45,9 @@ Note: any time I say skinning knife here, I just mean a knife. Any knife can be 
   - later binding can come from tanning leather then cutting into strip
 
 * durability of tool: (base handle durability + base head durability) * binding durability multiplier
+
+
+* other items:
+  - chest
+  - bed
+  - 

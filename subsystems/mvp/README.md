@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `7f77a0a`  
+> **Previous Commit**: `ebd0918`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
