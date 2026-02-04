@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-02  
-> **Previous Commit**: `9bcfe01`  
+> **Previous Commit**: `8b2abe6`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -45,7 +45,8 @@ The project currently has:
 - ✅ Visual game display (terrain view, combat view, and land view)
 - ✅ Command history and status display
 - ✅ Character system with position tracking and stats (health, attack)
-- ✅ Character sprite rendering in terrain and land views
+- ✅ Character emoji rendering in terrain, land, and combat views (wizard, mage, person)
+- ✅ Character appearance cycling with 'C' command
 - ✅ Character stats display with health bar in web UI
 - ✅ Camera follows character (character is source of truth for position)
 - ✅ Combat system with simultaneous attack resolution
@@ -117,6 +118,7 @@ The web server will start on `http://127.0.0.1:3000`. Open this URL in your brow
 **Movement Commands:**
 - `U`, `D`, `L`, `R` - Move up, down, left, right (in terrain or land view)
 - `E` or `ENTER` - Context-dependent: Enter land (terrain view), Exit land (land view), or Flee combat (combat view)
+- `C` or `CYCLE` - Cycle character appearance (wizard → mage → person → wizard)
 
 **Combat Commands (when in combat):**
 - `A` or `ATTACK` - Attack the enemy (executes one combat round)

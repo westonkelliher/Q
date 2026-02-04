@@ -1,3 +1,40 @@
+/// Character emoji type
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CharacterEmoji {
+    Wizard,
+    Mage,
+    Person,
+}
+
+impl CharacterEmoji {
+    /// Get the emoji string for this character type
+    pub fn to_emoji(&self) -> &'static str {
+        match self {
+            CharacterEmoji::Wizard => "🧙",
+            CharacterEmoji::Mage => "🧙‍♂️",
+            CharacterEmoji::Person => "🧑",
+        }
+    }
+
+    /// Get the name of this character type
+    pub fn to_name(&self) -> &'static str {
+        match self {
+            CharacterEmoji::Wizard => "Wizard",
+            CharacterEmoji::Mage => "Mage",
+            CharacterEmoji::Person => "Person",
+        }
+    }
+
+    /// Cycle to the next character emoji
+    pub fn next(&self) -> Self {
+        match self {
+            CharacterEmoji::Wizard => CharacterEmoji::Mage,
+            CharacterEmoji::Mage => CharacterEmoji::Person,
+            CharacterEmoji::Person => CharacterEmoji::Wizard,
+        }
+    }
+}
+
 /// Character struct representing the player character
 /// Contains position and stats (health, attack)
 #[derive(Debug, Clone)]
@@ -12,11 +49,14 @@ pub struct Character {
     pub max_health: i32,
     /// Attack stat
     pub attack: i32,
+    /// Character emoji/appearance
+    pub emoji: CharacterEmoji,
 }
 
 impl Character {
     /// Create a new character with default stats
     /// Starts at land (0, 0) with no tile position (terrain view)
+    /// Default emoji is Wizard
     pub fn new() -> Self {
         Self {
             land_position: (0, 0),
@@ -24,7 +64,18 @@ impl Character {
             health: 10,
             max_health: 10,
             attack: 5,
+            emoji: CharacterEmoji::Wizard,
         }
+    }
+
+    /// Cycle to the next character emoji
+    pub fn cycle_emoji(&mut self) {
+        self.emoji = self.emoji.next();
+    }
+
+    /// Get the current character emoji
+    pub fn get_emoji(&self) -> CharacterEmoji {
+        self.emoji
     }
 
     /// Get current land position

@@ -111,6 +111,7 @@ pub struct SerializableCharacter {
     pub health: i32,
     pub max_health: i32,
     pub attack: i32,
+    pub emoji: String,
 }
 
 /// Serializable combatant information
@@ -231,6 +232,7 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
             health: state.character.get_health(),
             max_health: state.character.get_max_health(),
             attack: state.character.get_attack(),
+            emoji: state.character.get_emoji().to_emoji().to_string(),
         },
         combat_state,
     }))
@@ -303,6 +305,7 @@ async fn handle_command(
                 health: state.character.get_health(),
                 max_health: state.character.get_max_health(),
                 attack: state.character.get_attack(),
+                emoji: state.character.get_emoji().to_emoji().to_string(),
             },
             combat_state,
         },
@@ -497,6 +500,12 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 (false, "Use 'E' to flee combat (or enter/exit based on context)".to_string())
             }
         }
+        "cycle" | "c" => {
+            state.character.cycle_emoji();
+            let emoji_name = state.character.get_emoji().to_name();
+            let emoji = state.character.get_emoji().to_emoji();
+            (true, format!("{} Character: {}", emoji, emoji_name))
+        }
         "help" | "h" | "?" => {
             let help_text = match state.display_overlay {
                 DisplayOverlay::DeathScreen => {
@@ -536,6 +545,7 @@ Commands:
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Enter land view (may trigger combat if enemy present)
+  C, CYCLE   - Cycle character appearance
   H, HELP, ? - Show this help
 "#
                         }

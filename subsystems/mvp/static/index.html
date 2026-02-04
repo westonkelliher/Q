@@ -641,6 +641,7 @@
                 <p><code>L</code> / <code>←</code> - Move Left</p>
                 <p><code>R</code> / <code>→</code> - Move Right</p>
                 <p><code>E</code> / <code>ENTER</code> - Enter/Exit/Flee (context-dependent)</p>
+                <p><code>C</code> - Cycle character appearance</p>
                 <p><code>H</code> - Help</p>
             </div>
         </div>
@@ -793,13 +794,17 @@
                         cell.title = `Ungenerated (${x}, ${y})`;
                     }
 
-                    // Add character sprite if character is on this land
+                    // Add character emoji if character is on this land
                     if (x === charLandX && y === charLandY) {
-                        const sprite = document.createElement('img');
-                        sprite.className = 'character-sprite';
-                        sprite.src = '/assets/viking_player.png';
-                        sprite.alt = 'Character';
-                        cell.appendChild(sprite);
+                        const emoji = document.createElement('div');
+                        emoji.className = 'character-sprite';
+                        emoji.style.fontSize = '30px';
+                        emoji.style.display = 'flex';
+                        emoji.style.alignItems = 'center';
+                        emoji.style.justifyContent = 'center';
+                        emoji.textContent = gameState.character.emoji || '🧙';
+                        emoji.title = 'Character';
+                        cell.appendChild(emoji);
                     }
 
                     grid.appendChild(cell);
@@ -856,13 +861,17 @@
                         }
                     }
                     
-                    // Add character sprite if character is on this tile
+                    // Add character emoji if character is on this tile
                     if (charTilePos && x === charTilePos[0] && y === charTilePos[1]) {
-                        const sprite = document.createElement('img');
-                        sprite.className = 'character-sprite';
-                        sprite.src = '/assets/viking_player.png';
-                        sprite.alt = 'Character';
-                        cell.appendChild(sprite);
+                        const emoji = document.createElement('div');
+                        emoji.className = 'character-sprite';
+                        emoji.style.fontSize = '16px';
+                        emoji.style.display = 'flex';
+                        emoji.style.alignItems = 'center';
+                        emoji.style.justifyContent = 'center';
+                        emoji.textContent = gameState.character.emoji || '🧙';
+                        emoji.title = 'Character';
+                        cell.appendChild(emoji);
                     }
                     
                     cell.title = `Tile (${x}, ${y}): ${tile.substrate}${tile.objects.length > 0 ? ' + ' + tile.objects[0] : ''}`;
@@ -952,7 +961,7 @@
                 <div class="combat-panels">
                     <div class="combatant-panel player">
                         <div class="combatant-name">Player</div>
-                        <img src="/assets/viking_player.png" alt="Player" class="combatant-sprite" />
+                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;">${gameState.character.emoji || '🧙'}</div>
                         <div class="combatant-stats">
                             <div class="combat-stat-row">
                                 <span class="combat-stat-label">HP</span>
@@ -1062,6 +1071,7 @@
                 helpContent.innerHTML = `
                     <p><code>A</code> / <code>ATTACK</code> - Attack the enemy</p>
                     <p><code>E</code> / <code>ENTER</code> - Flee combat</p>
+                    <p><code>C</code> - Cycle character appearance</p>
                     <p><code>H</code> - Help</p>
                 `;
             } else if (gameState.view_mode === 'Land') {
@@ -1071,6 +1081,7 @@
                     <p><code>L</code> / <code>←</code> - Move Left</p>
                     <p><code>R</code> / <code>→</code> - Move Right</p>
                     <p><code>E</code> / <code>ENTER</code> - Exit Land</p>
+                    <p><code>C</code> - Cycle character appearance</p>
                     <p><code>H</code> - Help</p>
                 `;
             } else {
@@ -1080,6 +1091,7 @@
                     <p><code>L</code> / <code>←</code> - Move Left</p>
                     <p><code>R</code> / <code>→</code> - Move Right</p>
                     <p><code>E</code> / <code>ENTER</code> - Enter Land</p>
+                    <p><code>C</code> - Cycle character appearance</p>
                     <p><code>H</code> - Help</p>
                 `;
             }
