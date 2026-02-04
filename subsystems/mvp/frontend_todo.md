@@ -46,6 +46,13 @@ _No pending frontend integration tasks at this time._
 
 ## Recent Backend Features (No Frontend Action Needed)
 
+**Enemy Carcass Drops** (commit pending):
+- Enemies now drop carcasses when defeated
+- Carcass placed on center tile (4,4) after combat victory
+- Added carcass items for all enemy types: rabbit, fox, wolf, spider, snake, lion, dragon
+- Carcasses can be picked up and used in crafting recipes
+- No frontend changes needed (automatic behavior)
+
 **Craftable Query Command** (commit b95d715):
 - Added `craftable` / `can` / `available` command
 - Shows recipes that can be crafted with current inventory + workstations in land

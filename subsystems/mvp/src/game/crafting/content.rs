@@ -395,6 +395,66 @@ fn register_items(registry: &mut CraftingRegistry) {
         stat_bonuses: StatBonuses::default(),
     });
 
+    registry.register_item(ItemDefinition {
+        id: item("rabbit_carcass"),
+        name: "Rabbit Carcass".to_string(),
+        description: "Remains of a slain rabbit. Can be processed for materials.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
+        pickupable: true,
+        stat_bonuses: StatBonuses::default(),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("fox_carcass"),
+        name: "Fox Carcass".to_string(),
+        description: "Remains of a slain fox. Can be processed for materials.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
+        pickupable: true,
+        stat_bonuses: StatBonuses::default(),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("spider_carcass"),
+        name: "Spider Carcass".to_string(),
+        description: "Remains of a slain spider. Can be processed for materials.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
+        pickupable: true,
+        stat_bonuses: StatBonuses::default(),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("snake_carcass"),
+        name: "Snake Carcass".to_string(),
+        description: "Remains of a slain snake. Can be processed for materials.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
+        pickupable: true,
+        stat_bonuses: StatBonuses::default(),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("lion_carcass"),
+        name: "Lion Carcass".to_string(),
+        description: "Remains of a slain lion. Can be processed for materials.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
+        pickupable: true,
+        stat_bonuses: StatBonuses::default(),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("dragon_carcass"),
+        name: "Dragon Carcass".to_string(),
+        description: "Remains of a slain dragon. Can be processed for materials.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
+        pickupable: true,
+        stat_bonuses: StatBonuses::default(),
+    });
+
     // =========================================================================
     // PROCESSED MATERIALS - From recipes
     // =========================================================================

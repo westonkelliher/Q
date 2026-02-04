@@ -160,6 +160,26 @@ impl CraftingRegistry {
         self.next_instance_id += 1;
         id
     }
+    
+    /// Create and register a simple item instance (e.g., for world drops)
+    pub fn create_simple_item(&mut self, item_id: &ItemId) -> ItemInstanceId {
+        let instance_id = self.next_instance_id();
+        let item_instance = ItemInstance::Simple(
+            SimpleInstance {
+                id: instance_id,
+                definition: item_id.clone(),
+                provenance: Provenance {
+                    recipe_id: super::ids::RecipeId("world_drop".to_string()),
+                    consumed_inputs: vec![],
+                    tool_used: None,
+                    world_object_used: None,
+                    crafted_at: 0,
+                },
+            }
+        );
+        self.register_instance(item_instance);
+        instance_id
+    }
 
     /// Iterate over all registered materials
     pub fn all_materials(&self) -> impl Iterator<Item = &Material> {

@@ -6,7 +6,7 @@ m r
 status
 
 # Enter land - should trigger combat
-e
+x
 status
 
 # Check initial inventory
@@ -25,6 +25,13 @@ a
 # Check status after combat - should be in land view
 status
 
+# Pick up carcass from center tile (player spawns at 4,4 after victory)
+p
+p
+
+# Check inventory - should have rabbit carcass
+inv
+
 # Verify we can move around the land
 m u
 m d
@@ -32,5 +39,5 @@ m l
 m r
 
 # Exit land
-e
+x
 status

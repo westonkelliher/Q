@@ -1,0 +1,24 @@
+# E2E Test: Enemy Carcass Drops
+# Tests that enemies drop carcasses when defeated
+
+# Test Rabbit carcass (enemy at 1,0)
+m r
+x
+
+# Attack until victory (Rabbit has 7 HP, player does 5 damage)
+a
+a
+
+# Should be in land view now at center tile
+status
+
+# Pick up items from center tile
+p
+p
+
+# Check inventory - should have rabbit carcass
+inv
+
+# Exit land
+x
+status

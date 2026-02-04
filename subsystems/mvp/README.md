@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `db6217b`  
+> **Previous Commit**: `ad2298d`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -186,14 +186,15 @@ Each land contains an 8x8 grid of tiles with varying biomes based on position wi
 - Inventory data structure (simple list, no stacking yet)
 - Inventory display in UI (toggle with backtick key in web, `inv` in CLI)
 - Item stat bonuses (e.g., stick grants +1 attack when equipped)
+- Item pickup/drop/place system
+- Enemy carcass drops on combat victory (dropped on center tile)
 - Craftable query command to check recipes based on inventory + workstations
 
 **Planned Features:**
-- Item pickup system (`P` command to collect objects from tiles)
-- Enemy drops (items awarded on combat victory)
 - Crafting recipes (combine items to create equipment)
 - Crafting GUI for item combination
-- Object placement/interaction
+- Processing recipes for carcasses (extract materials)
+- Equipment system with stat calculations
 
 ## Combat
 
@@ -203,9 +204,14 @@ Combat is triggered when entering a land that contains an undefeated enemy.
 1. Enter land with enemy → automatic combat mode transition
 2. Simultaneous attack each round (both deal damage)
 3. Combat continues until player or enemy reaches 0 health
-4. Victory: Enemy defeated, enter land view to explore
+4. Victory: Enemy defeated, enter land view to explore, carcass drops on center tile
 5. Defeat: Return to terrain view, restore to half health
 6. Draw (both die): Counts as player defeat
+
+**Enemy Drops:**
+- Each defeated enemy drops a carcass on the center tile (4,4) of the land
+- Carcass types: Rabbit, Fox, Wolf, Spider, Snake, Lion, Dragon
+- Carcasses can be processed for materials (bones, hides, meat)
 
 **Combat Commands:**
 - `A`, `ATTACK` - Execute one combat round

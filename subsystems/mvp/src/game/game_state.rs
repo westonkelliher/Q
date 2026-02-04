@@ -1,7 +1,7 @@
-use super::world::types::{World, Substrate, Biome};
+use super::world::types::{World, Substrate, Biome, EnemyType};
 use super::character::Character;
 use super::combat::CombatResult;
-use super::crafting::{CraftingRegistry, ItemInstanceId, WorldObjectInstanceId};
+use super::crafting::{CraftingRegistry, ItemInstanceId, WorldObjectInstanceId, ItemId};
 
 /// Information about a tile
 #[derive(Debug, Clone)]
@@ -251,9 +251,21 @@ impl GameState {
         // Handle combat conclusion
         match result {
             CombatResult::PlayerWins => {
+                // Get enemy type before modifying anything
+                let enemy_type = enemy.enemy_type;
+                
                 // Combat won - reset round counter and enter land view
                 self.combat_round = 0;
                 self.enter_land_view_internal(land_x, land_y);
+                
+                // Drop carcass on center tile (4,4)
+                let carcass_item_id = Self::get_carcass_for_enemy(enemy_type);
+                let carcass_instance = self.crafting_registry.create_simple_item(&carcass_item_id);
+                
+                // Place on center tile where player spawns
+                if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+                    land.tiles[4][4].items.push(carcass_instance);
+                }
             }
             CombatResult::EnemyWins | CombatResult::Draw => {
                 // Player defeated - restore both to their starting states
@@ -434,6 +446,20 @@ impl GameState {
         }
         
         base_evasion
+    }
+    
+    /// Get the carcass item ID for a given enemy type
+    fn get_carcass_for_enemy(enemy_type: EnemyType) -> ItemId {
+        let carcass_name = match enemy_type {
+            EnemyType::Rabbit => "rabbit_carcass",
+            EnemyType::Fox => "fox_carcass",
+            EnemyType::Wolf => "wolf_carcass",
+            EnemyType::Spider => "spider_carcass",
+            EnemyType::Snake => "snake_carcass",
+            EnemyType::Lion => "lion_carcass",
+            EnemyType::Dragon => "dragon_carcass",
+        };
+        ItemId(carcass_name.to_string())
     }
 }
 
