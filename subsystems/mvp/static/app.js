@@ -643,7 +643,7 @@ function renderTerrainView(terrainState) {
                     const darkerColor = darkenColor(getBiomeColor(land.biome));
                     
                     biomeIcons.forEach(iconName => {
-                        iconContainer.appendChild(renderSimpleIcon(iconName, darkerColor, 18));
+                        iconContainer.appendChild(renderSimpleIcon(iconName, darkerColor, 28));
                     });
                     
                     cell.appendChild(iconContainer);

@@ -62,7 +62,7 @@ body {
 .biome-icon-overlay {
     position: absolute;
     display: flex;
-    gap: 4px;
+    gap: -4px;
     align-items: center;
     justify-content: center;
     width: 100%;
