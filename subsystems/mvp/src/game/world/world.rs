@@ -186,24 +186,62 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
             }
         }
         Biome::Meadow => {
-            // Meadows: plant fiber, sticks, occasional trees
+            // Meadows: plant fiber, sticks, rocks, flint, clay, occasional trees
             for y in 0..8 {
                 for x in 0..8 {
                     let tile = &mut tiles[y][x];
-                    // Plant fiber abundant in meadows
-                    if (x + y) % 4 == 0 {
-                        let fiber_instance = create_simple_item_instance(crafting_registry, "plant_fiber");
-                        tile.items.push(fiber_instance);
-                    }
-                    // Some sticks
-                    else if (x + y) % 6 == 0 {
-                        let stick_instance = create_simple_item_instance(crafting_registry, "stick");
-                        tile.items.push(stick_instance);
-                    }
-                    // Occasional trees
-                    else if ((x + y) as i32 + land_x) % 8 == 0 {
-                        let tree_instance = create_simple_item_instance(crafting_registry, "tree");
-                        tile.items.push(tree_instance);
+                    
+                    // In starting land (0,0), prioritize essential crafting materials
+                    if land_x == 0 && land_y == 0 {
+                        // Clay patches (need 3 for forge) - PRIORITY (place first to ensure availability)
+                        if (x + y) % 5 == 0 || (x * 2 + y) % 6 == 0 {
+                            tile.substrate = Substrate::Clay;
+                            let clay_instance = create_simple_item_instance(crafting_registry, "clay");
+                            tile.items.push(clay_instance);
+                        }
+                        // Rocks (need 5 for forge) - very common
+                        else if (x + y) % 3 == 0 || x % 4 == 0 || y % 4 == 1 {
+                            let rock_instance = create_simple_item_instance(crafting_registry, "rock");
+                            tile.items.push(rock_instance);
+                        }
+                        // Flint (need 1 for blade) - common
+                        else if (x * y) % 6 == 1 || (x + y) % 7 == 2 {
+                            let flint_instance = create_simple_item_instance(crafting_registry, "flint");
+                            tile.items.push(flint_instance);
+                        }
+                        // Plant fiber still available
+                        else if (x + y) % 4 == 0 {
+                            let fiber_instance = create_simple_item_instance(crafting_registry, "plant_fiber");
+                            tile.items.push(fiber_instance);
+                        }
+                        // Sticks still available
+                        else if (x + y) % 8 == 0 {
+                            let stick_instance = create_simple_item_instance(crafting_registry, "stick");
+                            tile.items.push(stick_instance);
+                        }
+                        // Trees for later wood chopping (sparse)
+                        else if (x * y) % 11 == 5 {
+                            let tree_instance = create_simple_item_instance(crafting_registry, "tree");
+                            tile.items.push(tree_instance);
+                        }
+                    } else {
+                        // Other meadow lands - original distribution
+                        if (x + y) % 4 == 0 {
+                            let fiber_instance = create_simple_item_instance(crafting_registry, "plant_fiber");
+                            tile.items.push(fiber_instance);
+                        }
+                        else if (x + y) % 6 == 0 {
+                            let stick_instance = create_simple_item_instance(crafting_registry, "stick");
+                            tile.items.push(stick_instance);
+                        }
+                        else if (x + y) % 9 == 0 {
+                            let rock_instance = create_simple_item_instance(crafting_registry, "rock");
+                            tile.items.push(rock_instance);
+                        }
+                        else if ((x + y) as i32 + land_x) % 10 == 0 {
+                            let tree_instance = create_simple_item_instance(crafting_registry, "tree");
+                            tile.items.push(tree_instance);
+                        }
                     }
                 }
             }
@@ -241,7 +279,7 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
             }
         }
         Biome::Mountain => {
-            // Mountains: rocks, flint, ores (copper, tin, iron)
+            // Mountains: rocks, flint, ore boulders (resource nodes requiring pickaxe)
             for y in 0..8 {
                 for x in 0..8 {
                     let tile = &mut tiles[y][x];
@@ -251,30 +289,30 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
                     } else {
                         tile.substrate = Substrate::Dirt;
                     }
-                    // Many rocks
+                    // Many rocks (pickupable)
                     if ((x + y) as i32 + land_x + land_y) % 2 == 0 {
                         let rock_instance = create_simple_item_instance(crafting_registry, "rock");
                         tile.items.push(rock_instance);
                     }
-                    // Flint deposits
+                    // Flint deposits (pickupable)
                     else if ((x * y) as i32 + land_x) % 7 == 0 {
                         let flint_instance = create_simple_item_instance(crafting_registry, "flint");
                         tile.items.push(flint_instance);
                     }
-                    // Copper ore (more common)
+                    // Copper ore boulders (resource nodes - not pickupable)
                     else if ((x + y) as i32 * 2 + land_x) % 9 == 0 {
-                        let copper_instance = create_simple_item_instance(crafting_registry, "copper_ore");
-                        tile.items.push(copper_instance);
+                        let boulder_instance = create_simple_item_instance(crafting_registry, "copper_ore_boulder");
+                        tile.items.push(boulder_instance);
                     }
-                    // Tin ore (rare, mountains only)
+                    // Tin ore boulders (rare, mountains only)
                     else if ((x * 3 + y * 2) as i32 + land_y) % 13 == 0 {
-                        let tin_instance = create_simple_item_instance(crafting_registry, "tin_ore");
-                        tile.items.push(tin_instance);
+                        let boulder_instance = create_simple_item_instance(crafting_registry, "tin_ore_boulder");
+                        tile.items.push(boulder_instance);
                     }
-                    // Iron ore (less common)
+                    // Iron ore boulders (less common)
                     else if ((x + y) as i32 * 3 + land_x * 2) % 11 == 0 {
-                        let iron_instance = create_simple_item_instance(crafting_registry, "iron_ore");
-                        tile.items.push(iron_instance);
+                        let boulder_instance = create_simple_item_instance(crafting_registry, "iron_ore_boulder");
+                        tile.items.push(boulder_instance);
                     }
                 }
             }

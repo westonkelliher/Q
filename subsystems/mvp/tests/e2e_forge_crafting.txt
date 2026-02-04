@@ -1,0 +1,63 @@
+# E2E Test: Complete Forge Crafting in Starting Land
+# Tests gathering 5 rocks + 3 clay and building a forge
+
+# Enter starting land
+x
+
+# Systematically collect from known spawn locations
+# First sweep: collect rocks and any clay/flint found
+p
+m u
+p
+m l
+p
+m d
+p
+m r
+p
+m d
+p
+m l
+p
+m u
+p
+m r
+p
+m d
+p
+m d
+p
+m d
+p
+m r
+p
+m r
+p
+m r
+p
+m u
+p
+m u
+p
+m u
+p
+m l
+p
+m l
+p
+
+# Check inventory
+inv
+
+# Verify forge is craftable
+craftable
+
+# Craft the forge
+c build_forge
+
+# Verify forge in inventory
+inv
+
+# Exit
+x
+status

@@ -1,0 +1,44 @@
+# E2E Test: Early Progression in Starting Land
+# Tests that starting land (0,0) has all resources needed for progression path
+
+# Check initial status
+status
+
+# Enter starting land
+x
+
+# Collect resources - navigate and pick up items
+# The test verifies the starting land has: rocks, flint, clay, sticks, plant fiber
+
+# Start collecting
+p
+m u
+p
+m l
+p
+m d
+m d
+p
+m r
+p
+
+# Check collected items so far
+inv
+
+# Move around more to find clay and flint
+m u
+m l
+m l
+p
+m d
+p
+
+# Check inventory again
+inv
+
+# Test craftable command to see if we can progress
+craftable
+
+# Exit land
+x
+status

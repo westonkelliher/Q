@@ -19,27 +19,38 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             // Collect matching items from inventory
             let mut provided_inputs = Vec::new();
             for input in &recipe.inputs {
-                // Find matching item in inventory
-                let mut found = false;
+                // Find required quantity of matching items in inventory
+                let mut found_count = 0u32;
+                let mut indices_to_remove = Vec::new();
+                
                 for (i, inv_item_id) in state.character.inventory.items.iter().enumerate() {
+                    if found_count >= input.quantity {
+                        break;
+                    }
+                    
                     if let Some(instance) = state.crafting_registry.get_instance(*inv_item_id) {
                         if let crate::game::crafting::ItemInstance::Simple(s) = instance {
                             if s.definition == input.item_id {
                                 provided_inputs.push(*inv_item_id);
-                                // Remove from inventory
-                                state.character.inventory.remove_item(i);
-                                found = true;
-                                break;
+                                indices_to_remove.push(i);
+                                found_count += 1;
                             }
                         }
                     }
                 }
-                if !found {
-                    // Put back items we already removed
+                
+                if found_count < input.quantity {
+                    // Put back items we already collected
                     for item_id in provided_inputs.iter() {
                         state.character.inventory.add_item(*item_id);
                     }
-                    return (false, format!("Missing required item: {}", input.item_id.0));
+                    return (false, format!("Missing required item: {} (need {}, have {})", 
+                        input.item_id.0, input.quantity, found_count));
+                }
+                
+                // Remove collected items from inventory (in reverse order to maintain indices)
+                for &i in indices_to_remove.iter().rev() {
+                    state.character.inventory.remove_item(i);
                 }
             }
             

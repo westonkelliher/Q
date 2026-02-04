@@ -46,7 +46,16 @@ _No pending frontend integration tasks at this time._
 
 ## Recent Backend Features (No Frontend Action Needed)
 
-**Enemy Carcass Drops** (commit pending):
+**World Resource Improvements & Mining** (commit pending):
+- Fixed critical crafting bug: now properly collects required quantities (e.g., 5 rocks for forge)
+- Starting land (0,0) enriched with rocks, flint, and clay for early progression
+- Added resource node items: copper_ore_boulder, iron_ore_boulder, tin_ore_boulder
+- Resource nodes are non-pickupable, require pickaxe to mine
+- Added mining recipes: mine_copper_ore, mine_iron_ore, mine_tin_ore
+- Mountains now have ore boulders instead of scattered pickupable ores
+- Tests: e2e_early_progression.txt, e2e_forge_crafting.txt
+
+**Enemy Carcass Drops** (commit 8662a6e):
 - Enemies now drop carcasses when defeated
 - Carcass placed on center tile (4,4) after combat victory
 - Added carcass items for all enemy types: rabbit, fox, wolf, spider, snake, lion, dragon

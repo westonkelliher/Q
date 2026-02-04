@@ -374,6 +374,37 @@ fn register_items(registry: &mut CraftingRegistry) {
         stat_bonuses: StatBonuses::default(),
     });
 
+    // Resource Nodes - Non-pickupable, require tools to harvest
+    registry.register_item(ItemDefinition {
+        id: item("copper_ore_boulder"),
+        name: "Copper Ore Boulder".to_string(),
+        description: "A large boulder containing copper ore. Requires pickaxe to mine.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: Some(WorldObjectKind::ResourceNode(super::ids::ResourceNodeId("copper_ore_boulder".to_string()))),
+        pickupable: false,
+        stat_bonuses: StatBonuses::default(),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("iron_ore_boulder"),
+        name: "Iron Ore Boulder".to_string(),
+        description: "A large boulder containing iron ore. Requires pickaxe to mine.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: Some(WorldObjectKind::ResourceNode(super::ids::ResourceNodeId("iron_ore_boulder".to_string()))),
+        pickupable: false,
+        stat_bonuses: StatBonuses::default(),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("tin_ore_boulder"),
+        name: "Tin Ore Boulder".to_string(),
+        description: "A large boulder containing tin ore. Requires pickaxe to mine.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: Some(WorldObjectKind::ResourceNode(super::ids::ResourceNodeId("tin_ore_boulder".to_string()))),
+        pickupable: false,
+        stat_bonuses: StatBonuses::default(),
+    });
+
     // Carcasses
     registry.register_item(ItemDefinition {
         id: item("wolf_carcass"),
@@ -1082,6 +1113,67 @@ fn register_recipes(registry: &mut CraftingRegistry) {
         ],
         tool: Some(ToolRequirement {
             tool_type: ToolType::Axe,
+            min_quality: Quality::Crude,
+        }),
+        world_object: None,
+    });
+
+    // =========================================================================
+    // STAGE 3B: MINING RESOURCE NODES (requires pickaxe)
+    // =========================================================================
+    
+    // Mine copper ore from boulder
+    registry.register_simple_recipe(SimpleRecipe {
+        id: recipe("mine_copper_ore"),
+        name: "Mine Copper Ore".to_string(),
+        output: item("copper_ore"),
+        output_quantity: 3,
+        inputs: vec![
+            SimpleInput {
+                item_id: item("copper_ore_boulder"),
+                quantity: 1,
+            },
+        ],
+        tool: Some(ToolRequirement {
+            tool_type: ToolType::Pickaxe,
+            min_quality: Quality::Crude,
+        }),
+        world_object: None,
+    });
+
+    // Mine iron ore from boulder
+    registry.register_simple_recipe(SimpleRecipe {
+        id: recipe("mine_iron_ore"),
+        name: "Mine Iron Ore".to_string(),
+        output: item("iron_ore"),
+        output_quantity: 3,
+        inputs: vec![
+            SimpleInput {
+                item_id: item("iron_ore_boulder"),
+                quantity: 1,
+            },
+        ],
+        tool: Some(ToolRequirement {
+            tool_type: ToolType::Pickaxe,
+            min_quality: Quality::Crude,
+        }),
+        world_object: None,
+    });
+
+    // Mine tin ore from boulder
+    registry.register_simple_recipe(SimpleRecipe {
+        id: recipe("mine_tin_ore"),
+        name: "Mine Tin Ore".to_string(),
+        output: item("tin_ore"),
+        output_quantity: 3,
+        inputs: vec![
+            SimpleInput {
+                item_id: item("tin_ore_boulder"),
+                quantity: 1,
+            },
+        ],
+        tool: Some(ToolRequirement {
+            tool_type: ToolType::Pickaxe,
             min_quality: Quality::Crude,
         }),
         world_object: None,

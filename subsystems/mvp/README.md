@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `002f4b0`  
+> **Previous Commit**: `8dac1a3`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -164,8 +164,9 @@ Each land contains an 8x8 grid of tiles with varying biomes based on position wi
 
 **Structure:**
 - 9 biome zones: 4 corners, 4 edges, 1 center
-- Each tile has substrate (grass, stone, sand, etc.)
-- Tiles can contain objects (trees, rocks, sticks)
+- Each tile has substrate (grass, stone, sand, clay, etc.)
+- Tiles can contain items (rocks, sticks, plant fiber, etc.)
+- Tiles can contain resource nodes (ore boulders that require tools to harvest)
 
 **Navigation:**
 - Enter land with `E` command from terrain view
@@ -173,10 +174,19 @@ Each land contains an 8x8 grid of tiles with varying biomes based on position wi
 - Coordinates clamped to (0,0) through (7,7) range
 - Exit back to terrain view with `E` command
 
-**Objects:**
-- Trees: Resource for crafting, represented as green pine-tree icon
-- Rocks: Mining resource, represented as gray gem icon
-- Sticks: Basic crafting material, represented as brown bowling-pin icon
+**Items:**
+- Trees: Non-pickupable, requires axe to chop for wood
+- Rocks: Pickupable, used for crafting and as makeshift hammer
+- Sticks: Pickupable, used as makeshift shovel and crafted into handles
+- Plant Fiber: Pickupable, used for bindings
+- Clay: Pickupable, used for building forge
+- Flint: Pickupable, knapped into blades and tools
+
+**Resource Nodes:**
+- Ore Boulders: Non-pickupable, require pickaxe to mine
+  - Copper Ore Boulder → 3 copper ore (when mined)
+  - Iron Ore Boulder → 3 iron ore (when mined)
+  - Tin Ore Boulder → 3 tin ore (when mined)
 
 ## Crafting
 
@@ -186,15 +196,17 @@ Each land contains an 8x8 grid of tiles with varying biomes based on position wi
 - Inventory data structure (simple list, no stacking yet)
 - Inventory display in UI (toggle with backtick key in web, `inv` in CLI)
 - Item stat bonuses (e.g., stick grants +1 attack when equipped)
-- Item pickup/drop/place system
+- Item pickup/drop/place system with pickupable validation
 - Enemy carcass drops on combat victory (dropped on center tile)
 - Craftable query command to check recipes based on inventory + workstations
+- Resource nodes (ore boulders) requiring pickaxes to harvest
+- Starting land enriched with rocks, flint, and clay for progression
 
 **Planned Features:**
-- Crafting recipes (combine items to create equipment)
 - Crafting GUI for item combination
 - Processing recipes for carcasses (extract materials)
-- Equipment system with stat calculations
+- Component and composite recipe crafting
+- Advanced equipment system with full stat calculations
 
 ## Combat
 
