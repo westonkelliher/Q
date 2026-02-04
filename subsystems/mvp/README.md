@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `6a12956`  
+> **Previous Commit**: `c47c1e0`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -414,16 +414,26 @@ cargo run -- --help    # Show all options
 
 **Movement:**
 - `U`, `D`, `L`, `R` - Move up, down, left, right
-- `E`, `ENTER` - Context-dependent: Enter/Exit land, Flee combat
+- `X`, `ENTER`, `EXIT` - Context-dependent: Enter/Exit land, Flee combat
 
 **Combat:**
 - `A`, `ATTACK` - Attack enemy (execute one combat round)
-- `E`, `ENTER` - Flee combat (return to terrain view)
+- `X`, `EXIT` - Flee combat (return to terrain view)
+
+**Equipment:**
+- `E <index>`, `EQUIP <index>` - Equip item from inventory (e.g., `e 0` to equip first item)
+- `UNEQUIP` - Unequip current item
 
 **Information:**
 - `STATUS`, `STATS`, `S` - Show character health, attack, position, mode
-- `INV`, `INVENTORY`, `I` - Show inventory contents
+- `INV`, `INVENTORY`, `I` - Show inventory contents (CLI only)
 - `H`, `HELP`, `?` - Show context-aware help
+- `RECIPES` - List available crafting recipes
+
+**Crafting:**
+- `CRAFT <recipe>`, `C <recipe>` - Craft item from recipe (e.g., `craft knap_flint_blade`)
+- `PICKUP`, `P` - Pick up item from current tile
+- `DROP` - Drop first item from inventory
 
 **Web-Only:**
 - `` ` `` (backtick) - Toggle inventory overlay

@@ -84,7 +84,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         return (false, format!("Recipe not found: {}", recipe_id_str));
     }
     
-    if command.starts_with("equip ") {
+    if command.starts_with("equip ") || command.starts_with("e ") {
         let parts: Vec<&str> = command.split_whitespace().collect();
         if parts.len() < 2 {
             return (false, "Usage: equip <inventory_index> (e.g., 'equip 0' to equip first item)".to_string());
@@ -133,7 +133,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     (true, format!("⬆️ L[{},{}]", x, y))
                 }
                 CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
                 }
                 CurrentMode::Land => {
                     state.move_land(0, -1);
@@ -153,7 +153,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     (true, format!("⬇️ L[{},{}]", x, y))
                 }
                 CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
                 }
                 CurrentMode::Land => {
                     state.move_land(0, 1);
@@ -173,7 +173,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     (true, format!("⬅️ L[{},{}]", x, y))
                 }
                 CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
                 }
                 CurrentMode::Land => {
                     state.move_land(-1, 0);
@@ -193,7 +193,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     (true, format!("➡️ L[{},{}]", x, y))
                 }
                 CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
                 }
                 CurrentMode::Land => {
                     state.move_land(1, 0);
@@ -205,7 +205,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 }
             }
         }
-        "enter" | "e" => {
+        "enter" | "exit" | "x" => {
             match state.current_mode {
                 CurrentMode::Terrain => {
                     let (land_x, land_y) = state.current_land();
@@ -228,16 +228,9 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 }
             }
         }
-        "exit" | "x" => {
-            // 'E' is now the primary command for exit (and enter/flee)
-            // Keep this for backward compatibility
-            if state.current_mode == CurrentMode::Land {
-                let (x, y) = state.current_land();
-                state.exit_land();
-                (true, format!("🔼 Exit L[{},{}]", x, y))
-            } else {
-                (false, "Use 'E' to exit land view (or enter/flee based on context)".to_string())
-            }
+        "e" => {
+            // Alias for equip command - must provide an index
+            (false, "Usage: e <inventory_index> or equip <inventory_index> (e.g., 'e 0' to equip first item)".to_string())
         }
         "attack" | "a" => {
             if state.current_mode == CurrentMode::Combat {
@@ -262,17 +255,17 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     }
                 }
             } else {
-                (false, "Not in combat. Use 'E' to enter a land with enemies.".to_string())
+                (false, "Not in combat. Use 'X' to enter a land with enemies.".to_string())
             }
         }
         "flee" | "f" => {
-            // 'E' is now the primary command for flee (and enter/exit)
+            // 'X' is now the primary command for flee (and enter/exit)
             // Keep this for backward compatibility
             if state.current_mode == CurrentMode::Combat {
                 state.combat_flee();
                 (true, "🏃 Flee!".to_string())
             } else {
-                (false, "Use 'E' to flee combat (or enter/exit based on context)".to_string())
+                (false, "Use 'X' to flee combat (or enter/exit based on context)".to_string())
             }
         }
         "pickup" | "p" | "take" | "get" => {
@@ -418,8 +411,8 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     r#"
 Combat Commands:
   A, ATTACK       - Attack the enemy
-  E, ENTER        - Flee combat (returns to terrain view)
-  EQUIP <index>   - Equip item from inventory
+  X, EXIT         - Flee combat (returns to terrain view)
+  E, EQUIP <idx>  - Equip item from inventory (e.g., 'e 0')
   UNEQUIP         - Unequip current item
   STATUS, STATS   - Show character status
   INV, INVENTORY  - Show inventory
@@ -430,10 +423,10 @@ Combat Commands:
                     r#"
 Commands:
   Arrow Keys      - Move around
-  E, ENTER        - Exit land view
+  X, EXIT         - Exit land view
   PICKUP, P, GET  - Pick up item from current tile
   DROP            - Drop first item from inventory
-  EQUIP <index>   - Equip item from inventory (e.g., 'equip 0')
+  E, EQUIP <idx>  - Equip item from inventory (e.g., 'e 0')
   UNEQUIP         - Unequip current item to inventory
   CRAFT <recipe>  - Craft item from recipe (e.g., 'craft knap_flint_blade')
   C <recipe>      - Shortcut for craft
@@ -447,8 +440,8 @@ Commands:
                     r#"
 Commands:
   Arrow Keys      - Move around
-  E, ENTER        - Enter land view (may trigger combat if enemy present)
-  EQUIP <index>   - Equip item from inventory
+  X, ENTER        - Enter land view (may trigger combat if enemy present)
+  E, EQUIP <idx>  - Equip item from inventory (e.g., 'e 0')
   UNEQUIP         - Unequip current item
   CRAFT <recipe>  - Craft item from recipe
   C <recipe>      - Shortcut for craft

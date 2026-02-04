@@ -786,7 +786,7 @@
                 type="text" 
                 class="command-input" 
                 id="command-input" 
-                placeholder="Enter command (U/D/L/R/E/HELP)"
+                placeholder="Enter command (U/D/L/R/X/HELP)"
                 autocomplete="off"
             />
             <button class="command-button" id="command-button">Execute</button>
@@ -820,11 +820,11 @@
             <h3>Commands</h3>
             <div id="help-content">
                 <p><code>Arrow Keys</code> or <code>U/D/L/R</code> - Move</p>
-                <p><code>E</code> / <code>ENTER</code> - Enter/Exit/Flee (context-dependent)</p>
-                <p><code>EQUIP &lt;index&gt;</code> - Equip item from inventory</p>
+                <p><code>X</code> / <code>ENTER</code> / <code>EXIT</code> - Enter/Exit/Flee (context-dependent)</p>
+                <p><code>E</code> / <code>EQUIP &lt;index&gt;</code> - Equip item from inventory (e.g., 'e 0')</p>
                 <p><code>CRAFT &lt;recipe&gt;</code> or <code>C &lt;recipe&gt;</code> - Craft item</p>
                 <p><code>PICKUP</code> / <code>P</code> - Pick up item</p>
-                <p><code>INV</code> / <code>I</code> or <code>`</code> - Show inventory</p>
+                <p><code>`</code> - Toggle inventory (web only)</p>
                 <p><code>RECIPES</code> - List available recipes</p>
                 <p><code>STATUS</code> - Show character status</p>
                 <p><code>H</code> - Help (context-aware)</p>
@@ -1467,7 +1467,7 @@
                 <div class="combat-actions">
                     <h3>Combat Commands</h3>
                     <p><code>A</code> or <code>ATTACK</code> - Attack the enemy</p>
-                    <p><code>E</code> / <code>ENTER</code> - Flee combat</p>
+                    <p><code>X</code> / <code>EXIT</code> - Flee combat</p>
                 </div>
             `;
 
@@ -1565,9 +1565,9 @@
             // Update command input placeholder based on view mode
             const commandInput = document.getElementById('command-input');
             if (coreState.type === 'Combat') {
-                commandInput.placeholder = 'Enter command (A/ATTACK, E/FLEE, `/I for inventory, H/HELP)';
+                commandInput.placeholder = 'Enter command (A/ATTACK, X/FLEE, ` for inventory, H/HELP)';
             } else {
-                commandInput.placeholder = 'Enter command (U/D/L/R/E, `/I for inventory, H/HELP)';
+                commandInput.placeholder = 'Enter command (U/D/L/R/X, ` for inventory, H/HELP)';
             }
 
             // Update help section based on view mode
@@ -1575,8 +1575,9 @@
             if (coreState.type === 'Combat') {
                 helpContent.innerHTML = `
                     <p><code>A</code> / <code>ATTACK</code> - Attack the enemy</p>
-                    <p><code>E</code> / <code>ENTER</code> - Flee combat</p>
-                    <p><code>\`</code> / <code>I</code> - Toggle inventory</p>
+                    <p><code>X</code> / <code>EXIT</code> - Flee combat</p>
+                    <p><code>E &lt;idx&gt;</code> - Equip item (e.g., 'e 0')</p>
+                    <p><code>\`</code> - Toggle inventory</p>
                     <p><code>C</code> - Cycle character appearance</p>
                     <p><code>H</code> - Help</p>
                 `;
@@ -1586,8 +1587,9 @@
                     <p><code>D</code> / <code>↓</code> - Move Down</p>
                     <p><code>L</code> / <code>←</code> - Move Left</p>
                     <p><code>R</code> / <code>→</code> - Move Right</p>
-                    <p><code>E</code> / <code>ENTER</code> - Exit Land</p>
-                    <p><code>\`</code> / <code>I</code> - Toggle inventory</p>
+                    <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
+                    <p><code>E &lt;idx&gt;</code> - Equip item (e.g., 'e 0')</p>
+                    <p><code>\`</code> - Toggle inventory</p>
                     <p><code>C</code> - Cycle character appearance</p>
                     <p><code>H</code> - Help</p>
                 `;
@@ -1597,8 +1599,9 @@
                     <p><code>D</code> / <code>↓</code> - Move Down</p>
                     <p><code>L</code> / <code>←</code> - Move Left</p>
                     <p><code>R</code> / <code>→</code> - Move Right</p>
-                    <p><code>E</code> / <code>ENTER</code> - Enter Land</p>
-                    <p><code>\`</code> / <code>I</code> - Toggle inventory</p>
+                    <p><code>X</code> / <code>ENTER</code> - Enter Land</p>
+                    <p><code>E &lt;idx&gt;</code> - Equip item (e.g., 'e 0')</p>
+                    <p><code>\`</code> - Toggle inventory</p>
                     <p><code>C</code> - Cycle character appearance</p>
                     <p><code>H</code> - Help</p>
                 `;
@@ -1666,7 +1669,7 @@
             if (!gameState) return;
             
             // Backtick always toggles inventory (frontend-only, no backend call)
-            if (e.key === '`' || e.key === 'i' || e.key === 'I') {
+            if (e.key === '`') {
                 e.preventDefault();
                 displayOverlay = (displayOverlay === 'inventory') ? null : 'inventory';
                 renderGame();
