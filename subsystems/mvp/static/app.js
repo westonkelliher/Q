@@ -1259,6 +1259,8 @@ function updateStatus() {
             <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>C</code> - Open craft selector</p>
+            <p><code>D</code> - Open drop selector</p>
+            <p><code>L</code> - Open place selector</p>
             <p><code>\`</code> - Toggle inventory</p>
             <p><code>H</code> - Help</p>
         `;
@@ -1499,6 +1501,123 @@ document.addEventListener('keydown', (e) => {
             displayOverlay = null;
             renderGame();
             showMessage('Craft cancelled', 'error');
+        }
+        return;
+    }
+    
+    // When drop selection is active, handle navigation and confirmation
+    if (displayOverlay === 'drop-select') {
+        const inventory = gameState?.character?.inventory || [];
+        const ITEMS_PER_ROW = 5;
+        
+        if (e.key >= '0' && e.key <= '9') {
+            e.preventDefault();
+            const targetIndex = parseInt(e.key);
+            if (targetIndex < inventory.length) {
+                dropSelectIndex = targetIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const newIndex = dropSelectIndex - ITEMS_PER_ROW;
+            if (newIndex >= 0) {
+                dropSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const newIndex = dropSelectIndex + ITEMS_PER_ROW;
+            if (newIndex < inventory.length) {
+                dropSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            const currentRow = Math.floor(dropSelectIndex / ITEMS_PER_ROW);
+            const newIndex = dropSelectIndex - 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex >= 0 && newRow === currentRow) {
+                dropSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            const currentRow = Math.floor(dropSelectIndex / ITEMS_PER_ROW);
+            const newIndex = dropSelectIndex + 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex < inventory.length && newRow === currentRow) {
+                dropSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            displayOverlay = null;
+            // Note: Backend currently only supports 'drop' without index
+            // This will drop first item. Future: support 'drop <index>'
+            executeCommand('drop');
+            showMessage(`Dropped item (Note: backend drops first item only)`, 'success');
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            displayOverlay = null;
+            renderGame();
+            showMessage('Drop cancelled', 'error');
+        }
+        return;
+    }
+    
+    // When place selection is active, handle navigation and confirmation
+    if (displayOverlay === 'place-select') {
+        const inventory = gameState?.character?.inventory || [];
+        const ITEMS_PER_ROW = 5;
+        
+        if (e.key >= '0' && e.key <= '9') {
+            e.preventDefault();
+            const targetIndex = parseInt(e.key);
+            if (targetIndex < inventory.length) {
+                placeSelectIndex = targetIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const newIndex = placeSelectIndex - ITEMS_PER_ROW;
+            if (newIndex >= 0) {
+                placeSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const newIndex = placeSelectIndex + ITEMS_PER_ROW;
+            if (newIndex < inventory.length) {
+                placeSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            const currentRow = Math.floor(placeSelectIndex / ITEMS_PER_ROW);
+            const newIndex = placeSelectIndex - 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex >= 0 && newRow === currentRow) {
+                placeSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            const currentRow = Math.floor(placeSelectIndex / ITEMS_PER_ROW);
+            const newIndex = placeSelectIndex + 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex < inventory.length && newRow === currentRow) {
+                placeSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            displayOverlay = null;
+            executeCommand(`place ${placeSelectIndex}`);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            displayOverlay = null;
+            renderGame();
+            showMessage('Place cancelled', 'error');
         }
         return;
     }
