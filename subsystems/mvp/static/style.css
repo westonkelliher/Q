@@ -602,7 +602,10 @@ body {
 
 /* Foreground/fill layer - drawn on top */
 .graphic .graphic-fg {
-    position: relative;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     z-index: 1;
 }
 
