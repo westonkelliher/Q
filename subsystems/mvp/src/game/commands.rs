@@ -417,19 +417,19 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 CurrentMode::Combat => {
                     r#"
 Combat Commands:
-  A, ATTACK      - Attack the enemy
-  E, ENTER       - Flee combat (returns to terrain view)
-  EQUIP <index>  - Equip item from inventory
-  UNEQUIP        - Unequip current item
-  STATUS, STATS  - Show character status
-  INV, INVENTORY - Show inventory
-  H, HELP, ?     - Show this help
+  A, ATTACK       - Attack the enemy
+  E, ENTER        - Flee combat (returns to terrain view)
+  EQUIP <index>   - Equip item from inventory
+  UNEQUIP         - Unequip current item
+  STATUS, STATS   - Show character status
+  INV, INVENTORY  - Show inventory
+  H, HELP, ?      - Show this help
 "#
                 }
                 CurrentMode::Land => {
                     r#"
 Commands:
-  U, D, L, R      - Move up, down, left, right
+  Arrow Keys      - Move around
   E, ENTER        - Exit land view
   PICKUP, P, GET  - Pick up item from current tile
   DROP            - Drop first item from inventory
@@ -446,14 +446,15 @@ Commands:
                 _ => {
                     r#"
 Commands:
-  U, D, L, R      - Move up, down, left, right
+  Arrow Keys      - Move around
   E, ENTER        - Enter land view (may trigger combat if enemy present)
   EQUIP <index>   - Equip item from inventory
   UNEQUIP         - Unequip current item
   CRAFT <recipe>  - Craft item from recipe
+  C <recipe>      - Shortcut for craft
   RECIPES         - List available recipes
   STATUS, STATS   - Show character status
-  INV, I          - Show inventory
+  INV, INVENTORY  - Show inventory
   H, HELP, ?      - Show this help
   
   (Enter land view to pickup/drop/craft items)
@@ -462,7 +463,7 @@ Commands:
             };
             (true, help_text.trim().to_string())
         }
-        "inventory" | "inv" => {
+        "inventory" | "inv" | "i" => {
             let mut output = String::new();
             
             // Show equipped item

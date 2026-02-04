@@ -516,7 +516,7 @@ mod tests {
         
         assert!(success);
         assert!(message.contains("Commands"));
-        assert!(message.contains("U, D, L, R"));
+        assert!(message.contains("Arrow Keys"));
     }
 
     #[test]
