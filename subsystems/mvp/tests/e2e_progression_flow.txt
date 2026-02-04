@@ -1,0 +1,46 @@
+# E2E Test: Progression Flow
+# Tests the new progression-focused crafting content
+
+# Check available recipes
+recipes
+
+# Move to plains to find rocks and wolf carcasses
+r
+d
+e
+
+# Pickup rocks and other materials
+pickup
+u
+pickup
+l
+pickup
+
+# Check inventory
+inv
+
+# Move to mountains to find flint
+e
+r
+r
+u
+u
+e
+
+# Try to pickup mountain resources
+pickup
+status
+u
+pickup
+r
+pickup
+
+# Check inventory with progression materials
+inv
+
+# List recipes to see what we can craft
+recipes
+
+# Exit and check status
+e
+status

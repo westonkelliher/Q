@@ -19,6 +19,7 @@ pub enum Substrate {
     Mud,
     Water,
     Brush,
+    Clay,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -92,6 +93,7 @@ impl Substrate {
             Substrate::Mud => '🟫',   // Brown square
             Substrate::Water => '🔵', // Blue circle
             Substrate::Brush => '🟡', // Yellow circle
+            Substrate::Clay => '🟧',  // Orange square
         }
     }
 
@@ -104,6 +106,7 @@ impl Substrate {
             Substrate::Mud => (0.4, 0.3, 0.2),        // Dark brown
             Substrate::Water => (0.2, 0.4, 0.9),      // Blue
             Substrate::Brush => (0.2, 0.6, 0.15),    // Dark green, similar to forest
+            Substrate::Clay => (0.8, 0.5, 0.3),       // Orange/tan clay color
         }
     }
 }
