@@ -6,6 +6,9 @@ use super::world_object::WorldObjectKind;
 pub struct StatBonuses {
     pub health: i32,
     pub attack: i32,
+    pub defense: i32,
+    pub accuracy: i32,
+    pub evasion: i32,
 }
 
 /// Defines what an item IS - its template/blueprint

@@ -887,6 +887,18 @@ function renderCombatView(combatState) {
                         <span class="combat-stat-label">ATK</span>
                         <span class="combat-stat-value">${player.attack}</span>
                     </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">DEF</span>
+                        <span class="combat-stat-value">${player.defense}</span>
+                    </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">ACC</span>
+                        <span class="combat-stat-value">${player.accuracy}</span>
+                    </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">EVA</span>
+                        <span class="combat-stat-value">${player.evasion}</span>
+                    </div>
                 </div>
             </div>
             <div class="combatant-panel enemy">
@@ -903,6 +915,18 @@ function renderCombatView(combatState) {
                     <div class="combat-stat-row">
                         <span class="combat-stat-label">ATK</span>
                         <span class="combat-stat-value">${enemy.attack}</span>
+                    </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">DEF</span>
+                        <span class="combat-stat-value">${enemy.defense}</span>
+                    </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">ACC</span>
+                        <span class="combat-stat-value">${enemy.accuracy}</span>
+                    </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">EVA</span>
+                        <span class="combat-stat-value">${enemy.evasion}</span>
                     </div>
                 </div>
             </div>
@@ -1011,6 +1035,39 @@ function updateStatus() {
             document.getElementById('character-attack').textContent = `${totalAttack} (${baseAttack} + ${attackBonus})`;
         } else {
             document.getElementById('character-attack').textContent = `${totalAttack}`;
+        }
+        
+        // Display defense with bonus breakdown if applicable
+        const baseDefense = 0; // Base defense
+        const totalDefense = char.defense;
+        const defenseBonus = totalDefense - baseDefense;
+        
+        if (defenseBonus > 0) {
+            document.getElementById('character-defense').textContent = `${totalDefense} (${baseDefense} + ${defenseBonus})`;
+        } else {
+            document.getElementById('character-defense').textContent = `${totalDefense}`;
+        }
+        
+        // Display accuracy with bonus breakdown if applicable
+        const baseAccuracy = 10; // Base accuracy (100% hit chance)
+        const totalAccuracy = char.accuracy;
+        const accuracyBonus = totalAccuracy - baseAccuracy;
+        
+        if (accuracyBonus > 0) {
+            document.getElementById('character-accuracy').textContent = `${totalAccuracy} (${baseAccuracy} + ${accuracyBonus})`;
+        } else {
+            document.getElementById('character-accuracy').textContent = `${totalAccuracy}`;
+        }
+        
+        // Display evasion with bonus breakdown if applicable
+        const baseEvasion = 0; // Base evasion
+        const totalEvasion = char.evasion;
+        const evasionBonus = totalEvasion - baseEvasion;
+        
+        if (evasionBonus > 0) {
+            document.getElementById('character-evasion').textContent = `${totalEvasion} (${baseEvasion} + ${evasionBonus})`;
+        } else {
+            document.getElementById('character-evasion').textContent = `${totalEvasion}`;
         }
 
         // Update health bar

@@ -19,6 +19,9 @@ pub struct TerrainEnemyInfo {
     pub health: i32,
     pub max_health: i32,
     pub attack: i32,
+    pub defense: i32,
+    pub accuracy: i32,
+    pub evasion: i32,
     pub is_defeated: bool,
 }
 
@@ -72,6 +75,9 @@ pub struct SerializableCharacter {
     pub health: i32,
     pub max_health: i32,
     pub attack: i32,
+    pub defense: i32,
+    pub accuracy: i32,
+    pub evasion: i32,
     pub inventory: Vec<String>,
     pub equipped: Option<String>,
 }
@@ -81,6 +87,9 @@ pub struct SerializableCharacter {
 pub struct SerializableCombatant {
     pub health: i32,
     pub attack: i32,
+    pub defense: i32,
+    pub accuracy: i32,
+    pub evasion: i32,
 }
 
 /// Response containing the current game state

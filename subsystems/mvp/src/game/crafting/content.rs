@@ -321,7 +321,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
         pickupable: true,
-        stat_bonuses: StatBonuses { health: 0, attack: 1 },
+        stat_bonuses: StatBonuses { health: 0, attack: 1, defense: 0, accuracy: 0, evasion: 0 },
     });
 
     registry.register_item(ItemDefinition {

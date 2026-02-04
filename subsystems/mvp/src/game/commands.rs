@@ -718,10 +718,13 @@ Commands:
                 CurrentMode::Land => {
                     if let Some((tile_x, tile_y)) = state.current_tile() {
                         return (true, format!(
-                            "Health: {}/{} | Attack: {} | Land: [{},{}] | Tile: [{},{}] | Equipped: {} | Mode: Land View",
+                            "Health: {}/{} | Attack: {} | Defense: {} | Accuracy: {} | Evasion: {} | Land: [{},{}] | Tile: [{},{}] | Equipped: {} | Mode: Land View",
                             state.character.get_health(),
                             state.character.get_max_health(),
                             state.get_total_attack(),
+                            state.get_total_defense(),
+                            state.get_total_accuracy(),
+                            state.get_total_evasion(),
                             land_x, land_y,
                             tile_x, tile_y,
                             equipped_str
@@ -732,10 +735,13 @@ Commands:
                 CurrentMode::Combat => "Combat",
             };
             (true, format!(
-                "Health: {}/{} | Attack: {} | Land: [{},{}] | Equipped: {} | Mode: {}",
+                "Health: {}/{} | Attack: {} | Defense: {} | Accuracy: {} | Evasion: {} | Land: [{},{}] | Equipped: {} | Mode: {}",
                 state.character.get_health(),
                 state.character.get_max_health(),
                 state.get_total_attack(),
+                state.get_total_defense(),
+                state.get_total_accuracy(),
+                state.get_total_evasion(),
                 land_x, land_y,
                 equipped_str,
                 mode_str

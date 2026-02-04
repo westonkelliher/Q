@@ -16,6 +16,9 @@ pub fn build_terrain_state(state: &GameState) -> TerrainGameState {
                     health: e.health,
                     max_health: e.max_health,
                     attack: e.attack,
+                    defense: e.defense,
+                    accuracy: e.accuracy,
+                    evasion: e.evasion,
                     is_defeated: e.is_defeated(),
                 });
                 
@@ -76,10 +79,16 @@ pub fn build_combat_state(state: &GameState) -> CombatGameState {
         player: SerializableCombatant {
             health: state.character.get_health(),
             attack: state.get_total_attack(),
+            defense: state.get_total_defense(),
+            accuracy: state.get_total_accuracy(),
+            evasion: state.get_total_evasion(),
         },
         enemy: SerializableCombatant {
             health: enemy.health,
             attack: enemy.attack,
+            defense: enemy.defense,
+            accuracy: enemy.accuracy,
+            evasion: enemy.evasion,
         },
         enemy_type: enemy.enemy_type.display_name().to_string(),
         enemy_max_health: enemy.max_health,
@@ -93,6 +102,9 @@ pub fn build_serializable_character(state: &GameState) -> SerializableCharacter 
         health: state.character.get_health(),
         max_health: state.character.get_max_health(),
         attack: state.get_total_attack(),
+        defense: state.get_total_defense(),
+        accuracy: state.get_total_accuracy(),
+        evasion: state.get_total_evasion(),
         inventory: serialize_inventory(state),
         equipped: serialize_equipped(state),
     }

@@ -21,6 +21,9 @@ pub struct Enemy {
     pub enemy_type: EnemyType,
     pub health: i32,
     pub attack: i32,
+    pub defense: i32,   // Reduces incoming physical damage
+    pub accuracy: i32,  // Hit chance = accuracy * 10%
+    pub evasion: i32,   // Reduces attacker's accuracy
     pub max_health: i32, // Store max health for restoration when fleeing
 }
 
@@ -142,11 +145,26 @@ impl EnemyType {
 
 impl Enemy {
     /// Create a new enemy with specified type and stats
+    /// Defense, accuracy, and evasion are set to reasonable defaults based on enemy type
     pub fn new(enemy_type: EnemyType, health: i32, attack: i32) -> Self {
+        // Set reasonable defaults for new stats based on enemy type
+        let (defense, accuracy, evasion) = match enemy_type {
+            EnemyType::Rabbit => (0, 8, 2),   // Low accuracy, high evasion
+            EnemyType::Fox => (0, 9, 2),      // Medium-low accuracy, high evasion
+            EnemyType::Wolf => (1, 10, 1),    // Normal accuracy, some evasion
+            EnemyType::Spider => (0, 9, 3),   // Medium-low accuracy, very high evasion
+            EnemyType::Snake => (0, 11, 2),   // High accuracy, high evasion
+            EnemyType::Lion => (2, 10, 1),    // Normal accuracy, some defense
+            EnemyType::Dragon => (3, 10, 0),  // High defense, normal accuracy
+        };
+        
         Self {
             enemy_type,
             health,
             attack,
+            defense,
+            accuracy,
+            evasion,
             max_health: health,
         }
     }

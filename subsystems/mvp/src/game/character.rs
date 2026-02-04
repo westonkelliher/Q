@@ -42,7 +42,7 @@ impl Inventory {
 }
 
 /// Character struct representing the player character
-/// Contains position and stats (health, attack)
+/// Contains position and stats (health, attack, defense, accuracy, evasion)
 #[derive(Debug, Clone)]
 pub struct Character {
     /// Current land coordinates
@@ -55,6 +55,12 @@ pub struct Character {
     pub max_health: i32,
     /// Attack stat
     pub attack: i32,
+    /// Defense stat - reduces incoming physical damage by this amount
+    pub defense: i32,
+    /// Accuracy stat - hit chance = accuracy * 10%
+    pub accuracy: i32,
+    /// Evasion stat - reduces attacker's accuracy by this amount
+    pub evasion: i32,
     /// Character inventory
     pub inventory: Inventory,
     /// Currently equipped item (tool slot)
@@ -73,6 +79,9 @@ impl Character {
             health: 10,
             max_health: 10,
             attack: 5,
+            defense: 0,     // Base defense: 0
+            accuracy: 10,   // Base accuracy: 10 (100% hit chance)
+            evasion: 0,     // Base evasion: 0
             inventory,
             equipped: None,
         }
@@ -111,6 +120,21 @@ impl Character {
     /// Get attack stat
     pub fn get_attack(&self) -> i32 {
         self.attack
+    }
+
+    /// Get defense stat
+    pub fn get_defense(&self) -> i32 {
+        self.defense
+    }
+
+    /// Get accuracy stat
+    pub fn get_accuracy(&self) -> i32 {
+        self.accuracy
+    }
+
+    /// Get evasion stat
+    pub fn get_evasion(&self) -> i32 {
+        self.evasion
     }
 
     /// Take damage (reduce health)

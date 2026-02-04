@@ -206,34 +206,47 @@ impl GameState {
         
         let (land_x, land_y) = self.character.get_land_position();
         
-        // Store attack values before mutations
+        // Get player stats (with bonuses)
         let player_attack = self.get_total_attack();
+        let player_defense = self.get_total_defense();
+        let player_accuracy = self.get_total_accuracy();
+        let player_evasion = self.get_total_evasion();
         
         // Get enemy (must exist if we're in combat)
         let enemy = self.world.terrain.get_mut(&(land_x, land_y))
             .and_then(|land| land.enemy.as_mut())
             .expect("Enemy must exist in combat mode");
         
+        // Store enemy stats
         let enemy_attack = enemy.attack;
+        let enemy_defense = enemy.defense;
+        let enemy_accuracy = enemy.accuracy;
+        let enemy_evasion = enemy.evasion;
         
-        // Execute simultaneous attacks
-        self.character.health -= enemy_attack;
-        enemy.health -= player_attack;
+        // Create combatants for the combat system
+        let player_combatant = super::combat::Combatant::new(
+            self.character.health,
+            player_attack,
+            player_defense,
+            player_accuracy,
+            player_evasion,
+        );
         
-        // Ensure health doesn't go below 0
-        self.character.health = self.character.health.max(0);
-        enemy.health = enemy.health.max(0);
+        let enemy_combatant = super::combat::Combatant::new(
+            enemy.health,
+            enemy_attack,
+            enemy_defense,
+            enemy_accuracy,
+            enemy_evasion,
+        );
         
-        // Determine result
-        let player_defeated = self.character.health <= 0;
-        let enemy_defeated = enemy.health <= 0;
+        // Execute one round using the combat system
+        let mut combat_state = super::combat::CombatState::new(player_combatant, enemy_combatant);
+        let result = combat_state.execute_round();
         
-        let result = match (player_defeated, enemy_defeated) {
-            (false, false) => CombatResult::Ongoing,
-            (true, false) => CombatResult::EnemyWins,
-            (false, true) => CombatResult::PlayerWins,
-            (true, true) => CombatResult::Draw,
-        };
+        // Update actual health values from combat result
+        self.character.health = combat_state.player.health;
+        enemy.health = combat_state.enemy.health;
         
         // Handle combat conclusion
         match result {
@@ -346,6 +359,81 @@ impl GameState {
         }
         
         base_attack
+    }
+    
+    /// Get character's total defense including bonuses from equipped item
+    pub fn get_total_defense(&self) -> i32 {
+        let base_defense = self.character.get_defense();
+        
+        if let Some(equipped_id) = self.character.get_equipped() {
+            if let Some(instance) = self.crafting_registry.get_instance(equipped_id) {
+                let item_def = match instance {
+                    crate::game::crafting::ItemInstance::Simple(s) => {
+                        self.crafting_registry.get_item(&s.definition)
+                    }
+                    crate::game::crafting::ItemInstance::Composite(c) => {
+                        self.crafting_registry.get_item(&c.definition)
+                    }
+                    _ => None
+                };
+                
+                if let Some(def) = item_def {
+                    return base_defense + def.stat_bonuses.defense;
+                }
+            }
+        }
+        
+        base_defense
+    }
+    
+    /// Get character's total accuracy including bonuses from equipped item
+    pub fn get_total_accuracy(&self) -> i32 {
+        let base_accuracy = self.character.get_accuracy();
+        
+        if let Some(equipped_id) = self.character.get_equipped() {
+            if let Some(instance) = self.crafting_registry.get_instance(equipped_id) {
+                let item_def = match instance {
+                    crate::game::crafting::ItemInstance::Simple(s) => {
+                        self.crafting_registry.get_item(&s.definition)
+                    }
+                    crate::game::crafting::ItemInstance::Composite(c) => {
+                        self.crafting_registry.get_item(&c.definition)
+                    }
+                    _ => None
+                };
+                
+                if let Some(def) = item_def {
+                    return base_accuracy + def.stat_bonuses.accuracy;
+                }
+            }
+        }
+        
+        base_accuracy
+    }
+    
+    /// Get character's total evasion including bonuses from equipped item
+    pub fn get_total_evasion(&self) -> i32 {
+        let base_evasion = self.character.get_evasion();
+        
+        if let Some(equipped_id) = self.character.get_equipped() {
+            if let Some(instance) = self.crafting_registry.get_instance(equipped_id) {
+                let item_def = match instance {
+                    crate::game::crafting::ItemInstance::Simple(s) => {
+                        self.crafting_registry.get_item(&s.definition)
+                    }
+                    crate::game::crafting::ItemInstance::Composite(c) => {
+                        self.crafting_registry.get_item(&c.definition)
+                    }
+                    _ => None
+                };
+                
+                if let Some(def) = item_def {
+                    return base_evasion + def.stat_bonuses.evasion;
+                }
+            }
+        }
+        
+        base_evasion
     }
 }
 
