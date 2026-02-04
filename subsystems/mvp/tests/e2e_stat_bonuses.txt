@@ -1,0 +1,41 @@
+# E2E Test: Stat Bonuses from Equipped Items
+# Tests that equipping items grants stat bonuses (stick gives +1 attack)
+
+# Check initial attack (should be 5)
+status
+
+# Enter land to find a stick
+m r
+m d
+x
+
+# Navigate to find stick
+m u
+m u
+m l
+m l
+m l
+p
+m r
+p
+
+# Check inventory
+inv
+
+# Check attack before equipping (should still be 5)
+status
+
+# Equip stick (should grant +1 attack)
+e 0
+status
+
+# Attack should now be 6 (5 base + 1 from stick)
+
+# Unequip to verify attack goes back down
+unequip
+status
+
+# Attack should be back to 5
+
+# Exit land
+x

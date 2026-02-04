@@ -1,6 +1,13 @@
 use super::ids::{ItemId, SubmaterialId, ComponentKindId};
 use super::world_object::WorldObjectKind;
 
+/// Stat bonuses granted by an item when equipped
+#[derive(Clone, Debug, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+pub struct StatBonuses {
+    pub health: i32,
+    pub attack: i32,
+}
+
 /// Defines what an item IS - its template/blueprint
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ItemDefinition {
@@ -12,6 +19,8 @@ pub struct ItemDefinition {
     pub placeable: Option<WorldObjectKind>,
     /// Whether this item can be picked up from the world (false for trees, boulders, etc.)
     pub pickupable: bool,
+    /// Stat bonuses granted when equipped
+    pub stat_bonuses: StatBonuses,
 }
 
 /// The kind of item - mutually exclusive categories

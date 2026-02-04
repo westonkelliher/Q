@@ -75,7 +75,7 @@ pub fn build_combat_state(state: &GameState) -> CombatGameState {
         land_coords: (land_x, land_y),
         player: SerializableCombatant {
             health: state.character.get_health(),
-            attack: state.character.get_attack(),
+            attack: state.get_total_attack(),
         },
         enemy: SerializableCombatant {
             health: enemy.health,
@@ -92,7 +92,7 @@ pub fn build_serializable_character(state: &GameState) -> SerializableCharacter 
     SerializableCharacter {
         health: state.character.get_health(),
         max_health: state.character.get_max_health(),
-        attack: state.character.get_attack(),
+        attack: state.get_total_attack(),
         inventory: serialize_inventory(state),
         equipped: serialize_equipped(state),
     }

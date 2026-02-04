@@ -721,7 +721,7 @@ Commands:
                             "Health: {}/{} | Attack: {} | Land: [{},{}] | Tile: [{},{}] | Equipped: {} | Mode: Land View",
                             state.character.get_health(),
                             state.character.get_max_health(),
-                            state.character.get_attack(),
+                            state.get_total_attack(),
                             land_x, land_y,
                             tile_x, tile_y,
                             equipped_str
@@ -735,7 +735,7 @@ Commands:
                 "Health: {}/{} | Attack: {} | Land: [{},{}] | Equipped: {} | Mode: {}",
                 state.character.get_health(),
                 state.character.get_max_health(),
-                state.character.get_attack(),
+                state.get_total_attack(),
                 land_x, land_y,
                 equipped_str,
                 mode_str

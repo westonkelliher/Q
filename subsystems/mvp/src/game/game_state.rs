@@ -206,13 +206,14 @@ impl GameState {
         
         let (land_x, land_y) = self.character.get_land_position();
         
+        // Store attack values before mutations
+        let player_attack = self.get_total_attack();
+        
         // Get enemy (must exist if we're in combat)
         let enemy = self.world.terrain.get_mut(&(land_x, land_y))
             .and_then(|land| land.enemy.as_mut())
             .expect("Enemy must exist in combat mode");
         
-        // Store attack values before mutations
-        let player_attack = self.character.get_attack();
         let enemy_attack = enemy.attack;
         
         // Execute simultaneous attacks
@@ -319,6 +320,32 @@ impl GameState {
         } else {
             Vec::new()
         }
+    }
+    
+    /// Get character's total attack including bonuses from equipped item
+    pub fn get_total_attack(&self) -> i32 {
+        let base_attack = self.character.get_attack();
+        
+        // Add bonuses from equipped item
+        if let Some(equipped_id) = self.character.get_equipped() {
+            if let Some(instance) = self.crafting_registry.get_instance(equipped_id) {
+                let item_def = match instance {
+                    crate::game::crafting::ItemInstance::Simple(s) => {
+                        self.crafting_registry.get_item(&s.definition)
+                    }
+                    crate::game::crafting::ItemInstance::Composite(c) => {
+                        self.crafting_registry.get_item(&c.definition)
+                    }
+                    _ => None
+                };
+                
+                if let Some(def) = item_def {
+                    return base_attack + def.stat_bonuses.attack;
+                }
+            }
+        }
+        
+        base_attack
     }
 }
 

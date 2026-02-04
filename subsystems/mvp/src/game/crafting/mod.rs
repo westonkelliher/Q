@@ -16,7 +16,7 @@ pub use ids::{
 };
 pub use materials::{Material, Submaterial, ComponentKind};
 pub use instance::{ComponentInstance, ItemInstance, SimpleInstance, CompositeInstance};
-pub use item_def::{ItemDefinition, ItemKind, CompositeDef, CompositeSlot, CompositeCategory, ToolType};
+pub use item_def::{ItemDefinition, ItemKind, CompositeDef, CompositeSlot, CompositeCategory, ToolType, StatBonuses};
 pub use provenance::{ConsumedInput, Provenance};
 pub use quality::Quality;
 pub use recipe::{

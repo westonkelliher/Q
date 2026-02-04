@@ -13,6 +13,7 @@ use super::{
     SimpleRecipe, ComponentRecipe, CompositeRecipe, SimpleInput, RecipeId,
     ToolRequirement, WorldObjectRequirement, Quality, CraftingRegistry,
 };
+use super::item_def::StatBonuses;
 use super::world_object::WorldObjectKind;
 use super::ids::CraftingStationId;
 
@@ -316,10 +317,11 @@ fn register_items(registry: &mut CraftingRegistry) {
     registry.register_item(ItemDefinition {
         id: item("stick"),
         name: "Stick".to_string(),
-        description: "A fallen branch. Can be used as makeshift shovel or crafted into handle.".to_string(),
+        description: "A fallen branch. Can be used as makeshift shovel or weapon.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses { health: 0, attack: 1 },
     });
 
     registry.register_item(ItemDefinition {
@@ -329,6 +331,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -338,6 +341,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("flint_stone")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -347,6 +351,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
         pickupable: false,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -356,6 +361,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("plant_fiber")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -365,6 +371,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("clay_lump")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // Carcasses
@@ -375,6 +382,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -384,6 +392,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // =========================================================================
@@ -398,6 +407,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("flint_blade")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -407,6 +417,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("flint_axe_head")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // Animal products (from processing carcasses)
@@ -417,6 +428,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_bone")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -426,6 +438,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_sinew")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -435,6 +448,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_hide")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -444,6 +458,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_meat")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -453,6 +468,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("deer_bone")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -462,6 +478,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("deer_sinew")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -471,6 +488,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("deer_hide")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -480,6 +498,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("deer_meat")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // Wood products
@@ -490,6 +509,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("wood_log")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // Metal ores
@@ -500,6 +520,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("copper_ore")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -509,6 +530,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("tin_ore")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -518,6 +540,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("iron_ore")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // Metal bars
@@ -528,6 +551,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("copper_bar")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -537,6 +561,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("bronze_bar")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -546,6 +571,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: Some(submat("iron_bar")) },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // =========================================================================
@@ -559,6 +585,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("forge".to_string()))),
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -568,6 +595,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("workbench".to_string()))),
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -577,6 +605,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Simple { submaterial: None },
         placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("anvil".to_string()))),
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // =========================================================================
@@ -590,6 +619,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Component { component_kind: comp_kind("handle") },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -599,6 +629,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Component { component_kind: comp_kind("binding") },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -608,6 +639,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Component { component_kind: comp_kind("knife_blade") },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -617,6 +649,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Component { component_kind: comp_kind("axe_head") },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     registry.register_item(ItemDefinition {
@@ -626,6 +659,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         kind: ItemKind::Component { component_kind: comp_kind("pickaxe_head") },
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // =========================================================================
@@ -657,6 +691,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         }),
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // Axes
@@ -684,6 +719,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         }),
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 
     // Pickaxes
@@ -711,6 +747,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         }),
         placeable: None,
         pickupable: true,
+        stat_bonuses: StatBonuses::default(),
     });
 }
 

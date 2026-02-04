@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `27f5dd0`  
+> **Previous Commit**: `b95d715`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -185,7 +185,8 @@ Each land contains an 8x8 grid of tiles with varying biomes based on position wi
 **Implemented:**
 - Inventory data structure (simple list, no stacking yet)
 - Inventory display in UI (toggle with backtick key in web, `inv` in CLI)
-- Character can hold items (currently pre-populated with Stick, Rock, Tree)
+- Item stat bonuses (e.g., stick grants +1 attack when equipped)
+- Craftable query command to check recipes based on inventory + workstations
 
 **Planned Features:**
 - Item pickup system (`P` command to collect objects from tiles)

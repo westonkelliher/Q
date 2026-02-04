@@ -6,7 +6,7 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Current Status
 
-⚠️ New backend features added - no frontend changes required (CLI-only commands)
+⚠️ Pending frontend changes required - see "Pending Items" below
 
 ---
 
@@ -21,11 +21,43 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Pending Items
 
-_No immediate frontend tasks required. Recent backend features are CLI-only._
+### Display Stat Bonuses with Breakdown (REQUIRED)
+
+**Backend Changes (commit bb2b628):**
+- Added StatBonuses struct to ItemDefinition (health and attack bonuses)
+- Stick now grants +1 attack when equipped
+- GameState::get_total_attack() calculates base + bonus
+- API now returns total attack (base + bonuses)
+
+**Frontend Tasks (REQUIRED):**
+1. Update attack display in character stats sidebar to show breakdown
+2. Display format when bonuses present: "Attack: 6 (5 + 1)"
+3. Display format when no bonuses: "Attack: 5"
+4. Calculate: base = 5 (hardcoded for MVP), bonus = total - base
+
+**Implementation:**
+```javascript
+// In character stats display:
+const baseAttack = 5; // Current MVP hardcoded value
+const totalAttack = gameState.character.attack;
+const attackBonus = totalAttack - baseAttack;
+
+if (attackBonus > 0) {
+    attackDisplay = `${totalAttack} (${baseAttack} + ${attackBonus})`;
+} else {
+    attackDisplay = `${totalAttack}`;
+}
+```
+
+**Testing:**
+- Unequipped: Shows "Attack: 5"
+- Stick equipped: Shows "Attack: 6 (5 + 1)"
+
+---
 
 ## Recent Backend Features (No Frontend Action Needed)
 
-**Craftable Query Command** (commit pending):
+**Craftable Query Command** (commit b95d715):
 - Added `craftable` / `can` / `available` command
 - Shows recipes that can be crafted with current inventory + workstations in land
 - CLI-only, no frontend UI required
