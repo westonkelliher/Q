@@ -60,6 +60,9 @@ const GRAPHICS = {
     deathSkull: createGraphic(['skull'], '#ff6b6b', '#8b0000'),
     victoryTrophy: createGraphic(['trophy'], '#51cf66', '#1a5f1a'),
     
+    // Fallback/default for missing graphics
+    missingGraphic: createGraphic(['help'], '#ff00ff', '#000000'),  // bright magenta / black - highly visible
+    
     // Carcasses (dead animal remains) - all use same gorey colors
     wolfCarcass: createGraphic(['wolf-head'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
     deerCarcass: createGraphic(['cat'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
@@ -834,18 +837,13 @@ function renderLandView(landState) {
             // Render object if present
             if (tile.objects && tile.objects.length > 0) {
                 const objectName = tile.objects[0];
-                const objectGraphic = OBJECT_GRAPHICS[objectName];
+                const objectGraphic = OBJECT_GRAPHICS[objectName] || GRAPHICS.missingGraphic;
                 
-                if (objectGraphic) {
-                    const objectEl = document.createElement('div');
-                    objectEl.className = 'tile-object-icon';
-                    objectEl.title = objectName;
-                    objectEl.appendChild(renderGraphic(objectGraphic, 20));
-                    cell.appendChild(objectEl);
-                } else {
-                    // Fallback to color fill if no graphic defined
-                    cell.style.backgroundColor = rgbToCss(getObjectColor(objectName));
-                }
+                const objectEl = document.createElement('div');
+                objectEl.className = 'tile-object-icon';
+                objectEl.title = objectName;
+                objectEl.appendChild(renderGraphic(objectGraphic, 20));
+                cell.appendChild(objectEl);
             }
             
             // Render character if on this tile
