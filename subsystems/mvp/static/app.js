@@ -40,6 +40,7 @@ const GRAPHICS = {
         '#4a3a24',  // darker brown outline
         { rotation: 80 }
     ),
+    plantFiber: createGraphic(['grass'], '#7ac74f', '#2d5016'),  // bright green / dark green
     
     // Enemies
     enemyIndicator: createGraphic(['crossed-swords'], '#ff6b6b', '#8b0000'),
@@ -75,6 +76,7 @@ const OBJECT_GRAPHICS = {
     'Rock': GRAPHICS.rock,
     'Tree': GRAPHICS.tree,
     'Stick': GRAPHICS.stick,
+    'Plant Fiber': GRAPHICS.plantFiber,
     'Wolf Carcass': GRAPHICS.wolfCarcass,
     'Deer Carcass': GRAPHICS.deerCarcass,
     'Rabbit Carcass': GRAPHICS.rabbitCarcass,
