@@ -245,7 +245,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             // Standalone m - show usage
             (false, "Usage: m <direction> (e.g., 'm u' for up). Directions: u/up, d/down, l/left, r/right".to_string())
         }
-        "u" | "up" | "down" | "r" | "right" => {
+        "up" | "down" | "right" => {
             // Legacy single-letter commands - redirect to move command
             (false, format!("Movement now requires 'm' prefix. Use 'm {}' instead. Type 'help' for more info.", command))
         }
@@ -445,7 +445,115 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 None => (false, "No item equipped".to_string()),
             }
         }
-        "recipes" | "recipe" => {
+        "use" | "u" => {
+            // Can only use in land view
+            if state.current_mode != CurrentMode::Land {
+                return (false, "Can only use tools in land view".to_string());
+            }
+            
+            // Check if player has equipped tool
+            let equipped_id = match state.character.get_equipped() {
+                Some(id) => id,
+                None => return (false, "No tool equipped. Equip a tool first.".to_string()),
+            };
+            
+            // Get tool type from equipped item
+            let tool_type = state.crafting_registry.get_instance(equipped_id)
+                .and_then(|instance| {
+                    let item_def = match instance {
+                        crate::game::crafting::ItemInstance::Simple(s) => {
+                            state.crafting_registry.get_item(&s.definition)
+                        }
+                        crate::game::crafting::ItemInstance::Composite(c) => {
+                            state.crafting_registry.get_item(&c.definition)
+                        }
+                        _ => None
+                    };
+                    
+                    item_def.and_then(|def| {
+                        if let crate::game::crafting::ItemKind::Composite(comp_def) = &def.kind {
+                            comp_def.tool_type.clone()
+                        } else {
+                            // Check for makeshift tools
+                            if def.id.0 == "rock" {
+                                Some(crate::game::crafting::ToolType::Hammer)
+                            } else if def.id.0 == "stick" {
+                                Some(crate::game::crafting::ToolType::Shovel)
+                            } else {
+                                None
+                            }
+                        }
+                    })
+                });
+            
+            let tool_type = match tool_type {
+                Some(t) => t,
+                None => return (false, "Equipped item is not a usable tool".to_string()),
+            };
+            
+            let (land_x, land_y) = state.current_land();
+            let (tile_x, tile_y) = match state.current_tile() {
+                Some(pos) => pos,
+                None => return (false, "Not in land view".to_string()),
+            };
+            
+            // Get the tile
+            if let Some(land) = state.world.terrain.get_mut(&(land_x, land_y)) {
+                let tile = &mut land.tiles[tile_y][tile_x];
+                
+                // Priority 1: Check for world object at tile
+                if let Some(_world_object_id) = tile.world_object {
+                    // Try to find a recipe that uses this world object + equipped tool
+                    // For now, check if there's a tree and we have an axe
+                    if !tile.items.is_empty() {
+                        let first_item_id = tile.items[0];
+                        if let Some(instance) = state.crafting_registry.get_instance(first_item_id) {
+                            if let crate::game::crafting::ItemInstance::Simple(s) = instance {
+                                if let Some(item_def) = state.crafting_registry.get_item(&s.definition) {
+                                    // Check if this is a tree and we have an axe
+                                    if item_def.id.0 == "tree" && tool_type == crate::game::crafting::ToolType::Axe {
+                                        // Try to craft via chop_tree recipe
+                                        return execute_command(state, "craft chop_tree");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Priority 2: Check substrate interaction
+                let substrate = &tile.substrate;
+                match (&tool_type, substrate) {
+                    (crate::game::crafting::ToolType::Shovel, crate::game::world::types::Substrate::Clay) => {
+                        // Harvest clay from clay substrate
+                        let clay_instance_id = state.crafting_registry.next_instance_id();
+                        let clay_instance = crate::game::crafting::ItemInstance::Simple(
+                            crate::game::crafting::SimpleInstance {
+                                id: clay_instance_id,
+                                definition: crate::game::crafting::ItemId("clay".to_string()),
+                                provenance: crate::game::crafting::Provenance {
+                                    recipe_id: crate::game::crafting::RecipeId("harvest_clay".to_string()),
+                                    consumed_inputs: vec![],
+                                    tool_used: Some(equipped_id),
+                                    world_object_used: None,
+                                    crafted_at: state.combat_round as i64,
+                                },
+                            }
+                        );
+                        state.crafting_registry.register_instance(clay_instance);
+                        state.character.inventory.add_item(clay_instance_id);
+                        
+                        return (true, "⛏️ Harvested Clay from clay substrate".to_string());
+                    }
+                    _ => {
+                        return (false, format!("Cannot use {:?} on {:?} substrate or current tile contents", tool_type, substrate));
+                    }
+                }
+            } else {
+                (false, "Land not found".to_string())
+            }
+        }
+        "recipes" | "recipe" | "r" => {
             let mut output = String::from("Available Recipes:\n");
             
             // List simple recipes
@@ -529,6 +637,9 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                                 if def.id.0 == "rock" && tool_req.tool_type == crate::game::crafting::ToolType::Hammer {
                                     return true;
                                 }
+                                if def.id.0 == "stick" && tool_req.tool_type == crate::game::crafting::ToolType::Shovel {
+                                    return true;
+                                }
                             }
                             false
                         } else {
@@ -596,12 +707,13 @@ Commands:
   X, EXIT         - Exit land view
   PICKUP, P, GET  - Pick up item from current tile
   D, DROP         - Drop first item from inventory
+  U, USE          - Use equipped tool on world object or substrate
   L, PLACE <idx>  - Place item as world object (e.g., 'l 0' to place forge)
   E, EQUIP <idx>  - Equip item from inventory (e.g., 'e 0')
   UNEQUIP         - Unequip current item to inventory
   CRAFT <recipe>  - Craft item from recipe (e.g., 'craft knap_flint_blade')
   C <recipe>      - Shortcut for craft
-  RECIPES         - List all recipes
+  R, RECIPES      - List all recipes
   CRAFTABLE       - Show craftable recipes based on inventory + workstations
   STATUS, STATS   - Show character status
   INV, INVENTORY  - Show inventory
@@ -617,13 +729,13 @@ Commands:
   UNEQUIP         - Unequip current item
   CRAFT <recipe>  - Craft item from recipe
   C <recipe>      - Shortcut for craft
-  RECIPES         - List all recipes
+  R, RECIPES      - List all recipes
   CRAFTABLE       - Show craftable recipes based on inventory + workstations
   STATUS, STATS   - Show character status
   INV, INVENTORY  - Show inventory
   H, HELP, ?      - Show this help
   
-  (Enter land view to pickup/drop/craft items)
+  (Enter land view to pickup/drop/use/craft items)
 "#
                 }
             };

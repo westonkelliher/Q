@@ -77,6 +77,7 @@ pub enum ToolType {
     Knife,
     Saw,
     Needle,
+    Shovel,
     /// Extensible via string variant for LLM generation
     Custom(String),
 }
