@@ -618,6 +618,16 @@ body {
     pointer-events: none;
 }
 
+/* Equipped item icon (shown next to character) */
+.equipped-item-icon {
+    position: absolute;
+    right: -15%;
+    bottom: 5%;
+    z-index: 15;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
 /* Screen overlay icons */
 .screen-icon .ra {
     color: inherit;

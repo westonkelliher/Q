@@ -200,6 +200,44 @@ function renderCharacter(fontSize = 24) {
     return renderGraphic(GRAPHICS.player, fontSize);
 }
 
+/**
+ * Renders a character with equipped item overlay.
+ * If an equipped item exists, draws it smaller to the right of the character.
+ * @param {number} fontSize - Base font size for character
+ * @returns {HTMLElement} Container with character and equipped item
+ */
+function renderCharacterWithEquipment(fontSize = 24) {
+    const container = document.createElement('div');
+    container.style.position = 'relative';
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    
+    // Render base character
+    const character = renderGraphic(GRAPHICS.player, fontSize);
+    container.appendChild(character);
+    
+    // Check if there's an equipped item
+    const equippedName = gameState?.character?.equipped;
+    if (equippedName && OBJECT_GRAPHICS[equippedName]) {
+        const equipmentEl = document.createElement('div');
+        equipmentEl.className = 'equipped-item-icon';
+        equipmentEl.style.position = 'absolute';
+        equipmentEl.style.right = '-15%';
+        equipmentEl.style.bottom = '5%';
+        equipmentEl.style.zIndex = '15';
+        equipmentEl.style.pointerEvents = 'none';
+        equipmentEl.title = `Equipped: ${equippedName}`;
+        
+        // Render equipment at ~60% size
+        const equipmentSize = Math.round(fontSize * 0.6);
+        equipmentEl.appendChild(renderGraphic(OBJECT_GRAPHICS[equippedName], equipmentSize));
+        container.appendChild(equipmentEl);
+    }
+    
+    return container;
+}
+
 // ===========================================
 // Color Utilities
 // ===========================================
@@ -582,7 +620,7 @@ function renderTerrainView(terrainState) {
                 charContainer.style.alignItems = 'center';
                 charContainer.style.justifyContent = 'center';
                 charContainer.title = 'Character';
-                charContainer.appendChild(renderGraphic(GRAPHICS.player, 36));
+                charContainer.appendChild(renderCharacterWithEquipment(36));
                 cell.appendChild(charContainer);
             }
 
@@ -634,7 +672,7 @@ function renderLandView(landState) {
                 charContainer.style.alignItems = 'center';
                 charContainer.style.justifyContent = 'center';
                 charContainer.title = 'Character';
-                charContainer.appendChild(renderGraphic(GRAPHICS.player, 24));
+                charContainer.appendChild(renderCharacterWithEquipment(24));
                 cell.appendChild(charContainer);
             }
             
@@ -717,7 +755,7 @@ function renderCombatView(combatState) {
     playerSpriteEl.style.display = 'flex';
     playerSpriteEl.style.alignItems = 'center';
     playerSpriteEl.style.justifyContent = 'center';
-    playerSpriteEl.appendChild(renderGraphic(GRAPHICS.player, 60));
+    playerSpriteEl.appendChild(renderCharacterWithEquipment(60));
 
     const enemySpriteEl = document.getElementById('enemy-sprite');
     enemySpriteEl.style.display = 'flex';
