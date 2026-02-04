@@ -340,9 +340,11 @@ let gameState = null;
 let commandHistory = [];
 
 // Frontend-only overlay state
-let displayOverlay = null; // 'death' | 'win' | 'inventory' | 'equip-select' | null
+let displayOverlay = null; // 'death' | 'win' | 'inventory' | 'equip-select' | 'craft-select' | null
 let previousViewMode = null;
 let equipSelectIndex = 0; // Currently selected item index in equip mode
+let craftSelectIndex = 0; // Currently selected recipe index in craft mode
+let craftableRecipes = []; // Array of { id: string, name: string }
 
 // Load initial game state
 async function loadGameState() {
@@ -398,6 +400,12 @@ async function executeCommand(command) {
         showMessage('Use arrow keys to select item, Enter to equip, Escape to cancel', 'success');
         return;
     }
+    
+    // Intercept "c" or "craft" with no arguments - enter craft selection mode
+    if (trimmedCmd === 'c' || trimmedCmd === 'craft') {
+        await fetchCraftableRecipes();
+        return;
+    }
 
     try {
         const response = await fetch('/api/command', {
@@ -434,6 +442,54 @@ async function executeCommand(command) {
     }
 }
 
+// Parse craftable recipes from "can" command output
+function parseCraftableRecipes(message) {
+    const recipes = [];
+    const lines = message.split('\n');
+    
+    for (const line of lines) {
+        // Look for lines like: "  ✓ recipe_id - Recipe Name"
+        const match = line.match(/^\s*✓\s+(\S+)\s+-\s+(.+)$/);
+        if (match) {
+            recipes.push({
+                id: match[1],
+                name: match[2].trim()
+            });
+        }
+    }
+    
+    return recipes;
+}
+
+// Fetch craftable recipes using "can" command
+async function fetchCraftableRecipes() {
+    try {
+        const response = await fetch('/api/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: 'can' }),
+        });
+        
+        const data = await response.json();
+        gameState = data.game_state;
+        
+        // Parse the craftable recipes from response message
+        craftableRecipes = parseCraftableRecipes(data.message);
+        
+        if (craftableRecipes.length === 0) {
+            showMessage('No craftable recipes available', 'error');
+            return;
+        }
+        
+        craftSelectIndex = 0;
+        displayOverlay = 'craft-select';
+        renderGame();
+        showMessage('Select recipe to craft', 'success');
+    } catch (error) {
+        showMessage('Failed to fetch craftable recipes', 'error');
+    }
+}
+
 // Render the game display
 function renderGame() {
     const display = document.getElementById('game-display');
@@ -449,11 +505,15 @@ function renderGame() {
         // For inventory, render the underlying view first, then show inventory overlay
         renderUnderlyingView(display);
         renderInventoryOverlay();
-    } else if (displayOverlay === 'equip-select') {
-        // For equip selection, render the underlying view first, then show equip selector
-        renderUnderlyingView(display);
-        renderEquipSelectOverlay();
-    } else if (displayOverlay === 'death') {
+        } else if (displayOverlay === 'equip-select') {
+            // For equip selection, render the underlying view first, then show equip selector
+            renderUnderlyingView(display);
+            renderEquipSelectOverlay();
+        } else if (displayOverlay === 'craft-select') {
+            // For craft selection, render the underlying view first, then show craft selector
+            renderUnderlyingView(display);
+            renderCraftSelectOverlay();
+        } else if (displayOverlay === 'death') {
         display.innerHTML = '<div class="screen-view death-screen" id="death-screen"></div>';
         renderDeathScreen();
     } else if (displayOverlay === 'win') {
@@ -608,6 +668,44 @@ function renderEquipSelectOverlay() {
     document.body.appendChild(overlay);
 }
 
+// Render craft selection overlay
+function renderCraftSelectOverlay() {
+    const overlay = document.createElement('div');
+    overlay.className = 'inventory-overlay';
+    overlay.id = 'inventory-overlay';
+    
+    if (craftSelectIndex >= craftableRecipes.length) craftSelectIndex = craftableRecipes.length - 1;
+    if (craftSelectIndex < 0) craftSelectIndex = 0;
+    
+    const recipesHtml = craftableRecipes.map((recipe, index) => {
+        const selectedClass = index === craftSelectIndex ? ' selected' : '';
+        return `
+            <div class="inventory-item${selectedClass}">
+                <div class="inventory-item-index">${index}</div>
+                <div class="inventory-item-name">${recipe.name}</div>
+            </div>
+        `;
+    }).join('');
+    
+    overlay.innerHTML = `
+        <div class="inventory-panel equip-mode">
+            <div class="inventory-header">
+                <div class="inventory-title">🔨 Craft Item</div>
+                <div class="inventory-subtitle">Select recipe (${craftSelectIndex + 1}/${craftableRecipes.length})</div>
+            </div>
+            <div class="inventory-list">
+                ${recipesHtml}
+            </div>
+            <div class="inventory-instructions">
+                <p>Use <code>Arrow Keys</code> to navigate grid • <code>0-9</code> to jump</p>
+                <p>Press <code>Enter</code> to craft • <code>Escape</code> or <code>\`</code> to cancel</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
 // Render terrain view (5x5 grid)
 function renderTerrainView(terrainState) {
     const grid = document.getElementById('terrain-grid');
@@ -643,10 +741,10 @@ function renderTerrainView(terrainState) {
                     const darkerColor = darkenColor(getBiomeColor(land.biome));
                     
                     biomeIcons.forEach((iconName, index) => {
-                        const iconEl = renderSimpleIcon(iconName, darkerColor, 28);
+                        const iconEl = renderSimpleIcon(iconName, darkerColor, 32);
                         // Add negative margin to subsequent icons for overlap
                         if (index > 0) {
-                            iconEl.style.marginLeft = '-8px';
+                            iconEl.style.marginLeft = '-16px';
                         }
                         iconContainer.appendChild(iconEl);
                     });
@@ -953,6 +1051,7 @@ function updateStatus() {
             <p><code>Arrow Keys</code> or <code>M &lt;dir&gt;</code> - Move (u/d/l/r)</p>
             <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
             <p><code>E</code> - Open equip selector</p>
+            <p><code>C</code> - Open craft selector</p>
             <p><code>\`</code> - Toggle inventory</p>
             <p><code>H</code> - Help</p>
         `;
@@ -1130,6 +1229,69 @@ document.addEventListener('keydown', (e) => {
             displayOverlay = null;
             renderGame();
             showMessage('Equip cancelled', 'error');
+        }
+        return;
+    }
+    
+    // When craft selection is active, handle navigation and confirmation
+    if (displayOverlay === 'craft-select') {
+        const ITEMS_PER_ROW = 5;
+        
+        // Number keys 0-9 for instant selection
+        if (e.key >= '0' && e.key <= '9') {
+            e.preventDefault();
+            const targetIndex = parseInt(e.key);
+            if (targetIndex < craftableRecipes.length) {
+                craftSelectIndex = targetIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            // Move up one row (subtract 5)
+            const newIndex = craftSelectIndex - ITEMS_PER_ROW;
+            if (newIndex >= 0) {
+                craftSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Move down one row (add 5)
+            const newIndex = craftSelectIndex + ITEMS_PER_ROW;
+            if (newIndex < craftableRecipes.length) {
+                craftSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            // Move left within row (subtract 1, stay in same row)
+            const currentRow = Math.floor(craftSelectIndex / ITEMS_PER_ROW);
+            const newIndex = craftSelectIndex - 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex >= 0 && newRow === currentRow) {
+                craftSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            // Move right within row (add 1, stay in same row)
+            const currentRow = Math.floor(craftSelectIndex / ITEMS_PER_ROW);
+            const newIndex = craftSelectIndex + 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex < craftableRecipes.length && newRow === currentRow) {
+                craftSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            // Execute the craft command with selected recipe
+            const recipe = craftableRecipes[craftSelectIndex];
+            displayOverlay = null;
+            executeCommand(`craft ${recipe.id}`);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            displayOverlay = null;
+            renderGame();
+            showMessage('Craft cancelled', 'error');
         }
         return;
     }
