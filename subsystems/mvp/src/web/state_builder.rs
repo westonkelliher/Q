@@ -12,6 +12,7 @@ pub fn build_terrain_state(state: &GameState) -> TerrainGameState {
             let coords = (x, y);
             if let Some(land) = state.world.terrain.get(&coords) {
                 let enemy = land.enemy.as_ref().map(|e| TerrainEnemyInfo {
+                    enemy_type: e.enemy_type.display_name().to_string(),
                     health: e.health,
                     max_health: e.max_health,
                     attack: e.attack,
@@ -80,6 +81,7 @@ pub fn build_combat_state(state: &GameState) -> CombatGameState {
             health: enemy.health,
             attack: enemy.attack,
         },
+        enemy_type: enemy.enemy_type.display_name().to_string(),
         enemy_max_health: enemy.max_health,
         round: state.combat_round,
     }

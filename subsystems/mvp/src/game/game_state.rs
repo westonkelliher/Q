@@ -1,7 +1,7 @@
 use super::world::types::{World, Substrate, Biome};
 use super::character::Character;
 use super::combat::CombatResult;
-use super::crafting::{CraftingRegistry, ItemInstanceId};
+use super::crafting::{CraftingRegistry, ItemInstanceId, WorldObjectInstanceId};
 
 /// Information about a tile
 #[derive(Debug, Clone)]
@@ -300,6 +300,25 @@ impl GameState {
     /// Check if a land exists at the given coordinates
     pub fn land_exists(&self, x: i32, y: i32) -> bool {
         self.world.terrain.contains_key(&(x, y))
+    }
+    
+    /// Get all world objects in the current land
+    pub fn get_world_objects_in_current_land(&self) -> Vec<WorldObjectInstanceId> {
+        let (land_x, land_y) = self.current_land();
+        
+        if let Some(land) = self.world.terrain.get(&(land_x, land_y)) {
+            let mut world_objects = Vec::new();
+            for row in &land.tiles {
+                for tile in row {
+                    if let Some(wo_id) = tile.world_object {
+                        world_objects.push(wo_id);
+                    }
+                }
+            }
+            world_objects
+        } else {
+            Vec::new()
+        }
     }
 }
 

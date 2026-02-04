@@ -46,6 +46,15 @@ const GRAPHICS = {
     enemyIndicatorDefeated: createGraphic(['crossed-swords'], '#888888', '#444444'),
     enemyMonster: createGraphic(['monster-skull'], '#ff6b6b', '#8b0000'),
     
+    // Enemy Types
+    enemyRabbit: createGraphic(['rabbit'], '#d4a574', '#8b6f47'),  // tan / brown (neutral, peaceful)
+    enemyFox: createGraphic(['fox'], '#ff8c42', '#8b4513'),  // orange / brown (warm, clever)
+    enemyWolf: createGraphic(['wolf-head'], '#4a4a4a', '#1a1a1a'),  // dark gray / black (threatening)
+    enemySpider: createGraphic(['spider-face'], '#3d1f00', '#000000'),  // dark brown / black (sinister)
+    enemySnake: createGraphic(['venomous-snake'], '#51cf66', '#1a5f1a'),  // green / dark green (venomous)
+    enemyLion: createGraphic(['lion'], '#d4a574', '#8b6f47'),  // tan / brown (regal, powerful)
+    enemyDragon: createGraphic(['dragon'], '#8b0000', '#330000'),  // deep red / black (fierce, boss-level)
+    
     // UI Icons
     deathSkull: createGraphic(['skull'], '#ff6b6b', '#8b0000'),
     victoryTrophy: createGraphic(['trophy'], '#51cf66', '#1a5f1a'),
@@ -727,7 +736,7 @@ function renderCombatView(combatState) {
                 </div>
             </div>
             <div class="combatant-panel enemy">
-                <div class="combatant-name">Enemy</div>
+                <div class="combatant-name">${combatState.enemy_type}</div>
                 <div class="combatant-sprite" id="enemy-sprite"></div>
                 <div class="combatant-stats">
                     <div class="combat-stat-row">
@@ -762,7 +771,20 @@ function renderCombatView(combatState) {
     enemySpriteEl.style.display = 'flex';
     enemySpriteEl.style.alignItems = 'center';
     enemySpriteEl.style.justifyContent = 'center';
-    enemySpriteEl.appendChild(renderGraphic(GRAPHICS.enemyMonster, 60));
+    
+    // Map enemy type to graphic
+    const enemyTypeGraphicMap = {
+        'Rabbit': GRAPHICS.enemyRabbit,
+        'Fox': GRAPHICS.enemyFox,
+        'Wolf': GRAPHICS.enemyWolf,
+        'Spider': GRAPHICS.enemySpider,
+        'Snake': GRAPHICS.enemySnake,
+        'Lion': GRAPHICS.enemyLion,
+        'Dragon': GRAPHICS.enemyDragon,
+    };
+    
+    const enemyGraphic = enemyTypeGraphicMap[combatState.enemy_type] || GRAPHICS.enemyMonster;
+    enemySpriteEl.appendChild(renderGraphic(enemyGraphic, 60));
 }
 
 // Update status bar

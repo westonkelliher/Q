@@ -1,11 +1,14 @@
 NEXT: add CLI REPL
+THEN: refactor the README
 
 
-* combine ra-horns with another icon for an enemy
-  - All background/outlines drawn first, and then all foregrounds drawn on top.
-* Use different animal symbols, including the bunny, the wolf, and the lion as
-  various enemies.
-* Use sick icons for gear on top of the player.
+* first step crafting: copy the important data structures from
+  crafting_tinkers
+* early progression content
+* crafting mechanic
+* quest system to guide early progression
+
+
 * Have tile position within land stay consistent as long as the player does not
   leave that land in the terrain view. When the player does leave the land and
   enter a new land, their tile position in that land should be based on the
@@ -13,3 +16,13 @@ NEXT: add CLI REPL
   of the side that they came from. Use the "drive on the right side rule" e.g.
   if coming from the top the player will be just left of center in the top row
   (index 3) since they are traveling downward
+
+
+* minimap of terrain view when in land view
+  * stretch: animate terrain view becoming minimap
+  * stretch: animate singular lad tile becoming full spread land
+* combine ra-horns with another icon for an enemy
+  - All background/outlines drawn first, and then all foregrounds drawn on top.
+* Use different animal symbols, including the bunny, the wolf, and the lion as
+  various enemies.
+* Use sick icons for gear on top of the player.

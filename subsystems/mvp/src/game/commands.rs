@@ -468,6 +468,111 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             
             (true, output)
         }
+        "craftable" | "can" | "available" => {
+            let mut output = String::from("Craftable Recipes:\n");
+            let mut found_any = false;
+            
+            // Get all world objects in current land
+            let world_objects_in_land = state.get_world_objects_in_current_land();
+            
+            // Get inventory items
+            let inventory = &state.character.inventory.items;
+            
+            // Check simple recipes
+            output.push_str("\n=== Simple Recipes ===\n");
+            for recipe in state.crafting_registry.all_simple_recipes() {
+                // Check if we have all required inputs
+                let mut can_craft = true;
+                let mut missing = Vec::new();
+                
+                for required_input in &recipe.inputs {
+                    let mut found_count = 0;
+                    for &inv_item_id in inventory.iter() {
+                        if let Some(instance) = state.crafting_registry.get_instance(inv_item_id) {
+                            if let crate::game::crafting::ItemInstance::Simple(s) = instance {
+                                if let Some(def) = state.crafting_registry.get_item(&s.definition) {
+                                    if def.id == required_input.item_id {
+                                        found_count += 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if found_count < required_input.quantity {
+                        can_craft = false;
+                        missing.push(format!("{} (need {})", required_input.item_id.0, required_input.quantity));
+                    }
+                }
+                
+                // Check tool requirement
+                if let Some(ref tool_req) = recipe.tool {
+                    let has_tool = inventory.iter().any(|&inv_item_id| {
+                        if let Some(instance) = state.crafting_registry.get_instance(inv_item_id) {
+                            // Check if this item can act as the required tool type
+                            let item_def = match instance {
+                                crate::game::crafting::ItemInstance::Simple(s) => {
+                                    state.crafting_registry.get_item(&s.definition)
+                                }
+                                crate::game::crafting::ItemInstance::Composite(c) => {
+                                    state.crafting_registry.get_item(&c.definition)
+                                }
+                                _ => None
+                            };
+                            
+                            if let Some(def) = item_def {
+                                if let crate::game::crafting::ItemKind::Composite(comp_def) = &def.kind {
+                                    if let Some(ref item_tool_type) = comp_def.tool_type {
+                                        return item_tool_type == &tool_req.tool_type;
+                                    }
+                                }
+                                // Check makeshift tools (rock = hammer, stick = shovel, etc.)
+                                if def.id.0 == "rock" && tool_req.tool_type == crate::game::crafting::ToolType::Hammer {
+                                    return true;
+                                }
+                            }
+                            false
+                        } else {
+                            false
+                        }
+                    });
+                    
+                    if !has_tool {
+                        can_craft = false;
+                        missing.push(format!("Tool: {:?}", tool_req.tool_type));
+                    }
+                }
+                
+                // Check world object requirement
+                if let Some(ref wo_req) = recipe.world_object {
+                    let has_workstation = world_objects_in_land.iter().any(|&wo_id| {
+                        state.crafting_registry.validate_world_object_requirement(wo_id, wo_req).is_ok()
+                    });
+                    
+                    if !has_workstation {
+                        can_craft = false;
+                        if let Some(ref kind) = wo_req.kind {
+                            missing.push(format!("Workstation: {:?}", kind));
+                        } else {
+                            missing.push(format!("Workstation with tags: {:?}", wo_req.required_tags));
+                        }
+                    }
+                }
+                
+                if can_craft {
+                    output.push_str(&format!("  ✓ {} - {}\n", recipe.id.0, recipe.name));
+                    found_any = true;
+                }
+            }
+            
+            if !found_any {
+                output.push_str("  (none)\n");
+            }
+            
+            // Note: Component and Composite recipes not yet supported for craftable query
+            output.push_str("\n(Component and Composite recipes not yet included in craftable query)\n");
+            
+            (true, output)
+        }
         "help" | "h" | "?" => {
             let help_text = match state.current_mode {
                 CurrentMode::Combat => {
@@ -496,7 +601,8 @@ Commands:
   UNEQUIP         - Unequip current item to inventory
   CRAFT <recipe>  - Craft item from recipe (e.g., 'craft knap_flint_blade')
   C <recipe>      - Shortcut for craft
-  RECIPES         - List available recipes
+  RECIPES         - List all recipes
+  CRAFTABLE       - Show craftable recipes based on inventory + workstations
   STATUS, STATS   - Show character status
   INV, INVENTORY  - Show inventory
   H, HELP, ?      - Show this help
@@ -511,7 +617,8 @@ Commands:
   UNEQUIP         - Unequip current item
   CRAFT <recipe>  - Craft item from recipe
   C <recipe>      - Shortcut for craft
-  RECIPES         - List available recipes
+  RECIPES         - List all recipes
+  CRAFTABLE       - Show craftable recipes based on inventory + workstations
   STATUS, STATS   - Show character status
   INV, INVENTORY  - Show inventory
   H, HELP, ?      - Show this help

@@ -1,4 +1,4 @@
-use super::types::{Biome, Land, Substrate, Tile, World, Enemy};
+use super::types::{Biome, Land, Substrate, Tile, World, Enemy, EnemyType};
 use crate::game::crafting::{CraftingRegistry, ItemInstanceId, ItemId, RecipeId, Provenance};
 use std::collections::HashMap;
 
@@ -7,24 +7,25 @@ use std::collections::HashMap;
 /// Start position is (0,0) - top-left
 /// Boss position is (4,4) - bottom-right
 /// 
-/// Biome layout (5x5 grid):
-/// - Row 0: Plains, Meadow, Mountain, Mountain, Forest
-/// - Row 1: Meadow, Forest, Lake, Lake, Meadow
-/// - Row 2: Plains, Forest, Lake, Plains, Forest
-/// - Row 3: Meadow, Plains, Plains, Forest, Meadow
-/// - Row 4: Forest, Meadow, Plains, Meadow, Mountain (boss)
+/// Biome layout (5x5 grid) - Progression from easy (top-left) to hard (bottom-right):
+/// - Row 0: Meadow, Plains, Plains, Forest, Forest
+/// - Row 1: Plains, Meadow, Forest, Forest, Mountain
+/// - Row 2: Plains, Forest, Lake, Forest, Mountain
+/// - Row 3: Forest, Forest, Plains, Mountain, Mountain
+/// - Row 4: Forest, Plains, Mountain, Mountain, Mountain (boss)
 /// 
 /// Requires a registry to create item instances for world objects
 pub fn create_hardcoded_world(crafting_registry: &mut CraftingRegistry) -> World {
     let mut terrain = HashMap::new();
 
-    // Hand-crafted 5x5 biome layout for variety
+    // Hand-crafted 5x5 biome layout with difficulty progression
+    // Top-left is easy (Meadow/Plains), bottom-right is hard (Mountain)
     let biome_grid: [[Biome; 5]; 5] = [
-        [Biome::Plains,  Biome::Meadow,  Biome::Mountain, Biome::Mountain, Biome::Forest],
-        [Biome::Meadow,  Biome::Forest,   Biome::Lake,    Biome::Lake,     Biome::Meadow],
-        [Biome::Plains,  Biome::Forest,   Biome::Lake,    Biome::Plains,   Biome::Forest],
-        [Biome::Meadow,  Biome::Plains,   Biome::Plains,  Biome::Forest,   Biome::Meadow],
-        [Biome::Forest,  Biome::Meadow,   Biome::Plains,  Biome::Meadow,   Biome::Mountain], // Boss at (4,4)
+        [Biome::Meadow,  Biome::Plains,   Biome::Plains,   Biome::Forest,   Biome::Forest],
+        [Biome::Plains,  Biome::Meadow,   Biome::Forest,   Biome::Forest,   Biome::Mountain],
+        [Biome::Plains,  Biome::Forest,   Biome::Lake,     Biome::Forest,   Biome::Mountain],
+        [Biome::Forest,  Biome::Forest,   Biome::Plains,   Biome::Mountain, Biome::Mountain],
+        [Biome::Forest,  Biome::Plains,   Biome::Mountain, Biome::Mountain, Biome::Mountain], // Boss at (4,4)
     ];
 
     // Create a 5x5 grid of lands
@@ -47,28 +48,52 @@ pub fn create_hardcoded_world(crafting_registry: &mut CraftingRegistry) -> World
             // Generate tiles based on biome
             let tiles = generate_tiles_for_biome(&center_biome, x as i32, y as i32, crafting_registry);
 
-            // Determine if this land has an enemy
-            // Start position (0,0) has no enemy
-            // Boss position (4,4) has a strong enemy
-            // Some intermediate lands have enemies
-            let enemy = if (x, y) == (0, 0) {
-                // Start position - no enemy
-                None
-            } else if (x, y) == (4, 4) {
-                // Boss - strong enemy
-                Some(Enemy::new(20, 8)) // High health, high attack
-            } else if (x, y) == (1, 0) || (x, y) == (0, 1) {
-                // Early enemies - weak
-                Some(Enemy::new(8, 3)) // Low health, low attack
-            } else if (x, y) == (2, 1) || (x, y) == (1, 2) || (x, y) == (3, 2) {
-                // Mid-game enemies - medium
-                Some(Enemy::new(12, 5)) // Medium health, medium attack
-            } else if (x, y) == (3, 3) || (x, y) == (4, 3) {
-                // Late-game enemies - strong
-                Some(Enemy::new(15, 6)) // High health, medium-high attack
-            } else {
-                // Most lands have no enemy (for now)
-                None
+            // Determine enemy based on mixed biome/difficulty approach
+            // Distance from start (0,0) scales difficulty
+            // Biome determines which creature types appear
+            let enemy = match (x, y) {
+                (0, 0) => None, // Start position - no enemy
+                
+                (4, 4) => Some(Enemy::new(EnemyType::Dragon, 22, 9)), // Boss
+                
+                // Distance 1 - Weak enemies (Rabbit)
+                (1, 0) => Some(Enemy::new(EnemyType::Rabbit, 7, 2)), // Plains
+                (0, 1) => Some(Enemy::new(EnemyType::Rabbit, 6, 2)), // Plains
+                
+                // Distance 2 - Weak/Medium (Fox, Rabbit)
+                (2, 0) => Some(Enemy::new(EnemyType::Fox, 9, 3)), // Plains
+                (1, 1) => None, // Give player breathing room
+                (0, 2) => Some(Enemy::new(EnemyType::Rabbit, 8, 3)), // Plains
+                
+                // Distance 3-4 - Medium enemies (Wolf, Spider, Snake)
+                (3, 0) => Some(Enemy::new(EnemyType::Wolf, 12, 5)), // Forest
+                (2, 1) => Some(Enemy::new(EnemyType::Fox, 10, 4)), // Forest
+                (1, 2) => Some(Enemy::new(EnemyType::Wolf, 13, 5)), // Forest
+                (0, 3) => Some(Enemy::new(EnemyType::Spider, 11, 4)), // Forest
+                
+                // Distance 4-5 - Medium enemies
+                (4, 0) => Some(Enemy::new(EnemyType::Spider, 12, 5)), // Forest
+                (3, 1) => None, // Lake area - fewer enemies
+                (2, 2) => None, // Lake center - no enemy
+                (1, 3) => Some(Enemy::new(EnemyType::Wolf, 14, 5)), // Forest
+                (0, 4) => Some(Enemy::new(EnemyType::Spider, 13, 5)), // Forest
+                
+                // Distance 5-6 - Strong enemies (Snake, Lion)
+                (4, 1) => Some(Enemy::new(EnemyType::Snake, 14, 6)), // Mountain
+                (3, 2) => None, // Give player room to explore
+                (2, 3) => Some(Enemy::new(EnemyType::Snake, 13, 5)), // Plains
+                (1, 4) => Some(Enemy::new(EnemyType::Wolf, 15, 6)), // Plains
+                
+                // Distance 6-7 - Strong enemies (Lion)
+                (4, 2) => Some(Enemy::new(EnemyType::Lion, 16, 6)), // Mountain
+                (3, 3) => Some(Enemy::new(EnemyType::Lion, 17, 7)), // Mountain
+                (2, 4) => Some(Enemy::new(EnemyType::Spider, 15, 6)), // Mountain
+                
+                // Distance 7+ - Very strong (Lion)
+                (4, 3) => Some(Enemy::new(EnemyType::Lion, 18, 7)), // Mountain
+                (3, 4) => Some(Enemy::new(EnemyType::Lion, 17, 7)), // Mountain
+                
+                _ => None, // Shouldn't reach here
             };
 
             // Create land with proper biome borders

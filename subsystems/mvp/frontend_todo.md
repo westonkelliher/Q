@@ -25,18 +25,7 @@ _No pending frontend integration tasks at this time._
 
 ## Future Enhancements
 
-These backend features work in CLI but could have visual improvements in the web UI:
 
-### Display World Objects (Crafting Stations)
-- **Status**: Backend complete, API updates needed
-- **What**: Show forge/workbench/anvil icons on tiles in Land view
-- **Blocked by**: SerializableTile needs world_object field added to API
-- **Implementation**: Once API updated, add world object graphics and render them on tiles
-
-### Visual Indicator for Non-Pickupable Items  
-- **Status**: Backend complete, frontend enhancement optional
-- **What**: Show visual cue that trees can't be picked up directly
-- **Note**: Backend already provides proper error messages, so not critical
 
 ---
 

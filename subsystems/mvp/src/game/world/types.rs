@@ -2,10 +2,23 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::game::crafting::{ItemInstanceId, WorldObjectInstanceId};
 
+/// Enemy type variants
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EnemyType {
+    Rabbit,
+    Fox,
+    Wolf,
+    Spider,
+    Snake,
+    Lion,
+    Dragon,
+}
+
 /// Simple enemy stats (copied from combat module)
 /// Stored separately to avoid circular dependencies
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Enemy {
+    pub enemy_type: EnemyType,
     pub health: i32,
     pub attack: i32,
     pub max_health: i32, // Store max health for restoration when fleeing
@@ -112,10 +125,26 @@ impl Substrate {
     }
 }
 
+impl EnemyType {
+    /// Get display name for the enemy type
+    pub fn display_name(&self) -> &str {
+        match self {
+            EnemyType::Rabbit => "Rabbit",
+            EnemyType::Fox => "Fox",
+            EnemyType::Wolf => "Wolf",
+            EnemyType::Spider => "Spider",
+            EnemyType::Snake => "Snake",
+            EnemyType::Lion => "Lion",
+            EnemyType::Dragon => "Dragon",
+        }
+    }
+}
+
 impl Enemy {
-    /// Create a new enemy with specified stats
-    pub fn new(health: i32, attack: i32) -> Self {
+    /// Create a new enemy with specified type and stats
+    pub fn new(enemy_type: EnemyType, health: i32, attack: i32) -> Self {
         Self {
+            enemy_type,
             health,
             attack,
             max_health: health,

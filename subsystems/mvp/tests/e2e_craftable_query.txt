@@ -1,0 +1,40 @@
+# E2E Test: Craftable Query Command
+# Tests the craftable/can/available command with inventory and workstations
+
+# Move to safe mountain land (2,2) to get flint and rock
+m r
+m r
+m d
+m d
+x
+
+# Check initial craftable (should be empty)
+craftable
+
+# Pick up rock (makeshift hammer)
+p
+
+# Move and collect flint
+m u
+p
+
+# Move and collect more items
+m r
+p
+
+# Check inventory
+inv
+
+# Check what can be crafted now (should show knap_flint_blade)
+craftable
+
+# Test aliases
+can
+
+# Test available alias
+available
+
+# Exit
+x
+status
+

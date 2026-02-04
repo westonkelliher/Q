@@ -15,6 +15,7 @@ pub struct SerializableTile {
 /// Enemy info for terrain view (just status + stats for tooltips)
 #[derive(Debug, Serialize)]
 pub struct TerrainEnemyInfo {
+    pub enemy_type: String,
     pub health: i32,
     pub max_health: i32,
     pub attack: i32,
@@ -51,6 +52,7 @@ pub struct CombatGameState {
     pub land_coords: (i32, i32),
     pub player: SerializableCombatant,
     pub enemy: SerializableCombatant,
+    pub enemy_type: String,
     pub enemy_max_health: i32,
     pub round: u32,
 }
