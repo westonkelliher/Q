@@ -1,15 +1,56 @@
-use mvp::game::{create_hardcoded_world, GameState};
+use clap::{Parser, Subcommand};
+use mvp::game::create_hardcoded_world;
 use mvp::web::{create_router, SharedGameState};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+#[derive(Parser)]
+#[command(name = "mvp")]
+#[command(about = "MVP Game - Web or CLI mode")]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Run interactive CLI REPL
+    Cli,
+    /// Execute commands from a script file
+    Script { 
+        /// Path to the script file
+        file: String 
+    },
+    /// Run web server (default)
+    Web,
+}
+
 #[tokio::main]
 async fn main() {
+    let cli = Cli::parse();
+    
+    match cli.command {
+        Some(Commands::Cli) => {
+            mvp::cli::run_repl();
+        }
+        Some(Commands::Script { file }) => {
+            if let Err(e) = mvp::cli::run_script(&file) {
+                eprintln!("Error running script: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Some(Commands::Web) | None => {
+            run_web_server().await;
+        }
+    }
+}
+
+async fn run_web_server() {
     println!("Creating hardcoded MVP world...");
     let world = create_hardcoded_world();
     
     println!("Initializing game state...");
-    let game_state = GameState::new(world);
+    let game_state = mvp::game::GameState::new(world);
     let shared_state: SharedGameState = Arc::new(std::sync::Mutex::new(game_state));
     
     let app = create_router(shared_state);

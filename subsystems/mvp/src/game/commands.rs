@@ -159,29 +159,74 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 CurrentMode::Combat => {
                     r#"
 Combat Commands:
-  A, ATTACK - Attack the enemy
-  E, ENTER  - Flee combat (returns to terrain view)
-  H, HELP   - Show this help
+  A, ATTACK     - Attack the enemy
+  E, ENTER      - Flee combat (returns to terrain view)
+  STATUS, STATS - Show character status
+  INV, I        - Show inventory
+  H, HELP, ?    - Show this help
 "#
                 }
                 CurrentMode::Land => {
                     r#"
 Commands:
-  U, D, L, R - Move up, down, left, right
-  E, ENTER   - Exit land view
-  H, HELP, ? - Show this help
+  U, D, L, R    - Move up, down, left, right
+  E, ENTER      - Exit land view
+  STATUS, STATS - Show character status
+  INV, I        - Show inventory
+  H, HELP, ?    - Show this help
 "#
                 }
                 _ => {
                     r#"
 Commands:
-  U, D, L, R - Move up, down, left, right
-  E, ENTER   - Enter land view (may trigger combat if enemy present)
-  H, HELP, ? - Show this help
+  U, D, L, R    - Move up, down, left, right
+  E, ENTER      - Enter land view (may trigger combat if enemy present)
+  STATUS, STATS - Show character status
+  INV, I        - Show inventory
+  H, HELP, ?    - Show this help
 "#
                 }
             };
             (true, help_text.trim().to_string())
+        }
+        "inventory" | "inv" | "i" => {
+            let inv = state.character.get_inventory();
+            if inv.items.is_empty() {
+                (true, "Inventory is empty".to_string())
+            } else {
+                let items: Vec<String> = inv.items.iter()
+                    .map(|o| format!("{:?}", o))
+                    .collect();
+                (true, format!("Inventory: {}", items.join(", ")))
+            }
+        }
+        "status" | "stats" | "s" => {
+            let (land_x, land_y) = state.current_land();
+            let mode_str = match state.current_mode {
+                CurrentMode::Terrain => "Terrain View",
+                CurrentMode::Land => {
+                    if let Some((tile_x, tile_y)) = state.current_tile() {
+                        return (true, format!(
+                            "Health: {}/{} | Attack: {} | Land: [{},{}] | Tile: [{},{}] | Mode: Land View",
+                            state.character.get_health(),
+                            state.character.get_max_health(),
+                            state.character.get_attack(),
+                            land_x, land_y,
+                            tile_x, tile_y
+                        ));
+                    }
+                    "Land View"
+                }
+                CurrentMode::Combat => "Combat",
+            };
+            (true, format!(
+                "Health: {}/{} | Attack: {} | Land: [{},{}] | Mode: {}",
+                state.character.get_health(),
+                state.character.get_max_health(),
+                state.character.get_attack(),
+                land_x, land_y,
+                mode_str
+            ))
         }
         "" => (false, "Empty command".to_string()),
         _ => (false, format!("Unknown command: {}. Type 'help' for commands.", command)),

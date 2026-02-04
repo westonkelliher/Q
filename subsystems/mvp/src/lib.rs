@@ -1,5 +1,6 @@
 pub mod game;
 pub mod web;
+pub mod cli;
 
 // Re-export commonly used types for convenience
 pub use game::{Biome, Land, Object, Substrate, Tile, World};
