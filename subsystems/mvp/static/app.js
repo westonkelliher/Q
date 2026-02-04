@@ -642,8 +642,13 @@ function renderTerrainView(terrainState) {
                     iconContainer.className = 'biome-icon-overlay';
                     const darkerColor = darkenColor(getBiomeColor(land.biome));
                     
-                    biomeIcons.forEach(iconName => {
-                        iconContainer.appendChild(renderSimpleIcon(iconName, darkerColor, 28));
+                    biomeIcons.forEach((iconName, index) => {
+                        const iconEl = renderSimpleIcon(iconName, darkerColor, 28);
+                        // Add negative margin to subsequent icons for overlap
+                        if (index > 0) {
+                            iconEl.style.marginLeft = '-8px';
+                        }
+                        iconContainer.appendChild(iconEl);
                     });
                     
                     cell.appendChild(iconContainer);
