@@ -1,3 +1,46 @@
+use super::world::types::Object;
+
+/// Character inventory - simple list of items (no stacking)
+#[derive(Debug, Clone)]
+pub struct Inventory {
+    /// Items in the inventory (no stacking, infinite capacity for now)
+    pub items: Vec<Object>,
+}
+
+impl Inventory {
+    /// Create a new empty inventory
+    pub fn new() -> Self {
+        Self {
+            items: Vec::new(),
+        }
+    }
+
+    /// Add an item to the inventory
+    pub fn add_item(&mut self, item: Object) {
+        self.items.push(item);
+    }
+
+    /// Remove an item from the inventory at the given index
+    /// Returns the item if it exists
+    pub fn remove_item(&mut self, index: usize) -> Option<Object> {
+        if index < self.items.len() {
+            Some(self.items.remove(index))
+        } else {
+            None
+        }
+    }
+
+    /// Get the number of items in the inventory
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    /// Check if the inventory is empty
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+}
+
 /// Character struct representing the player character
 /// Contains position and stats (health, attack)
 #[derive(Debug, Clone)]
@@ -12,18 +55,27 @@ pub struct Character {
     pub max_health: i32,
     /// Attack stat
     pub attack: i32,
+    /// Character inventory
+    pub inventory: Inventory,
 }
 
 impl Character {
     /// Create a new character with default stats
     /// Starts at land (0, 0) with no tile position (terrain view)
     pub fn new() -> Self {
+        let mut inventory = Inventory::new();
+        // Add a few starting items for testing the inventory system
+        inventory.add_item(Object::Stick);
+        inventory.add_item(Object::Rock);
+        inventory.add_item(Object::Tree);
+        
         Self {
             land_position: (0, 0),
             tile_position: None,
             health: 10,
             max_health: 10,
             attack: 5,
+            inventory,
         }
     }
 
@@ -77,6 +129,16 @@ impl Character {
     /// Check if character is defeated (health <= 0)
     pub fn is_defeated(&self) -> bool {
         self.health <= 0
+    }
+
+    /// Get a reference to the inventory
+    pub fn get_inventory(&self) -> &Inventory {
+        &self.inventory
+    }
+
+    /// Get a mutable reference to the inventory
+    pub fn get_inventory_mut(&mut self) -> &mut Inventory {
+        &mut self.inventory
     }
 }
 

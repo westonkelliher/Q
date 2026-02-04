@@ -33,6 +33,8 @@ pub enum DisplayOverlay {
     DeathScreen,
     /// Win screen overlay (shown after winning combat)
     WinScreen,
+    /// Inventory overlay (toggled with backtick key)
+    Inventory,
 }
 
 /// Game state that tracks the current world and player position
@@ -347,6 +349,15 @@ impl GameState {
     pub fn dismiss_win_screen(&mut self) {
         if self.display_overlay == DisplayOverlay::WinScreen {
             self.display_overlay = DisplayOverlay::None;
+        }
+    }
+
+    /// Toggle inventory overlay
+    pub fn toggle_inventory(&mut self) {
+        if self.display_overlay == DisplayOverlay::Inventory {
+            self.display_overlay = DisplayOverlay::None;
+        } else {
+            self.display_overlay = DisplayOverlay::Inventory;
         }
     }
 

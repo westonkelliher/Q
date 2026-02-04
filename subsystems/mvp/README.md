@@ -70,9 +70,16 @@ The project currently has:
 
 **Not Yet Implemented**:
 - ❌ Crafting system integration
-- ❌ Inventory system
 - ❌ Equipment system
 - ❌ Content/progression system
+
+**In Progress (Step 3 - Inventory)**:
+- ✅ Inventory data structure (simple list, no stacking)
+- ✅ Toggle inventory with backtick (`) key
+- ✅ Inventory overlay UI display
+- ✅ Inventory state is non-persistent (resets on page refresh)
+- ⚠️ Item pickup system (not yet implemented)
+- ⚠️ Mob drops (not yet implemented)
 
 ## Project Structure
 
@@ -128,6 +135,9 @@ The web server will start on `http://127.0.0.1:3000`. Open this URL in your brow
 - `A` or `ATTACK` - Attack the enemy (executes one combat round)
 - `E` or `ENTER` - Flee combat (returns to terrain view, character health persists)
 
+**Inventory Commands:**
+- `` ` `` (backtick) or `I` - Toggle inventory overlay (works in any view mode)
+
 **General:**
 - `H` or `HELP` - Show help (context-aware based on current view mode)
 
@@ -141,11 +151,17 @@ The web interface provides:
 
 ## Next Steps
 
-See `MVP_BRAINSTORM.md` for the complete implementation plan. The next steps are:
+See `MVP_BRAINSTORM.md` for the complete implementation plan.
 
-1. **Step 3**: Add crafting system (gathering, inventory, crafting, workstations)
-2. **Step 4**: Add equipment system
-3. **Step 5**: Add content and progression system
+**Currently Working On:**
+- **Step 3** (In Progress): Crafting system
+  - ✅ Inventory foundation complete (see `INVENTORY_TEST.md` for testing guide)
+  - 🔄 Next: Item pickup system (P command)
+  - 🔄 Then: Mob drops, crafting GUI, object placement
+
+**Future Steps:**
+1. **Step 4**: Add equipment system
+2. **Step 5**: Add content and progression system
 
 ## Dependencies
 

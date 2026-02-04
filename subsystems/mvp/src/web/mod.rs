@@ -111,6 +111,7 @@ pub struct SerializableCharacter {
     pub health: i32,
     pub max_health: i32,
     pub attack: i32,
+    pub inventory: Vec<String>,
 }
 
 /// Serializable combatant information
@@ -231,6 +232,7 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
             health: state.character.get_health(),
             max_health: state.character.get_max_health(),
             attack: state.character.get_attack(),
+            inventory: state.character.get_inventory().items.iter().map(|o| format!("{:?}", o)).collect(),
         },
         combat_state,
     }))
@@ -303,6 +305,7 @@ async fn handle_command(
                 health: state.character.get_health(),
                 max_health: state.character.get_max_health(),
                 attack: state.character.get_attack(),
+                inventory: state.character.get_inventory().items.iter().map(|o| format!("{:?}", o)).collect(),
             },
             combat_state,
         },
@@ -312,12 +315,25 @@ async fn handle_command(
 }
 
 /// Execute a command and return (success, message)
+/// Returns a message explaining why commands are blocked when an overlay is active
+fn overlay_blocked_message(overlay: DisplayOverlay) -> Option<String> {
+    match overlay {
+        DisplayOverlay::None => None,
+        DisplayOverlay::DeathScreen | DisplayOverlay::WinScreen => {
+            Some("Press ENTER to continue.".to_string())
+        }
+        DisplayOverlay::Inventory => {
+            Some("Close inventory first (press ` or I).".to_string())
+        }
+    }
+}
+
 fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
     match command {
         "u" | "up" => {
             // Check for display overlay first
-            if state.display_overlay != DisplayOverlay::None {
-                (false, "Press ENTER to continue.".to_string())
+            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
+                (false, msg)
             } else {
                 match state.view_mode {
                     ViewMode::Terrain => {
@@ -341,8 +357,8 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         }
         "d" | "down" => {
             // Check for display overlay first
-            if state.display_overlay != DisplayOverlay::None {
-                (false, "Press ENTER to continue.".to_string())
+            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
+                (false, msg)
             } else {
                 match state.view_mode {
                     ViewMode::Terrain => {
@@ -366,8 +382,8 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         }
         "l" | "left" => {
             // Check for display overlay first
-            if state.display_overlay != DisplayOverlay::None {
-                (false, "Press ENTER to continue.".to_string())
+            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
+                (false, msg)
             } else {
                 match state.view_mode {
                     ViewMode::Terrain => {
@@ -391,8 +407,8 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         }
         "r" | "right" => {
             // Check for display overlay first
-            if state.display_overlay != DisplayOverlay::None {
-                (false, "Press ENTER to continue.".to_string())
+            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
+                (false, msg)
             } else {
                 match state.view_mode {
                     ViewMode::Terrain => {
@@ -424,6 +440,11 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 DisplayOverlay::WinScreen => {
                     state.dismiss_win_screen();
                     (true, "🎉 Continue".to_string())
+                }
+                DisplayOverlay::Inventory => {
+                    // Close inventory
+                    state.toggle_inventory();
+                    (true, "Closed inventory".to_string())
                 }
                 DisplayOverlay::None => {
                     // No overlay, handle based on view mode
@@ -497,6 +518,16 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 (false, "Use 'E' to flee combat (or enter/exit based on context)".to_string())
             }
         }
+        "`" | "inventory" | "i" => {
+            // Toggle inventory overlay
+            state.toggle_inventory();
+            let is_open = state.display_overlay == DisplayOverlay::Inventory;
+            if is_open {
+                (true, "🎒 Opened inventory".to_string())
+            } else {
+                (true, "Closed inventory".to_string())
+            }
+        }
         "help" | "h" | "?" => {
             let help_text = match state.display_overlay {
                 DisplayOverlay::DeathScreen => {
@@ -513,6 +544,14 @@ Victory Screen:
   H, HELP   - Show this help
 "#
                 }
+                DisplayOverlay::Inventory => {
+                    r#"
+Inventory:
+  `, I      - Close inventory
+  E, ENTER  - Close inventory
+  H, HELP   - Show this help
+"#
+                }
                 DisplayOverlay::None => {
                     match state.view_mode {
                         ViewMode::Combat => {
@@ -520,6 +559,7 @@ Victory Screen:
 Combat Commands:
   A, ATTACK - Attack the enemy
   E, ENTER  - Flee combat (returns to terrain view)
+  `, I      - Toggle inventory
   H, HELP   - Show this help
 "#
                         }
@@ -528,6 +568,7 @@ Combat Commands:
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Exit land view
+  `, I       - Toggle inventory
   H, HELP, ? - Show this help
 "#
                         }
@@ -536,6 +577,7 @@ Commands:
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Enter land view (may trigger combat if enemy present)
+  `, I       - Toggle inventory
   H, HELP, ? - Show this help
 "#
                         }
