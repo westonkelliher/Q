@@ -1,0 +1,5 @@
+* combine ra-horns with another icon for an enemy
+  - All background/outlines drawn first, and then all foregrounds drawn on top.
+* Use different animal symbols, including the bunny, the wolf, and the lion as
+  various enemies.
+* Use sick icons for gear on top of the player. 

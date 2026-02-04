@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MVP Game</title>
+    <link rel="stylesheet" href="/static/rpg-awesome/css/rpg-awesome.min.css">
     <style>
         * {
             margin: 0;
@@ -91,10 +92,11 @@
 
         .character-sprite {
             position: absolute;
-            width: 80%;
-            height: 80%;
-            top: 10%;
-            left: 10%;
+            width: 100%;
+            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             object-fit: contain;
             z-index: 10;
             pointer-events: none;
@@ -556,6 +558,101 @@
             font-size: 80px;
             margin-bottom: 20px;
         }
+
+        .screen-icon .ra {
+            font-size: inherit;
+            color: inherit;
+        }
+
+        /* RPG-Awesome icon styling */
+        .character-sprite .ra,
+        .enemy-indicator .ra,
+        .combatant-sprite .ra {
+            font-size: inherit;
+            color: inherit;
+            display: inline-block;
+        }
+
+        .character-sprite {
+            position: relative;
+        }
+
+        /* Character icon with outline effect - uses stacked icons */
+        .character-icon-outlined {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e0e0;
+        }
+
+        .character-icon-outlined .ra-outline {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            color: #000;
+            font-weight: 900; /* bold for outline */
+            -webkit-text-stroke: 3.0px #111; /* Additional stroke for outline */
+        }
+
+        .character-icon-outlined .ra-front {
+            position: relative;
+            z-index: 1;
+            color: #e0e0e0;
+        }
+
+        .enemy-indicator .ra {
+            color: #ff6b6b;
+        }
+
+        .enemy-indicator.defeated .ra {
+            color: #888;
+        }
+
+        /* Tile object icons */
+        .tile-object-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #e0e0e0;
+            z-index: 5;
+            pointer-events: none;
+            transform-origin: center;
+        }
+
+        /* Tree icon should be green */
+        .tile-object-icon.ra-pine-tree {
+            color: #51cf66;
+        }
+
+        /* Rock/Gem icon should be gray */
+        .tile-object-icon.ra-gem {
+            color: #888;
+        }
+
+        /* Stick icon should be brown/wooden colored, bold, slightly taller and squished */
+        .tile-object-icon.ra-bowling-pin {
+            font-weight: 900;
+            color: #8b6f47;
+            transform: translate(-50%, -50%) scale(0.8, 1.3);
+            transform-origin: center;
+        }
+
+        .screen-icon .ra {
+            color: inherit;
+        }
+
+        .death-screen .screen-icon .ra {
+            color: #ff6b6b;
+        }
+
+        .win-screen .screen-icon .ra {
+            color: #51cf66;
+        }
     </style>
 </head>
 <body>
@@ -728,7 +825,7 @@
         function renderDeathScreen() {
             const screen = document.getElementById('death-screen');
             screen.innerHTML = `
-                <div class="screen-icon">💀</div>
+                <div class="screen-icon"><i class="ra ra-skull"></i></div>
                 <div class="screen-title">Defeated</div>
                 <div class="screen-message">You have been defeated in combat!</div>
                 <div class="screen-instruction">Press ENTER to continue</div>
@@ -739,7 +836,7 @@
         function renderWinScreen() {
             const screen = document.getElementById('win-screen');
             screen.innerHTML = `
-                <div class="screen-icon">🎉</div>
+                <div class="screen-icon"><i class="ra ra-trophy"></i></div>
                 <div class="screen-title">Victory</div>
                 <div class="screen-message">You have defeated your enemy!</div>
                 <div class="screen-instruction">Press ENTER to continue</div>
@@ -784,8 +881,10 @@
                             if (land.enemy.health <= 0) {
                                 enemyIndicator.classList.add('defeated');
                             }
-                            enemyIndicator.textContent = '👹';
                             enemyIndicator.title = `Enemy: ${land.enemy.health > 0 ? 'Alive' : 'Defeated'} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
+                            const icon = document.createElement('i');
+                            icon.className = 'ra ra-crossed-swords';
+                            enemyIndicator.appendChild(icon);
                             cell.appendChild(enemyIndicator);
                         }
                     } else {
@@ -794,17 +893,28 @@
                         cell.title = `Ungenerated (${x}, ${y})`;
                     }
 
-                    // Add character emoji if character is on this land
+                    // Add character icon if character is on this land
                     if (x === charLandX && y === charLandY) {
-                        const emoji = document.createElement('div');
-                        emoji.className = 'character-sprite';
-                        emoji.style.fontSize = '30px';
-                        emoji.style.display = 'flex';
-                        emoji.style.alignItems = 'center';
-                        emoji.style.justifyContent = 'center';
-                        emoji.textContent = gameState.character.emoji || '🧙';
-                        emoji.title = 'Character';
-                        cell.appendChild(emoji);
+                        const iconContainer = document.createElement('div');
+                        iconContainer.className = 'character-sprite';
+                        iconContainer.style.fontSize = '36px';
+                        iconContainer.style.display = 'flex';
+                        iconContainer.style.alignItems = 'center';
+                        iconContainer.style.justifyContent = 'center';
+                        iconContainer.title = 'Character';
+                        const iconClass = 'ra-player';
+                        const iconWrapper = document.createElement('span');
+                        iconWrapper.className = 'character-icon-outlined';
+                        // Black bold outline behind
+                        const outlineIcon = document.createElement('i');
+                        outlineIcon.className = `ra ${iconClass} ra-outline`;
+                        // White icon in front
+                        const frontIcon = document.createElement('i');
+                        frontIcon.className = `ra ${iconClass} ra-front`;
+                        iconWrapper.appendChild(outlineIcon);
+                        iconWrapper.appendChild(frontIcon);
+                        iconContainer.appendChild(iconWrapper);
+                        cell.appendChild(iconContainer);
                     }
 
                     grid.appendChild(cell);
@@ -842,36 +952,44 @@
                     let backgroundColor = getSubstrateColor(tile.substrate);
                     cell.style.backgroundColor = rgbToCss(backgroundColor);
                     
-                    // If there are objects, display the object image
+                    // If there are objects, display the object icon
                     if (tile.objects && tile.objects.length > 0) {
                         const object = tile.objects[0];
-                        const assetFile = getObjectAsset(object);
+                        const iconClass = getObjectIcon(object);
                         
-                        if (assetFile) {
-                            const img = document.createElement('img');
-                            img.src = `/assets/${assetFile}`;
-                            img.style.width = '100%';
-                            img.style.height = '100%';
-                            img.style.objectFit = 'contain';
-                            img.alt = object;
-                            cell.appendChild(img);
+                        if (iconClass) {
+                            const icon = document.createElement('i');
+                            icon.className = `ra ${iconClass} tile-object-icon`;
+                            icon.title = object;
+                            cell.appendChild(icon);
                         } else {
-                            // Fallback to color if asset not found
+                            // Fallback to color if icon not found
                             cell.style.backgroundColor = rgbToCss(getObjectColor(object));
                         }
                     }
                     
-                    // Add character emoji if character is on this tile
+                    // Add character icon if character is on this tile
                     if (charTilePos && x === charTilePos[0] && y === charTilePos[1]) {
-                        const emoji = document.createElement('div');
-                        emoji.className = 'character-sprite';
-                        emoji.style.fontSize = '16px';
-                        emoji.style.display = 'flex';
-                        emoji.style.alignItems = 'center';
-                        emoji.style.justifyContent = 'center';
-                        emoji.textContent = gameState.character.emoji || '🧙';
-                        emoji.title = 'Character';
-                        cell.appendChild(emoji);
+                        const iconContainer = document.createElement('div');
+                        iconContainer.className = 'character-sprite';
+                        iconContainer.style.fontSize = '24px';
+                        iconContainer.style.display = 'flex';
+                        iconContainer.style.alignItems = 'center';
+                        iconContainer.style.justifyContent = 'center';
+                        iconContainer.title = 'Character';
+                        const iconClass = 'ra-player';
+                        const iconWrapper = document.createElement('span');
+                        iconWrapper.className = 'character-icon-outlined';
+                        // Black bold outline behind
+                        const outlineIcon = document.createElement('i');
+                        outlineIcon.className = `ra ${iconClass} ra-outline`;
+                        // White icon in front
+                        const frontIcon = document.createElement('i');
+                        frontIcon.className = `ra ${iconClass} ra-front`;
+                        iconWrapper.appendChild(outlineIcon);
+                        iconWrapper.appendChild(frontIcon);
+                        iconContainer.appendChild(iconWrapper);
+                        cell.appendChild(iconContainer);
                     }
                     
                     cell.title = `Tile (${x}, ${y}): ${tile.substrate}${tile.objects.length > 0 ? ' + ' + tile.objects[0] : ''}`;
@@ -914,14 +1032,14 @@
             return objectMap[object] || [0.5, 0.5, 0.5];
         }
 
-        // Map Object enum values to asset filenames from parent project
-        function getObjectAsset(object) {
-            const assetMap = {
-                'Rock': 'boulder.png',
-                'Tree': 'tree.png',
-                'Stick': 'stick.png',
+        // Map Object enum values to RPG Awesome icon classes
+        function getObjectIcon(object) {
+            const iconMap = {
+                'Rock': 'ra-gem',
+                'Tree': 'ra-pine-tree',
+                'Stick': 'ra-bowling-pin',
             };
-            return assetMap[object] || null;
+            return iconMap[object] || null;
         }
 
         // Convert RGB (0.0-1.0) to CSS color string
@@ -961,7 +1079,12 @@
                 <div class="combat-panels">
                     <div class="combatant-panel player">
                         <div class="combatant-name">Player</div>
-                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;">${gameState.character.emoji || '🧙'}</div>
+                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;">
+                            <span class="character-icon-outlined">
+                                <i class="ra ra-player ra-outline"></i>
+                                <i class="ra ra-player ra-front"></i>
+                            </span>
+                        </div>
                         <div class="combatant-stats">
                             <div class="combat-stat-row">
                                 <span class="combat-stat-label">HP</span>
@@ -978,7 +1101,7 @@
                     </div>
                     <div class="combatant-panel enemy">
                         <div class="combatant-name">Enemy</div>
-                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;">👹</div>
+                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;"><i class="ra ra-monster-skull"></i></div>
                         <div class="combatant-stats">
                             <div class="combat-stat-row">
                                 <span class="combat-stat-label">HP</span>
