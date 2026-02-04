@@ -57,6 +57,8 @@ pub struct Character {
     pub attack: i32,
     /// Character inventory
     pub inventory: Inventory,
+    /// Currently equipped item (tool slot)
+    pub equipped: Option<ItemInstanceId>,
 }
 
 impl Character {
@@ -72,6 +74,7 @@ impl Character {
             max_health: 10,
             attack: 5,
             inventory,
+            equipped: None,
         }
     }
 
@@ -135,6 +138,43 @@ impl Character {
     /// Get a mutable reference to the inventory
     pub fn get_inventory_mut(&mut self) -> &mut Inventory {
         &mut self.inventory
+    }
+
+    /// Get currently equipped item
+    pub fn get_equipped(&self) -> Option<ItemInstanceId> {
+        self.equipped
+    }
+
+    /// Equip an item from inventory by index
+    /// Returns Ok with the equipped item id, or Err if index invalid
+    pub fn equip_from_inventory(&mut self, index: usize) -> Result<ItemInstanceId, String> {
+        if index >= self.inventory.len() {
+            return Err("Invalid inventory index".to_string());
+        }
+
+        // If something is already equipped, unequip it first
+        if let Some(current_equipped) = self.equipped {
+            self.inventory.add_item(current_equipped);
+        }
+
+        // Remove from inventory and equip
+        let item_id = self.inventory.remove_item(index)
+            .ok_or_else(|| "Failed to remove item from inventory".to_string())?;
+        
+        self.equipped = Some(item_id);
+        Ok(item_id)
+    }
+
+    /// Unequip current item and return it to inventory
+    /// Returns the unequipped item id, or None if nothing was equipped
+    pub fn unequip(&mut self) -> Option<ItemInstanceId> {
+        if let Some(item_id) = self.equipped {
+            self.equipped = None;
+            self.inventory.add_item(item_id);
+            Some(item_id)
+        } else {
+            None
+        }
     }
 }
 

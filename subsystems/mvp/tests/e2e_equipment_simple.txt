@@ -1,0 +1,45 @@
+# E2E Test: Equipment System (Simple)
+# Tests equipping and unequipping with actual items
+
+# Go to mountain area to find flint/ores
+r
+r
+u
+u
+e
+
+# Try pickups until we find items
+pickup
+u
+pickup
+r
+pickup
+d
+pickup
+l
+l
+pickup
+
+# Check inventory
+inv
+
+# Equip first item
+equip 0
+
+# Check status and inventory
+status
+inv
+
+# Equip second item
+equip 1
+
+# Check again
+status
+inv
+
+# Unequip
+unequip
+
+# Final check
+status
+inv

@@ -1,0 +1,59 @@
+# E2E Test: Equipment System
+# Tests equipping and unequipping items
+
+# Check initial status (no equipment)
+status
+inv
+
+# Move to a safe land (2,2) and pickup some items
+r
+r
+d
+d
+e
+
+# Pickup items
+pickup
+u
+pickup
+l
+pickup
+
+# Check inventory
+inv
+status
+
+# Equip first item (index 0)
+equip 0
+
+# Check status after equipping
+status
+inv
+
+# Equip different item (index 1)
+equip 1
+
+# Check status
+status
+inv
+
+# Unequip
+unequip
+
+# Check status after unequipping
+status
+inv
+
+# Try to equip invalid index
+equip 99
+
+# Try to unequip when nothing equipped
+unequip
+
+# Equip item again
+equip 0
+status
+
+# Exit land with equipped item
+e
+status

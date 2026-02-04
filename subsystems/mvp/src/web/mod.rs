@@ -83,6 +83,7 @@ pub struct SerializableCharacter {
     pub max_health: i32,
     pub attack: i32,
     pub inventory: Vec<String>,
+    pub equipped: Option<String>,
 }
 
 /// Serializable combatant information
@@ -258,6 +259,27 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
             })
     }).collect();
     
+    let equipped_name = state.character.get_equipped()
+        .and_then(|equipped_id| {
+            state.crafting_registry.get_instance(equipped_id)
+                .and_then(|instance| {
+                    match instance {
+                        crate::game::crafting::ItemInstance::Simple(s) => {
+                            state.crafting_registry.get_item(&s.definition)
+                                .map(|def| def.name.clone())
+                        }
+                        crate::game::crafting::ItemInstance::Component(c) => {
+                            state.crafting_registry.get_component_kind(&c.component_kind)
+                                .map(|ck| ck.name.clone())
+                        }
+                        crate::game::crafting::ItemInstance::Composite(c) => {
+                            state.crafting_registry.get_item(&c.definition)
+                                .map(|def| def.name.clone())
+                        }
+                    }
+                })
+        });
+    
     Ok(Json(GameStateResponse {
         core_state,
         character: SerializableCharacter {
@@ -265,6 +287,7 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
             max_health: state.character.get_max_health(),
             attack: state.character.get_attack(),
             inventory: inventory_names,
+            equipped: equipped_name,
         },
     }))
 }
@@ -305,6 +328,27 @@ async fn handle_command(
             })
     }).collect();
     
+    let equipped_name = state.character.get_equipped()
+        .and_then(|equipped_id| {
+            state.crafting_registry.get_instance(equipped_id)
+                .and_then(|instance| {
+                    match instance {
+                        crate::game::crafting::ItemInstance::Simple(s) => {
+                            state.crafting_registry.get_item(&s.definition)
+                                .map(|def| def.name.clone())
+                        }
+                        crate::game::crafting::ItemInstance::Component(c) => {
+                            state.crafting_registry.get_component_kind(&c.component_kind)
+                                .map(|ck| ck.name.clone())
+                        }
+                        crate::game::crafting::ItemInstance::Composite(c) => {
+                            state.crafting_registry.get_item(&c.definition)
+                                .map(|def| def.name.clone())
+                        }
+                    }
+                })
+        });
+    
     let response = CommandResponse {
         success,
         message,
@@ -315,6 +359,7 @@ async fn handle_command(
                 max_health: state.character.get_max_health(),
                 attack: state.character.get_attack(),
                 inventory: inventory_names,
+                equipped: equipped_name,
             },
         },
     };

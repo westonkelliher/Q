@@ -3,6 +3,47 @@ use super::combat::CombatResult;
 
 /// Execute a command and return (success, message)
 pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
+    // Handle commands with arguments first
+    if command.starts_with("equip ") {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.len() < 2 {
+            return (false, "Usage: equip <inventory_index> (e.g., 'equip 0' to equip first item)".to_string());
+        }
+        
+        let index: usize = match parts[1].parse() {
+            Ok(i) => i,
+            Err(_) => return (false, "Invalid index. Use a number (e.g., 'equip 0')".to_string()),
+        };
+        
+        // Get item name before equipping
+        let item_name = state.character.get_inventory().items.get(index)
+            .and_then(|instance_id| {
+                state.crafting_registry.get_instance(*instance_id)
+                    .and_then(|instance| {
+                        match instance {
+                            crate::game::crafting::ItemInstance::Simple(s) => {
+                                state.crafting_registry.get_item(&s.definition)
+                                    .map(|def| def.name.clone())
+                            }
+                            crate::game::crafting::ItemInstance::Component(c) => {
+                                state.crafting_registry.get_component_kind(&c.component_kind)
+                                    .map(|ck| ck.name.clone())
+                            }
+                            crate::game::crafting::ItemInstance::Composite(c) => {
+                                state.crafting_registry.get_item(&c.definition)
+                                    .map(|def| def.name.clone())
+                            }
+                        }
+                    })
+            })
+            .unwrap_or_else(|| "Unknown Item".to_string());
+        
+        return match state.character.equip_from_inventory(index) {
+            Ok(_) => (true, format!("⚔️ Equipped {}", item_name)),
+            Err(e) => (false, e),
+        };
+    }
+    
     match command {
         "u" | "up" => {
             match state.current_mode {
@@ -240,6 +281,34 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 (false, "Land not found".to_string())
             }
         }
+        "unequip" => {
+            match state.character.unequip() {
+                Some(item_id) => {
+                    // Get item name for display
+                    let item_name = state.crafting_registry.get_instance(item_id)
+                        .and_then(|instance| {
+                            match instance {
+                                crate::game::crafting::ItemInstance::Simple(s) => {
+                                    state.crafting_registry.get_item(&s.definition)
+                                        .map(|def| def.name.clone())
+                                }
+                                crate::game::crafting::ItemInstance::Component(c) => {
+                                    state.crafting_registry.get_component_kind(&c.component_kind)
+                                        .map(|ck| ck.name.clone())
+                                }
+                                crate::game::crafting::ItemInstance::Composite(c) => {
+                                    state.crafting_registry.get_item(&c.definition)
+                                        .map(|def| def.name.clone())
+                                }
+                            }
+                        })
+                        .unwrap_or_else(|| "Unknown Item".to_string());
+                    
+                    (true, format!("📤 Unequipped {}", item_name))
+                }
+                None => (false, "No item equipped".to_string()),
+            }
+        }
         "recipes" | "recipe" => {
             let mut output = String::from("Available Recipes:\n");
             
@@ -270,6 +339,8 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
 Combat Commands:
   A, ATTACK     - Attack the enemy
   E, ENTER      - Flee combat (returns to terrain view)
+  EQUIP <index> - Equip item from inventory
+  UNEQUIP       - Unequip current item
   STATUS, STATS - Show character status
   INV, I        - Show inventory
   H, HELP, ?    - Show this help
@@ -282,6 +353,8 @@ Commands:
   E, ENTER       - Exit land view
   PICKUP, P, GET - Pick up item from current tile
   DROP           - Drop first item from inventory
+  EQUIP <index>  - Equip item from inventory (e.g., 'equip 0')
+  UNEQUIP        - Unequip current item to inventory
   RECIPES        - List available recipes
   STATUS, STATS  - Show character status
   INV, I         - Show inventory
@@ -293,6 +366,8 @@ Commands:
 Commands:
   U, D, L, R     - Move up, down, left, right
   E, ENTER       - Enter land view (may trigger combat if enemy present)
+  EQUIP <index>  - Equip item from inventory
+  UNEQUIP        - Unequip current item
   RECIPES        - List available recipes
   STATUS, STATS  - Show character status
   INV, I         - Show inventory
@@ -305,45 +380,101 @@ Commands:
             (true, help_text.trim().to_string())
         }
         "inventory" | "inv" | "i" => {
+            let mut output = String::new();
+            
+            // Show equipped item
+            if let Some(equipped_id) = state.character.get_equipped() {
+                let equipped_name = state.crafting_registry.get_instance(equipped_id)
+                    .and_then(|instance| {
+                        match instance {
+                            crate::game::crafting::ItemInstance::Simple(s) => {
+                                state.crafting_registry.get_item(&s.definition)
+                                    .map(|def| def.name.clone())
+                            }
+                            crate::game::crafting::ItemInstance::Component(c) => {
+                                state.crafting_registry.get_component_kind(&c.component_kind)
+                                    .map(|ck| ck.name.clone())
+                            }
+                            crate::game::crafting::ItemInstance::Composite(c) => {
+                                state.crafting_registry.get_item(&c.definition)
+                                    .map(|def| def.name.clone())
+                            }
+                        }
+                    })
+                    .unwrap_or_else(|| "Unknown Item".to_string());
+                output.push_str(&format!("Equipped: {}\n", equipped_name));
+            } else {
+                output.push_str("Equipped: (none)\n");
+            }
+            
+            // Show inventory
             let inv = state.character.get_inventory();
             if inv.items.is_empty() {
-                (true, "Inventory is empty".to_string())
+                output.push_str("Inventory: (empty)");
             } else {
-                let item_names: Vec<String> = inv.items.iter().filter_map(|instance_id| {
+                let item_names: Vec<String> = inv.items.iter().enumerate().filter_map(|(i, instance_id)| {
                     state.crafting_registry.get_instance(*instance_id)
                         .and_then(|instance| {
                             match instance {
                                 crate::game::crafting::ItemInstance::Simple(s) => {
                                     state.crafting_registry.get_item(&s.definition)
-                                        .map(|def| def.name.clone())
+                                        .map(|def| format!("[{}] {}", i, def.name.clone()))
                                 }
                                 crate::game::crafting::ItemInstance::Component(c) => {
                                     state.crafting_registry.get_component_kind(&c.component_kind)
-                                        .map(|ck| ck.name.clone())
+                                        .map(|ck| format!("[{}] {}", i, ck.name.clone()))
                                 }
                                 crate::game::crafting::ItemInstance::Composite(c) => {
                                     state.crafting_registry.get_item(&c.definition)
-                                        .map(|def| def.name.clone())
+                                        .map(|def| format!("[{}] {}", i, def.name.clone()))
                                 }
                             }
                         })
                 }).collect();
-                (true, format!("Inventory: {}", item_names.join(", ")))
+                output.push_str(&format!("Inventory:\n{}", item_names.join("\n")));
             }
+            
+            (true, output)
         }
         "status" | "stats" | "s" => {
             let (land_x, land_y) = state.current_land();
+            
+            // Get equipped item name
+            let equipped_str = if let Some(equipped_id) = state.character.get_equipped() {
+                state.crafting_registry.get_instance(equipped_id)
+                    .and_then(|instance| {
+                        match instance {
+                            crate::game::crafting::ItemInstance::Simple(s) => {
+                                state.crafting_registry.get_item(&s.definition)
+                                    .map(|def| def.name.clone())
+                            }
+                            crate::game::crafting::ItemInstance::Component(c) => {
+                                state.crafting_registry.get_component_kind(&c.component_kind)
+                                    .map(|ck| ck.name.clone())
+                            }
+                            crate::game::crafting::ItemInstance::Composite(c) => {
+                                state.crafting_registry.get_item(&c.definition)
+                                    .map(|def| def.name.clone())
+                            }
+                        }
+                    })
+                    .unwrap_or_else(|| "Unknown".to_string())
+            } else {
+                "(none)".to_string()
+            };
+            
             let mode_str = match state.current_mode {
                 CurrentMode::Terrain => "Terrain View",
                 CurrentMode::Land => {
                     if let Some((tile_x, tile_y)) = state.current_tile() {
                         return (true, format!(
-                            "Health: {}/{} | Attack: {} | Land: [{},{}] | Tile: [{},{}] | Mode: Land View",
+                            "Health: {}/{} | Attack: {} | Land: [{},{}] | Tile: [{},{}] | Equipped: {} | Mode: Land View",
                             state.character.get_health(),
                             state.character.get_max_health(),
                             state.character.get_attack(),
                             land_x, land_y,
-                            tile_x, tile_y
+                            tile_x, tile_y,
+                            equipped_str
                         ));
                     }
                     "Land View"
@@ -351,11 +482,12 @@ Commands:
                 CurrentMode::Combat => "Combat",
             };
             (true, format!(
-                "Health: {}/{} | Attack: {} | Land: [{},{}] | Mode: {}",
+                "Health: {}/{} | Attack: {} | Land: [{},{}] | Equipped: {} | Mode: {}",
                 state.character.get_health(),
                 state.character.get_max_health(),
                 state.character.get_attack(),
                 land_x, land_y,
+                equipped_str,
                 mode_str
             ))
         }
