@@ -67,6 +67,15 @@ const OBJECT_GRAPHICS = {
     'Stick': GRAPHICS.stick,
 };
 
+// Biome decorative icons (simple, no outline)
+const BIOME_ICONS = {
+    'Forest': ['pine-tree', 'pine-tree'],
+    'Meadow': ['flower', 'grass'],
+    'Lake': ['droplet', 'droplet'],
+    'Mountain': ['mountains', 'mountains'],
+    'Plains': ['grass-patch', 'grass-patch'],
+};
+
 /**
  * Renders an SVG shape with outline effect.
  * @param {object} shapeDef - Shape definition { shape, dimensions, strokeCap }
@@ -210,6 +219,22 @@ function renderCharacter(fontSize = 24) {
 }
 
 /**
+ * Renders a simple RPG-Awesome icon without outline effects.
+ * Used for decorative biome icons.
+ * @param {string} iconName - RPG-Awesome icon name (without 'ra-' prefix)
+ * @param {Array} color - RGB color array [r, g, b] (0.0-1.0)
+ * @param {number} fontSize - Font size in pixels
+ * @returns {HTMLElement}
+ */
+function renderSimpleIcon(iconName, color, fontSize = 20) {
+    const icon = document.createElement('i');
+    icon.className = `ra ra-${iconName}`;
+    icon.style.color = rgbToCss(color);
+    icon.style.fontSize = `${fontSize}px`;
+    return icon;
+}
+
+/**
  * Renders a character with equipped item overlay.
  * If an equipped item exists, draws it smaller to the right of the character.
  * @param {number} fontSize - Base font size for character
@@ -293,6 +318,10 @@ function getObjectColor(object) {
 function rgbToCss(rgb) {
     const [r, g, b] = rgb;
     return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
+
+function darkenColor(rgb, factor = 0.6) {
+    return rgb.map(c => c * factor);
 }
 
 // ===========================================
@@ -597,6 +626,20 @@ function renderTerrainView(terrainState) {
             
             if (land) {
                 cell.style.backgroundColor = rgbToCss(getBiomeColor(land.biome));
+                
+                // Add biome decorative icons
+                const biomeIcons = BIOME_ICONS[land.biome];
+                if (biomeIcons) {
+                    const iconContainer = document.createElement('div');
+                    iconContainer.className = 'biome-icon-overlay';
+                    const darkerColor = darkenColor(getBiomeColor(land.biome));
+                    
+                    biomeIcons.forEach(iconName => {
+                        iconContainer.appendChild(renderSimpleIcon(iconName, darkerColor, 18));
+                    });
+                    
+                    cell.appendChild(iconContainer);
+                }
                 
                 // Build tooltip with enemy info if present
                 let title = `Land (${x}, ${y}): ${land.biome}`;
