@@ -601,14 +601,12 @@ function renderInventoryOverlay() {
     const inventory = gameState.character.inventory || [];
     const itemsHtml = inventory.length > 0
         ? inventory.map(itemName => {
-            const graphic = OBJECT_GRAPHICS[itemName];
-            let iconHtml = '';
-            if (graphic) {
-                const iconContainer = document.createElement('div');
-                iconContainer.className = 'inventory-item-icon';
-                iconContainer.appendChild(renderGraphic(graphic, 32));
-                iconHtml = iconContainer.outerHTML;
-            }
+            const graphic = OBJECT_GRAPHICS[itemName] || GRAPHICS.missingGraphic;
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'inventory-item-icon';
+            iconContainer.appendChild(renderGraphic(graphic, 32));
+            const iconHtml = iconContainer.outerHTML;
+            
             return `
                 <div class="inventory-item">
                     ${iconHtml}
@@ -654,14 +652,12 @@ function renderEquipSelectOverlay() {
     }
     
     const itemsHtml = inventory.map((itemName, index) => {
-        const graphic = OBJECT_GRAPHICS[itemName];
-        let iconHtml = '';
-        if (graphic) {
-            const iconContainer = document.createElement('div');
-            iconContainer.className = 'inventory-item-icon';
-            iconContainer.appendChild(renderGraphic(graphic, 32));
-            iconHtml = iconContainer.outerHTML;
-        }
+        const graphic = OBJECT_GRAPHICS[itemName] || GRAPHICS.missingGraphic;
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'inventory-item-icon';
+        iconContainer.appendChild(renderGraphic(graphic, 32));
+        const iconHtml = iconContainer.outerHTML;
+        
         const selectedClass = index === equipSelectIndex ? ' selected' : '';
         return `
             <div class="inventory-item${selectedClass}">
