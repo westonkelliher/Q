@@ -182,7 +182,14 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         
         // Add to tile
         if let Some(land) = state.world.terrain.get_mut(&(land_x, land_y)) {
-            land.tiles[tile_y][tile_x].world_objects.push(world_object_id);
+            let tile = &mut land.tiles[tile_y][tile_x];
+            
+            // Check if tile already has a world object
+            if tile.world_object.is_some() {
+                return (false, "This tile already has a world object. Choose a different location.".to_string());
+            }
+            
+            tile.world_object = Some(world_object_id);
             
             // Remove from inventory
             state.character.inventory.remove_item(index);
@@ -333,12 +340,12 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             if let Some(land) = state.world.terrain.get_mut(&(land_x, land_y)) {
                 let tile = &mut land.tiles[tile_y][tile_x];
                 
-                if tile.objects.is_empty() {
+                if tile.items.is_empty() {
                     return (false, "No items here to pick up".to_string());
                 }
                 
                 // Pick up first item
-                let item_id = tile.objects.remove(0);
+                let item_id = tile.items.remove(0);
                 
                 // Get item name for display
                 let item_name = state.crafting_registry.get_instance(item_id)
@@ -395,7 +402,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             
             // Add to tile
             if let Some(land) = state.world.terrain.get_mut(&(land_x, land_y)) {
-                land.tiles[tile_y][tile_x].objects.push(item_id);
+                land.tiles[tile_y][tile_x].items.push(item_id);
                 (true, format!("📤 Dropped {}", item_name))
             } else {
                 // Return item to inventory if land not found (shouldn't happen)

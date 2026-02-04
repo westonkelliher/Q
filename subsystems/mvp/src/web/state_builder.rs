@@ -44,7 +44,7 @@ pub fn build_land_state(state: &GameState) -> LandGameState {
     // Serialize the 8x8 tile grid
     let tiles: Vec<Vec<SerializableTile>> = land.tiles.iter().map(|row| {
         row.iter().map(|tile| {
-            let object_names: Vec<String> = tile.objects.iter()
+            let object_names: Vec<String> = tile.items.iter()
                 .filter_map(|instance_id| get_item_name(&state.crafting_registry, *instance_id))
                 .collect();
             

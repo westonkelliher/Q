@@ -25,8 +25,8 @@ pub enum Substrate {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tile {
     pub substrate: Substrate,
-    pub objects: Vec<ItemInstanceId>,
-    pub world_objects: Vec<WorldObjectInstanceId>,
+    pub items: Vec<ItemInstanceId>,
+    pub world_object: Option<WorldObjectInstanceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

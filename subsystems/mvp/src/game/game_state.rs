@@ -7,7 +7,7 @@ use super::crafting::{CraftingRegistry, ItemInstanceId};
 #[derive(Debug, Clone)]
 pub struct TileInfo {
     pub substrate: Substrate,
-    pub objects: Vec<ItemInstanceId>,
+    pub items: Vec<ItemInstanceId>,
     pub biome: Biome,
 }
 
@@ -106,7 +106,7 @@ impl GameState {
         
         Some(TileInfo {
             substrate: tile.substrate.clone(),
-            objects: tile.objects.clone(),
+            items: tile.items.clone(),
             biome: biome.clone(),
         })
     }

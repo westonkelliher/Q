@@ -24,12 +24,12 @@ pub fn print_land(land: &Land) {
     for (y, row) in land.tiles.iter().enumerate() {
         print!("{} ", y);
         for tile in row.iter() {
-            // If there are objects, show indicator (can't display item without registry)
-            if tile.objects.is_empty() {
+            // If there are items, show indicator (can't display item without registry)
+            if tile.items.is_empty() {
                 print!("{}", tile.substrate.to_char());
             } else {
-                // Show object indicator
-                if tile.objects.len() == 1 {
+                // Show item indicator
+                if tile.items.len() == 1 {
                     print!("📦"); // Box emoji for single item
                 } else {
                     print!("🔴"); // Red circle for multiple items
