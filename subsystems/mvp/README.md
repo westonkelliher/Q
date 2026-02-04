@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `48f3c2b`  
+> **Previous Commit**: `27f5dd0`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -434,7 +434,8 @@ cargo run -- --help    # Show all options
 - `STATUS`, `STATS`, `S` - Show character health, attack, position, mode
 - `INV`, `INVENTORY`, `I` - Show inventory contents (CLI only)
 - `H`, `HELP`, `?` - Show context-aware help
-- `RECIPES` - List available crafting recipes
+- `RECIPES` - List all crafting recipes
+- `CRAFTABLE`, `CAN`, `AVAILABLE` - Show recipes that can be crafted now
 
 **Crafting:**
 - `CRAFT <recipe>`, `C <recipe>` - Craft item from recipe (e.g., `craft knap_flint_blade`)

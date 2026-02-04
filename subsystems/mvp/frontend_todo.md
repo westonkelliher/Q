@@ -6,7 +6,7 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Current Status
 
-✅ All backend changes implemented on frontend as of commit `1006319`.
+⚠️ New backend features added - no frontend changes required (CLI-only commands)
 
 ---
 
@@ -21,7 +21,21 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Pending Items
 
-_No pending frontend integration tasks at this time._
+_No immediate frontend tasks required. Recent backend features are CLI-only._
+
+## Recent Backend Features (No Frontend Action Needed)
+
+**Craftable Query Command** (commit pending):
+- Added `craftable` / `can` / `available` command
+- Shows recipes that can be crafted with current inventory + workstations in land
+- CLI-only, no frontend UI required
+
+**Place Command & World Objects** (commits 80221a7, c7db0b5, 36110f1):
+- Added `l <index>` / `place <index>` command to place items as world objects
+- Added `d` alias for drop command
+- Tile struct refactored: `world_object: Option<>`, `items: Vec<>`
+- Added pickupable field - trees cannot be picked up
+- CLI-only, future enhancement could display world objects in UI
 
 ## Future Enhancements
 
