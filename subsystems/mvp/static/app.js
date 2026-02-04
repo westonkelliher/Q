@@ -328,7 +328,7 @@ function rgbToCss(rgb) {
     return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 }
 
-function darkenColor(rgb, factor = 0.6) {
+function darkenColor(rgb, factor = 0.8) {
     return rgb.map(c => c * factor);
 }
 
@@ -903,7 +903,17 @@ function updateStatus() {
         const char = gameState.character;
         const healthPercent = (char.health / char.max_health) * 100;
         document.getElementById('character-health').textContent = `${char.health}/${char.max_health} (${Math.round(healthPercent)}%)`;
-        document.getElementById('character-attack').textContent = char.attack.toString();
+        
+        // Display attack with bonus breakdown if applicable
+        const baseAttack = 5; // Current MVP hardcoded base attack value
+        const totalAttack = char.attack;
+        const attackBonus = totalAttack - baseAttack;
+        
+        if (attackBonus > 0) {
+            document.getElementById('character-attack').textContent = `${totalAttack} (${baseAttack} + ${attackBonus})`;
+        } else {
+            document.getElementById('character-attack').textContent = `${totalAttack}`;
+        }
 
         // Update health bar
         const healthBar = document.getElementById('health-bar');

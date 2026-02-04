@@ -6,7 +6,7 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Current Status
 
-⚠️ Pending frontend changes required - see "Pending Items" below
+✅ All pending tasks complete
 
 ---
 
@@ -16,12 +16,19 @@ This file tracks backend changes that need corresponding frontend updates.
 - ✅ Interactive Equip Selector: Type 'E' to open visual selector, use arrow keys to navigate, Enter to equip (2026-02-04)
 - ✅ Frontend Code Split: Separated index.html into index.html (103 lines), style.css (764 lines), app.js (1019 lines) for better maintainability (2026-02-04)
 - ✅ Movement Command Update: Arrow keys now send "m u/d/l/r" instead of "u/d/l/r", updated all help text and placeholders (2026-02-04)
+- ✅ Display Stat Bonuses with Breakdown: Attack display shows breakdown like "6 (5 + 1)" when equipped items grant bonuses (2026-02-04)
 
 ---
 
 ## Pending Items
 
-### Display Stat Bonuses with Breakdown (REQUIRED)
+_No pending frontend integration tasks at this time._
+
+---
+
+## Recently Completed
+
+### Display Stat Bonuses with Breakdown
 
 **Backend Changes (commit bb2b628):**
 - Added StatBonuses struct to ItemDefinition (health and attack bonuses)
@@ -29,29 +36,11 @@ This file tracks backend changes that need corresponding frontend updates.
 - GameState::get_total_attack() calculates base + bonus
 - API now returns total attack (base + bonuses)
 
-**Frontend Tasks (REQUIRED):**
-1. Update attack display in character stats sidebar to show breakdown
-2. Display format when bonuses present: "Attack: 6 (5 + 1)"
-3. Display format when no bonuses: "Attack: 5"
-4. Calculate: base = 5 (hardcoded for MVP), bonus = total - base
-
-**Implementation:**
-```javascript
-// In character stats display:
-const baseAttack = 5; // Current MVP hardcoded value
-const totalAttack = gameState.character.attack;
-const attackBonus = totalAttack - baseAttack;
-
-if (attackBonus > 0) {
-    attackDisplay = `${totalAttack} (${baseAttack} + ${attackBonus})`;
-} else {
-    attackDisplay = `${totalAttack}`;
-}
-```
-
-**Testing:**
-- Unequipped: Shows "Attack: 5"
-- Stick equipped: Shows "Attack: 6 (5 + 1)"
+**Frontend Implementation (2026-02-04):**
+- Updated character stats display in updateStatus() function
+- Shows "6 (5 + 1)" format when equipped items grant attack bonuses
+- Shows "5" format when no bonuses active
+- Base attack hardcoded as 5 for MVP
 
 ---
 
