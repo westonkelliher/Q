@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-03  
-> **Previous Commit**: `4d360c7`  
+> **Previous Commit**: `51f6e31`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -45,8 +45,11 @@ The project currently has:
 - ✅ Visual game display (terrain view, combat view, and land view)
 - ✅ Command history and status display
 - ✅ Character system with position tracking and stats (health, attack)
-- ✅ Character emoji rendering in terrain, land, and combat views (wizard, mage, person)
-- ✅ Character appearance cycling with 'C' command
+- ✅ RPG-Awesome font icons for all graphics (character sprites, objects, enemy indicators)
+- ✅ Character icon rendering in terrain, land, and combat views (ra-player variants with bold black outline)
+- ✅ Character appearance cycling with 'C' command (wizard → mage → person → wizard)
+- ✅ Object icons: tree (ra-pine-tree, green), rock (ra-gem, gray), stick (ra-bowling-pin, brown)
+- ✅ Enemy indicators: crossed-swords for terrain view, monster-skull for combat view
 - ✅ Character stats display with health bar in web UI
 - ✅ Camera follows character (character is source of truth for position)
 - ✅ Combat system with simultaneous attack resolution
@@ -79,7 +82,8 @@ subsystems/mvp/
 ├── README.md
 ├── MVP_BRAINSTORM.md    # Original brainstorm document
 ├── static/
-│   └── index.html       # Web interface frontend
+│   ├── index.html       # Web interface frontend
+│   └── rpg-awesome/     # RPG-Awesome font icon library (CSS and fonts)
 └── src/
     ├── main.rs          # Web server entry point
     ├── lib.rs           # Module exports
@@ -150,6 +154,21 @@ See `MVP_BRAINSTORM.md` for the complete implementation plan. The next steps are
 - `axum` - Web framework for HTTP server
 - `tokio` - Async runtime
 - `tower-http` - Static file serving and middleware
+
+## Graphics
+
+The game uses [RPG-Awesome](https://nagoshiashumari.github.io/Rpg-Awesome/) font icons for all graphics:
+- **Character sprites**: RPG-Awesome player icons (`ra-player`, `ra-player-king`, `ra-player-pyromaniac`) with bold black outline effect
+- **Objects**: 
+  - Tree: `ra-pine-tree` (green)
+  - Rock: `ra-gem` (gray)
+  - Stick: `ra-bowling-pin` (brown, bold, scaled)
+- **Enemy indicators**: 
+  - Terrain view: `ra-crossed-swords` (indicates enemy presence on land)
+  - Combat view: `ra-monster-skull` (enemy sprite)
+- **UI icons**: Death screen (`ra-skull`), Win screen (`ra-trophy`)
+
+RPG-Awesome files are located in `static/rpg-awesome/` and served via the `/static` route.
 
 
 

@@ -564,45 +564,42 @@
             color: inherit;
         }
 
-        /* RPG-Awesome icon styling */
-        .character-sprite .ra,
-        .enemy-indicator .ra,
-        .combatant-sprite .ra {
-            font-size: inherit;
-            color: inherit;
-            display: inline-block;
-        }
-
-        .character-sprite {
-            position: relative;
-        }
-
-        /* Character icon with outline effect - uses stacked icons */
-        .character-icon-outlined {
+        /* ===========================================
+         * Graphic System - Outlined Icon Rendering
+         * =========================================== */
+        
+        /* Base container for outlined graphics */
+        .graphic {
             position: relative;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #e0e0e0;
         }
 
-        .character-icon-outlined .ra-outline {
+        /* Background/outline layer - drawn first with stroke */
+        .graphic .graphic-bg {
             position: absolute;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
             z-index: 0;
-            color: #000;
-            font-weight: 900; /* bold for outline */
-            -webkit-text-stroke: 3.0px #111; /* Additional stroke for outline */
+            font-weight: 900;
+            -webkit-text-stroke: 3px currentColor;
+            paint-order: stroke fill;
         }
 
-        .character-icon-outlined .ra-front {
+        /* Foreground/fill layer - drawn on top */
+        .graphic .graphic-fg {
             position: relative;
             z-index: 1;
-            color: #e0e0e0;
         }
 
+        /* Character sprite positioning */
+        .character-sprite {
+            position: relative;
+        }
+
+        /* Enemy indicator badge */
         .enemy-indicator .ra {
             color: #ff6b6b;
         }
@@ -611,37 +608,17 @@
             color: #888;
         }
 
-        /* Tile object icons */
+        /* Tile object icon base styles */
         .tile-object-icon {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 20px;
-            color: #e0e0e0;
             z-index: 5;
             pointer-events: none;
-            transform-origin: center;
         }
 
-        /* Tree icon should be green */
-        .tile-object-icon.ra-pine-tree {
-            color: #51cf66;
-        }
-
-        /* Rock/Gem icon should be gray */
-        .tile-object-icon.ra-gem {
-            color: #888;
-        }
-
-        /* Stick icon should be brown/wooden colored, bold, slightly taller and squished */
-        .tile-object-icon.ra-bowling-pin {
-            font-weight: 900;
-            color: #8b6f47;
-            transform: translate(-50%, -50%) scale(0.8, 1.3);
-            transform-origin: center;
-        }
-
+        /* Screen overlay icons */
         .screen-icon .ra {
             color: inherit;
         }
@@ -745,6 +722,163 @@
     </div>
 
     <script>
+        // ===========================================
+        // Graphic System - Defines visual representations
+        // ===========================================
+        
+        /**
+         * Creates a Graphic definition object.
+         * @param {string[]} icons - Array of RPG Awesome icon class names (without 'ra-' prefix)
+         * @param {string} foreground - CSS color for the main fill
+         * @param {string} background - CSS color for the outline/stroke
+         * @param {object} options - Optional settings: strokeWidth, scaleX, scaleY, rotation (degrees)
+         */
+        function createGraphic(icons, foreground, background, options = {}) {
+            return {
+                icons,
+                foreground,
+                background,
+                strokeWidth: options.strokeWidth ?? 3,
+                scaleX: options.scaleX ?? 1,
+                scaleY: options.scaleY ?? 1,
+                rotation: options.rotation ?? 0,  // degrees
+            };
+        }
+
+        // Game Graphics Definitions
+        const GRAPHICS = {
+            // Character variants
+            player: createGraphic(['player'], '#e0e0e0', '#111'),
+            playerKing: createGraphic(['player-king'], '#e0e0e0', '#111'),
+            playerPyromaniac: createGraphic(['player-pyromaniac'], '#e0e0e0', '#111'),
+            
+            // Objects
+            tree: createGraphic(['pine-tree'], '#51cf66', '#1a5f1a'),
+            rock: createGraphic(['gem'], '#888888', '#333333'),
+            stick: createGraphic(['bowling-pin'], '#8b6f47', '#4a3a24', { scaleX: 0.8, scaleY: 1.3 }),
+            
+            // Enemies
+            enemyIndicator: createGraphic(['crossed-swords'], '#ff6b6b', '#8b0000'),
+            enemyIndicatorDefeated: createGraphic(['crossed-swords'], '#888888', '#444444'),
+            enemyMonster: createGraphic(['monster-skull'], '#ff6b6b', '#8b0000'),
+            
+            // UI Icons
+            deathSkull: createGraphic(['skull'], '#ff6b6b', '#8b0000'),
+            victoryTrophy: createGraphic(['trophy'], '#51cf66', '#1a5f1a'),
+        };
+
+        // Object type to Graphic mapping
+        const OBJECT_GRAPHICS = {
+            'Rock': GRAPHICS.rock,
+            'Tree': GRAPHICS.tree,
+            'Stick': GRAPHICS.stick,
+        };
+
+        /**
+         * Renders a Graphic definition as a DOM element.
+         * Draws background layer with stroke first, then foreground layer on top.
+         * @param {object} graphic - Graphic definition from GRAPHICS
+         * @param {number} fontSize - Font size in pixels
+         * @returns {HTMLElement} - The rendered graphic element
+         */
+        function renderGraphic(graphic, fontSize = 24) {
+            const container = document.createElement('span');
+            container.className = 'graphic';
+            container.style.fontSize = `${fontSize}px`;
+            
+            // Build transform string from scale and rotation
+            const transforms = [];
+            if (graphic.scaleX !== 1 || graphic.scaleY !== 1) {
+                transforms.push(`scale(${graphic.scaleX}, ${graphic.scaleY})`);
+            }
+            if (graphic.rotation !== 0) {
+                transforms.push(`rotate(${graphic.rotation}deg)`);
+            }
+            if (transforms.length > 0) {
+                container.style.transform = transforms.join(' ');
+                container.style.transformOrigin = 'center';
+            }
+
+            // Render each icon in the graphic
+            for (const iconName of graphic.icons) {
+                // Background layer (outline/stroke)
+                const bgIcon = document.createElement('i');
+                bgIcon.className = `ra ra-${iconName} graphic-bg`;
+                bgIcon.style.color = graphic.background;
+                bgIcon.style.webkitTextStroke = `${graphic.strokeWidth}px ${graphic.background}`;
+                container.appendChild(bgIcon);
+
+                // Foreground layer (fill)
+                const fgIcon = document.createElement('i');
+                fgIcon.className = `ra ra-${iconName} graphic-fg`;
+                fgIcon.style.color = graphic.foreground;
+                container.appendChild(fgIcon);
+            }
+
+            return container;
+        }
+
+        /**
+         * Renders a character graphic with the outline effect.
+         * Convenience wrapper for character rendering.
+         * @param {number} fontSize - Font size in pixels
+         * @returns {HTMLElement}
+         */
+        function renderCharacter(fontSize = 24) {
+            return renderGraphic(GRAPHICS.player, fontSize);
+        }
+
+        // ===========================================
+        // Color Utilities
+        // ===========================================
+        
+        // Biome colors (RGB 0.0-1.0)
+        const BIOME_COLORS = {
+            'Forest': [0.1, 0.5, 0.1],
+            'Meadow': [0.7, 0.9, 0.4],
+            'Lake': [0.2, 0.5, 0.9],
+            'Mountain': [0.8, 0.8, 0.85],
+            'Plains': [0.6, 0.5, 0.35],
+        };
+
+        // Substrate colors (RGB 0.0-1.0)
+        const SUBSTRATE_COLORS = {
+            'Grass': [0.7, 0.9, 0.4],
+            'Dirt': [0.6, 0.4, 0.2],
+            'Stone': [0.7, 0.7, 0.7],
+            'Mud': [0.4, 0.3, 0.2],
+            'Water': [0.2, 0.4, 0.9],
+            'Brush': [0.2, 0.6, 0.15],
+        };
+
+        // Object colors (RGB 0.0-1.0) - fallback when no icon available
+        const OBJECT_COLORS = {
+            'Rock': [0.3, 0.3, 0.3],
+            'Tree': [0.1, 0.6, 0.1],
+            'Stick': [0.5, 0.3, 0.1],
+        };
+
+        function getBiomeColor(biome) {
+            return BIOME_COLORS[biome] || [0.5, 0.5, 0.5];
+        }
+
+        function getSubstrateColor(substrate) {
+            return SUBSTRATE_COLORS[substrate] || [0.5, 0.5, 0.5];
+        }
+
+        function getObjectColor(object) {
+            return OBJECT_COLORS[object] || [0.5, 0.5, 0.5];
+        }
+
+        function rgbToCss(rgb) {
+            const [r, g, b] = rgb;
+            return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+        }
+
+        // ===========================================
+        // Game State
+        // ===========================================
+        
         let gameState = null;
         let commandHistory = [];
 
@@ -825,22 +959,24 @@
         function renderDeathScreen() {
             const screen = document.getElementById('death-screen');
             screen.innerHTML = `
-                <div class="screen-icon"><i class="ra ra-skull"></i></div>
+                <div class="screen-icon" id="death-icon"></div>
                 <div class="screen-title">Defeated</div>
                 <div class="screen-message">You have been defeated in combat!</div>
                 <div class="screen-instruction">Press ENTER to continue</div>
             `;
+            document.getElementById('death-icon').appendChild(renderGraphic(GRAPHICS.deathSkull, 80));
         }
 
         // Render win screen
         function renderWinScreen() {
             const screen = document.getElementById('win-screen');
             screen.innerHTML = `
-                <div class="screen-icon"><i class="ra ra-trophy"></i></div>
+                <div class="screen-icon" id="win-icon"></div>
                 <div class="screen-title">Victory</div>
                 <div class="screen-message">You have defeated your enemy!</div>
                 <div class="screen-instruction">Press ENTER to continue</div>
             `;
+            document.getElementById('win-icon').appendChild(renderGraphic(GRAPHICS.victoryTrophy, 80));
         }
 
         // Render terrain view (5x5 grid)
@@ -862,11 +998,9 @@
                     const land = gameState.world.terrain[landKey];
                     
                     if (land) {
-                        const color = getBiomeColor(land.center);
-                        cell.style.backgroundColor = rgbToCss(color);
-                        cell.textContent = ''; // No emoji, just color
+                        cell.style.backgroundColor = rgbToCss(getBiomeColor(land.center));
                         
-                        // Build title with enemy info if present
+                        // Build tooltip with enemy info if present
                         let title = `Land (${x}, ${y}): ${land.center}`;
                         if (land.enemy) {
                             const enemyStatus = land.enemy.health > 0 ? 'Alive' : 'Defeated';
@@ -876,45 +1010,30 @@
                         
                         // Add enemy indicator if enemy exists
                         if (land.enemy) {
+                            const isDefeated = land.enemy.health <= 0;
                             const enemyIndicator = document.createElement('div');
-                            enemyIndicator.className = 'enemy-indicator';
-                            if (land.enemy.health <= 0) {
-                                enemyIndicator.classList.add('defeated');
-                            }
-                            enemyIndicator.title = `Enemy: ${land.enemy.health > 0 ? 'Alive' : 'Defeated'} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
-                            const icon = document.createElement('i');
-                            icon.className = 'ra ra-crossed-swords';
-                            enemyIndicator.appendChild(icon);
+                            enemyIndicator.className = 'enemy-indicator' + (isDefeated ? ' defeated' : '');
+                            enemyIndicator.title = `Enemy: ${isDefeated ? 'Defeated' : 'Alive'} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
+                            
+                            const graphic = isDefeated ? GRAPHICS.enemyIndicatorDefeated : GRAPHICS.enemyIndicator;
+                            enemyIndicator.appendChild(renderGraphic(graphic, 20));
                             cell.appendChild(enemyIndicator);
                         }
                     } else {
-                        cell.style.backgroundColor = '#1a1a1a'; // Dark background for ungenerated
-                        cell.textContent = '';
+                        cell.style.backgroundColor = '#1a1a1a';
                         cell.title = `Ungenerated (${x}, ${y})`;
                     }
 
-                    // Add character icon if character is on this land
+                    // Add character if on this land
                     if (x === charLandX && y === charLandY) {
-                        const iconContainer = document.createElement('div');
-                        iconContainer.className = 'character-sprite';
-                        iconContainer.style.fontSize = '36px';
-                        iconContainer.style.display = 'flex';
-                        iconContainer.style.alignItems = 'center';
-                        iconContainer.style.justifyContent = 'center';
-                        iconContainer.title = 'Character';
-                        const iconClass = 'ra-player';
-                        const iconWrapper = document.createElement('span');
-                        iconWrapper.className = 'character-icon-outlined';
-                        // Black bold outline behind
-                        const outlineIcon = document.createElement('i');
-                        outlineIcon.className = `ra ${iconClass} ra-outline`;
-                        // White icon in front
-                        const frontIcon = document.createElement('i');
-                        frontIcon.className = `ra ${iconClass} ra-front`;
-                        iconWrapper.appendChild(outlineIcon);
-                        iconWrapper.appendChild(frontIcon);
-                        iconContainer.appendChild(iconWrapper);
-                        cell.appendChild(iconContainer);
+                        const charContainer = document.createElement('div');
+                        charContainer.className = 'character-sprite';
+                        charContainer.style.display = 'flex';
+                        charContainer.style.alignItems = 'center';
+                        charContainer.style.justifyContent = 'center';
+                        charContainer.title = 'Character';
+                        charContainer.appendChild(renderGraphic(GRAPHICS.player, 36));
+                        cell.appendChild(charContainer);
                     }
 
                     grid.appendChild(cell);
@@ -947,106 +1066,47 @@
                     }
 
                     const tile = land.tiles[y][x];
+                    cell.style.backgroundColor = rgbToCss(getSubstrateColor(tile.substrate));
                     
-                    // Use substrate color as base background
-                    let backgroundColor = getSubstrateColor(tile.substrate);
-                    cell.style.backgroundColor = rgbToCss(backgroundColor);
-                    
-                    // If there are objects, display the object icon
+                    // Render object if present
                     if (tile.objects && tile.objects.length > 0) {
-                        const object = tile.objects[0];
-                        const iconClass = getObjectIcon(object);
+                        const objectName = tile.objects[0];
+                        const objectGraphic = OBJECT_GRAPHICS[objectName];
                         
-                        if (iconClass) {
-                            const icon = document.createElement('i');
-                            icon.className = `ra ${iconClass} tile-object-icon`;
-                            icon.title = object;
-                            cell.appendChild(icon);
+                        if (objectGraphic) {
+                            const objectEl = document.createElement('div');
+                            objectEl.className = 'tile-object-icon';
+                            objectEl.title = objectName;
+                            objectEl.appendChild(renderGraphic(objectGraphic, 20));
+                            cell.appendChild(objectEl);
                         } else {
-                            // Fallback to color if icon not found
-                            cell.style.backgroundColor = rgbToCss(getObjectColor(object));
+                            // Fallback to color fill if no graphic defined
+                            cell.style.backgroundColor = rgbToCss(getObjectColor(objectName));
                         }
                     }
                     
-                    // Add character icon if character is on this tile
+                    // Render character if on this tile
                     if (charTilePos && x === charTilePos[0] && y === charTilePos[1]) {
-                        const iconContainer = document.createElement('div');
-                        iconContainer.className = 'character-sprite';
-                        iconContainer.style.fontSize = '24px';
-                        iconContainer.style.display = 'flex';
-                        iconContainer.style.alignItems = 'center';
-                        iconContainer.style.justifyContent = 'center';
-                        iconContainer.title = 'Character';
-                        const iconClass = 'ra-player';
-                        const iconWrapper = document.createElement('span');
-                        iconWrapper.className = 'character-icon-outlined';
-                        // Black bold outline behind
-                        const outlineIcon = document.createElement('i');
-                        outlineIcon.className = `ra ${iconClass} ra-outline`;
-                        // White icon in front
-                        const frontIcon = document.createElement('i');
-                        frontIcon.className = `ra ${iconClass} ra-front`;
-                        iconWrapper.appendChild(outlineIcon);
-                        iconWrapper.appendChild(frontIcon);
-                        iconContainer.appendChild(iconWrapper);
-                        cell.appendChild(iconContainer);
+                        const charContainer = document.createElement('div');
+                        charContainer.className = 'character-sprite';
+                        charContainer.style.display = 'flex';
+                        charContainer.style.alignItems = 'center';
+                        charContainer.style.justifyContent = 'center';
+                        charContainer.title = 'Character';
+                        charContainer.appendChild(renderGraphic(GRAPHICS.player, 24));
+                        cell.appendChild(charContainer);
                     }
                     
-                    cell.title = `Tile (${x}, ${y}): ${tile.substrate}${tile.objects.length > 0 ? ' + ' + tile.objects[0] : ''}`;
+                    const objectsStr = tile.objects.length > 0 ? ' + ' + tile.objects[0] : '';
+                    cell.title = `Tile (${x}, ${y}): ${tile.substrate}${objectsStr}`;
 
                     grid.appendChild(cell);
                 }
             }
         }
 
-        // Helper functions for rendering colors (matching main Q game)
-        function getBiomeColor(biome) {
-            const biomeMap = {
-                'Forest': [0.1, 0.5, 0.1],         // Dark green
-                'Meadow': [0.7, 0.9, 0.4],         // Light green/yellow
-                'Lake': [0.2, 0.5, 0.9],           // Blue
-                'Mountain': [0.8, 0.8, 0.85],      // Gray/white
-                'Plains': [0.6, 0.5, 0.35],        // Brown/tan
-            };
-            return biomeMap[biome] || [0.5, 0.5, 0.5];
-        }
-
-        function getSubstrateColor(substrate) {
-            const substrateMap = {
-                'Grass': [0.7, 0.9, 0.4],      // Light green/yellow
-                'Dirt': [0.6, 0.4, 0.2],       // Brown
-                'Stone': [0.7, 0.7, 0.7],      // Gray
-                'Mud': [0.4, 0.3, 0.2],        // Dark brown
-                'Water': [0.2, 0.4, 0.9],      // Blue
-                'Brush': [0.2, 0.6, 0.15],    // Dark green
-            };
-            return substrateMap[substrate] || [0.5, 0.5, 0.5];
-        }
-
-        function getObjectColor(object) {
-            const objectMap = {
-                'Rock': [0.3, 0.3, 0.3],          // Dark gray
-                'Tree': [0.1, 0.6, 0.1],          // Green
-                'Stick': [0.5, 0.3, 0.1],         // Brown
-            };
-            return objectMap[object] || [0.5, 0.5, 0.5];
-        }
-
-        // Map Object enum values to RPG Awesome icon classes
-        function getObjectIcon(object) {
-            const iconMap = {
-                'Rock': 'ra-gem',
-                'Tree': 'ra-pine-tree',
-                'Stick': 'ra-bowling-pin',
-            };
-            return iconMap[object] || null;
-        }
-
-        // Convert RGB (0.0-1.0) to CSS color string
-        function rgbToCss(rgb) {
-            const [r, g, b] = rgb;
-            return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
-        }
+        // Note: Color helper functions (getBiomeColor, getSubstrateColor, getObjectColor, rgbToCss)
+        // are now defined at the top of the script in the Color Utilities section.
 
         // Render combat view
         function renderCombatView() {
@@ -1063,14 +1123,12 @@
             const playerMaxHealth = gameState.character.max_health;
             const enemyMaxHealth = combat.enemy_max_health;
 
-            // Calculate health percentages
-            const playerHealthPercent = (player.health / playerMaxHealth) * 100;
-            const enemyHealthPercent = (enemy.health / enemyMaxHealth) * 100;
+            const playerHealthPercent = Math.max(0, (player.health / playerMaxHealth) * 100);
+            const enemyHealthPercent = Math.max(0, (enemy.health / enemyMaxHealth) * 100);
 
-            // Determine health bar color classes
-            const playerHealthClass = playerHealthPercent > 60 ? 'high' : (playerHealthPercent > 30 ? 'medium' : 'low');
-            const enemyHealthClass = enemyHealthPercent > 60 ? 'high' : (enemyHealthPercent > 30 ? 'medium' : 'low');
+            const getHealthClass = (percent) => percent > 60 ? 'high' : (percent > 30 ? 'medium' : 'low');
 
+            // Build the combat view structure
             combatView.innerHTML = `
                 <div class="combat-header">
                     <div class="combat-title">Combat</div>
@@ -1079,19 +1137,14 @@
                 <div class="combat-panels">
                     <div class="combatant-panel player">
                         <div class="combatant-name">Player</div>
-                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;">
-                            <span class="character-icon-outlined">
-                                <i class="ra ra-player ra-outline"></i>
-                                <i class="ra ra-player ra-front"></i>
-                            </span>
-                        </div>
+                        <div class="combatant-sprite" id="player-sprite"></div>
                         <div class="combatant-stats">
                             <div class="combat-stat-row">
                                 <span class="combat-stat-label">HP</span>
                                 <span class="combat-stat-value">${player.health}/${playerMaxHealth}</span>
                             </div>
                             <div class="combat-health-bar-container">
-                                <div class="combat-health-bar ${playerHealthClass}" style="width: ${playerHealthPercent}%"></div>
+                                <div class="combat-health-bar ${getHealthClass(playerHealthPercent)}" style="width: ${playerHealthPercent}%"></div>
                             </div>
                             <div class="combat-stat-row">
                                 <span class="combat-stat-label">ATK</span>
@@ -1101,14 +1154,14 @@
                     </div>
                     <div class="combatant-panel enemy">
                         <div class="combatant-name">Enemy</div>
-                        <div class="combatant-sprite" style="display: flex; align-items: center; justify-content: center; font-size: 60px;"><i class="ra ra-monster-skull"></i></div>
+                        <div class="combatant-sprite" id="enemy-sprite"></div>
                         <div class="combatant-stats">
                             <div class="combat-stat-row">
                                 <span class="combat-stat-label">HP</span>
                                 <span class="combat-stat-value">${enemy.health}/${enemyMaxHealth}</span>
                             </div>
                             <div class="combat-health-bar-container">
-                                <div class="combat-health-bar ${enemyHealthClass}" style="width: ${enemyHealthPercent}%"></div>
+                                <div class="combat-health-bar ${getHealthClass(enemyHealthPercent)}" style="width: ${enemyHealthPercent}%"></div>
                             </div>
                             <div class="combat-stat-row">
                                 <span class="combat-stat-label">ATK</span>
@@ -1123,6 +1176,19 @@
                     <p><code>E</code> / <code>ENTER</code> - Flee combat</p>
                 </div>
             `;
+
+            // Render sprites using the Graphic system
+            const playerSpriteEl = document.getElementById('player-sprite');
+            playerSpriteEl.style.display = 'flex';
+            playerSpriteEl.style.alignItems = 'center';
+            playerSpriteEl.style.justifyContent = 'center';
+            playerSpriteEl.appendChild(renderGraphic(GRAPHICS.player, 60));
+
+            const enemySpriteEl = document.getElementById('enemy-sprite');
+            enemySpriteEl.style.display = 'flex';
+            enemySpriteEl.style.alignItems = 'center';
+            enemySpriteEl.style.justifyContent = 'center';
+            enemySpriteEl.appendChild(renderGraphic(GRAPHICS.enemyMonster, 60));
         }
 
         // Update status bar
