@@ -820,7 +820,6 @@ function updateStatus() {
             <p><code>X</code> / <code>EXIT</code> - Flee combat</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>\`</code> - Toggle inventory</p>
-            <p><code>C</code> - Cycle character appearance</p>
             <p><code>H</code> - Help</p>
         `;
     } else if (coreState.type === 'Land') {
@@ -832,7 +831,6 @@ function updateStatus() {
             <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>\`</code> - Toggle inventory</p>
-            <p><code>C</code> - Cycle character appearance</p>
             <p><code>H</code> - Help</p>
         `;
     } else {
@@ -844,7 +842,6 @@ function updateStatus() {
             <p><code>X</code> / <code>ENTER</code> - Enter Land</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>\`</code> - Toggle inventory</p>
-            <p><code>C</code> - Cycle character appearance</p>
             <p><code>H</code> - Help</p>
         `;
     }
