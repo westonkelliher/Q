@@ -6,38 +6,21 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Current Status
 
-⚠️ Pending frontend changes - see "Pending Items" below
+All frontend changes are up to date as of commit `de52097`.
 
 ---
 
 ## Completed Items
 
 - ✅ Keybinding Refactor: E for equip, X for enter/exit/flee, removed 'i' inventory toggle (2026-02-04, commit 90941d7)
+- ✅ Interactive Equip Selector: Type 'E' to open visual selector, use arrow keys to navigate, Enter to equip (2026-02-04)
+- ✅ Frontend Code Split: Separated index.html into index.html (103 lines), style.css (764 lines), app.js (1019 lines) for better maintainability (2026-02-04)
 
 ---
 
 ## Pending Items
 
-### Remove Character Cycling References
-
-**Backend Changes:**
-- Added standalone `c` command handler that shows craft usage message
-- No backend character cycling code exists (was never implemented)
-
-**Frontend Tasks:**
-1. Remove all "Cycle character appearance" references from help text (3 locations in dynamic help content)
-2. Remove any character cycling keybindings or handlers if they exist
-3. The `C` key should not do anything in the frontend (crafting is CLI-only, uses text input)
-
-**Details:**
-- Search for "cycle" and "character appearance" in `static/index.html`
-- These appear in the help content for Combat, Land, and Terrain views
-- Simply delete those lines from the help text
-
-**Testing:**
-- CLI: Type `c` alone should show usage message
-- CLI: Type `c knap_flint_blade` should work for crafting (when items available)
-- Web: `C` key should have no effect
+_No pending frontend integration tasks at this time._
 
 ---
 

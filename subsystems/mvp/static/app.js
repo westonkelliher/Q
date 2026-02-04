@@ -1,0 +1,1019 @@
+// ===========================================
+// Graphic System - Defines visual representations
+// ===========================================
+
+/**
+ * Creates a Graphic definition object.
+ * @param {string[]|object} definition - Either:
+ *   - Array of RPG Awesome icon class names (without 'ra-' prefix), OR
+ *   - Shape object: { shape: 'line'|'circle'|'rect', dimensions: {...}, strokeCap?: 'round'|'square'|'butt' }
+ * @param {string} foreground - CSS color for the main fill
+ * @param {string} background - CSS color for the outline/stroke
+ * @param {object} options - Optional settings: strokeWidth, scaleX, scaleY, rotation (degrees)
+ */
+function createGraphic(definition, foreground, background, options = {}) {
+    return {
+        type: Array.isArray(definition) ? 'icon' : 'shape',
+        definition,  // either icons array or shape object
+        foreground,
+        background,
+        strokeWidth: options.strokeWidth ?? 3,
+        scaleX: options.scaleX ?? 1,
+        scaleY: options.scaleY ?? 1,
+        rotation: options.rotation ?? 0,  // degrees
+    };
+}
+
+// Game Graphics Definitions
+const GRAPHICS = {
+    // Character variants
+    player: createGraphic(['player'], '#e4b574', '#4b3f27'),  // tan / brown
+    playerKing: createGraphic(['player-king'], '#d4a574', '#8b6f47'),  // tan / brown
+    playerPyromaniac: createGraphic(['player-pyromaniac'], '#ff8c42', '#8b4513'),  // orange / saddle brown
+    
+    // Objects
+    tree: createGraphic(['pine-tree'], '#51cf66', '#1a5f1a'),
+    rock: createGraphic(['gem'], '#888888', '#333333'),
+    stick: createGraphic(
+        { shape: 'line', dimensions: { x1: 0, y1: -0.4, x2: 0, y2: 0.4 }, strokeCap: 'round' },
+        '#8b6f47',  // brown foreground
+        '#4a3a24',  // darker brown outline
+        { rotation: 80 }
+    ),
+    
+    // Enemies
+    enemyIndicator: createGraphic(['crossed-swords'], '#ff6b6b', '#8b0000'),
+    enemyIndicatorDefeated: createGraphic(['crossed-swords'], '#888888', '#444444'),
+    enemyMonster: createGraphic(['monster-skull'], '#ff6b6b', '#8b0000'),
+    
+    // UI Icons
+    deathSkull: createGraphic(['skull'], '#ff6b6b', '#8b0000'),
+    victoryTrophy: createGraphic(['trophy'], '#51cf66', '#1a5f1a'),
+};
+
+// Object type to Graphic mapping
+const OBJECT_GRAPHICS = {
+    'Rock': GRAPHICS.rock,
+    'Tree': GRAPHICS.tree,
+    'Stick': GRAPHICS.stick,
+};
+
+/**
+ * Renders an SVG shape with outline effect.
+ * @param {object} shapeDef - Shape definition { shape, dimensions, strokeCap }
+ * @param {string} foreground - Fill color
+ * @param {string} background - Outline/stroke color
+ * @param {number} strokeWidth - Outline thickness
+ * @param {number} fontSize - Base size for scaling dimensions
+ * @returns {SVGElement} - The rendered SVG element
+ */
+function renderSVGShape(shapeDef, foreground, background, strokeWidth, fontSize) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', fontSize);
+    svg.setAttribute('height', fontSize);
+    svg.setAttribute('viewBox', `${-fontSize/2} ${-fontSize/2} ${fontSize} ${fontSize}`);
+    svg.style.display = 'block';
+    svg.style.overflow = 'visible';
+    
+    const { shape, dimensions, strokeCap = 'round' } = shapeDef;
+    
+    // Helper to create shape element
+    const createShapeElement = () => {
+        if (shape === 'line') {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', dimensions.x1 * fontSize);
+            line.setAttribute('y1', dimensions.y1 * fontSize);
+            line.setAttribute('x2', dimensions.x2 * fontSize);
+            line.setAttribute('y2', dimensions.y2 * fontSize);
+            line.setAttribute('stroke-linecap', strokeCap);
+            return line;
+        } else if (shape === 'circle') {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', 0);
+            circle.setAttribute('cy', 0);
+            circle.setAttribute('r', dimensions.r * fontSize);
+            return circle;
+        } else if (shape === 'rect') {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            const w = dimensions.width * fontSize;
+            const h = dimensions.height * fontSize;
+            rect.setAttribute('x', -w/2);
+            rect.setAttribute('y', -h/2);
+            rect.setAttribute('width', w);
+            rect.setAttribute('height', h);
+            return rect;
+        }
+    };
+    
+    // Background/outline layer - drawn with thick stroke
+    const bgShape = createShapeElement();
+    bgShape.setAttribute('fill', 'none');
+    bgShape.setAttribute('stroke', background);
+    bgShape.setAttribute('stroke-width', strokeWidth * 2);
+    if (shape === 'line') {
+        bgShape.setAttribute('stroke-linecap', strokeCap);
+    }
+    svg.appendChild(bgShape);
+    
+    // Foreground layer - drawn with fill or thin stroke
+    const fgShape = createShapeElement();
+    if (shape === 'line') {
+        fgShape.setAttribute('fill', 'none');
+        fgShape.setAttribute('stroke', foreground);
+        fgShape.setAttribute('stroke-width', strokeWidth);
+        fgShape.setAttribute('stroke-linecap', strokeCap);
+    } else {
+        fgShape.setAttribute('fill', foreground);
+        fgShape.setAttribute('stroke', 'none');
+    }
+    svg.appendChild(fgShape);
+    
+    return svg;
+}
+
+/**
+ * Renders a Graphic definition as a DOM element.
+ * Draws background layer with stroke first, then foreground layer on top.
+ * @param {object} graphic - Graphic definition from GRAPHICS
+ * @param {number} fontSize - Font size in pixels
+ * @returns {HTMLElement} - The rendered graphic element
+ */
+function renderGraphic(graphic, fontSize = 24) {
+    const container = document.createElement('span');
+    container.className = 'graphic';
+    container.style.fontSize = `${fontSize}px`;
+    
+    // Build transform string from scale and rotation
+    // CSS transforms apply right-to-left, so order is: rotate, scale
+    // This means scale is applied first, then rotation
+    const transforms = [];
+    if (graphic.rotation !== 0) {
+        transforms.push(`rotate(${graphic.rotation}deg)`);
+    }
+    if (graphic.scaleX !== 1 || graphic.scaleY !== 1) {
+        transforms.push(`scale(${graphic.scaleX}, ${graphic.scaleY})`);
+    }
+    if (transforms.length > 0) {
+        container.style.transform = transforms.join(' ');
+        container.style.transformOrigin = 'center';
+    }
+
+    // Route to appropriate renderer based on type
+    if (graphic.type === 'shape') {
+        // Render SVG shape
+        const svg = renderSVGShape(
+            graphic.definition,
+            graphic.foreground,
+            graphic.background,
+            graphic.strokeWidth,
+            fontSize
+        );
+        container.appendChild(svg);
+    } else {
+        // Render font icon(s)
+        for (const iconName of graphic.definition) {
+            // Background layer (outline/stroke)
+            const bgIcon = document.createElement('i');
+            bgIcon.className = `ra ra-${iconName} graphic-bg`;
+            bgIcon.style.color = graphic.background;
+            bgIcon.style.webkitTextStroke = `${graphic.strokeWidth}px ${graphic.background}`;
+            container.appendChild(bgIcon);
+
+            // Foreground layer (fill)
+            const fgIcon = document.createElement('i');
+            fgIcon.className = `ra ra-${iconName} graphic-fg`;
+            fgIcon.style.color = graphic.foreground;
+            container.appendChild(fgIcon);
+        }
+    }
+
+    return container;
+}
+
+/**
+ * Renders a character graphic with the outline effect.
+ * Convenience wrapper for character rendering.
+ * @param {number} fontSize - Font size in pixels
+ * @returns {HTMLElement}
+ */
+function renderCharacter(fontSize = 24) {
+    return renderGraphic(GRAPHICS.player, fontSize);
+}
+
+// ===========================================
+// Color Utilities
+// ===========================================
+
+// Biome colors (RGB 0.0-1.0)
+const BIOME_COLORS = {
+    'Forest': [0.1, 0.5, 0.1],
+    'Meadow': [0.7, 0.9, 0.4],
+    'Lake': [0.2, 0.5, 0.9],
+    'Mountain': [0.8, 0.8, 0.85],
+    'Plains': [0.6, 0.5, 0.35],
+};
+
+// Substrate colors (RGB 0.0-1.0)
+const SUBSTRATE_COLORS = {
+    'Grass': [0.7, 0.9, 0.4],
+    'Dirt': [0.6, 0.4, 0.2],
+    'Stone': [0.7, 0.7, 0.7],
+    'Mud': [0.4, 0.3, 0.2],
+    'Water': [0.2, 0.4, 0.9],
+    'Brush': [0.2, 0.6, 0.15],
+};
+
+// Object colors (RGB 0.0-1.0) - fallback when no icon available
+const OBJECT_COLORS = {
+    'Rock': [0.3, 0.3, 0.3],
+    'Tree': [0.1, 0.6, 0.1],
+    'Stick': [0.5, 0.3, 0.1],
+};
+
+function getBiomeColor(biome) {
+    return BIOME_COLORS[biome] || [0.5, 0.5, 0.5];
+}
+
+function getSubstrateColor(substrate) {
+    return SUBSTRATE_COLORS[substrate] || [0.5, 0.5, 0.5];
+}
+
+function getObjectColor(object) {
+    return OBJECT_COLORS[object] || [0.5, 0.5, 0.5];
+}
+
+function rgbToCss(rgb) {
+    const [r, g, b] = rgb;
+    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
+
+// ===========================================
+// Game State
+// ===========================================
+
+let gameState = null;
+let commandHistory = [];
+
+// Frontend-only overlay state
+let displayOverlay = null; // 'death' | 'win' | 'inventory' | 'equip-select' | null
+let previousViewMode = null;
+let equipSelectIndex = 0; // Currently selected item index in equip mode
+
+// Load initial game state
+async function loadGameState() {
+    try {
+        const response = await fetch('/api/state');
+        const data = await response.json();
+        gameState = data;
+        previousViewMode = gameState.core_state.type;
+        renderGame();
+        updateStatus();
+    } catch (error) {
+        console.error('Failed to load game state:', error);
+        showMessage('Failed to load game state', 'error');
+    }
+}
+
+// Detect state transitions and show appropriate overlays
+function handleStateTransition(commandResponse) {
+    const newMode = gameState.core_state.type;
+    const message = commandResponse?.message || '';
+    
+    // Detect death: was in Combat, now in Terrain, message indicates defeat
+    if (previousViewMode === 'Combat' && newMode === 'Terrain' && 
+        (message.includes('Defeated') || message.includes('💀'))) {
+        displayOverlay = 'death';
+    }
+    
+    // Detect win: was in Combat, now in Land, message indicates victory
+    if (previousViewMode === 'Combat' && newMode === 'Land' &&
+        (message.includes('Victory') || message.includes('⚔️ Victory'))) {
+        displayOverlay = 'win';
+    }
+    
+    previousViewMode = newMode;
+}
+
+// Execute a command
+async function executeCommand(command) {
+    if (!command.trim()) return;
+    
+    // Intercept "e" or "equip" with no arguments - enter equip selection mode
+    const trimmedCmd = command.trim().toLowerCase();
+    if (trimmedCmd === 'e' || trimmedCmd === 'equip') {
+        const inventory = gameState?.character?.inventory || [];
+        if (inventory.length === 0) {
+            showMessage('Your inventory is empty - nothing to equip', 'error');
+            return;
+        }
+        // Enter equip selection mode
+        equipSelectIndex = 0;
+        displayOverlay = 'equip-select';
+        renderGame();
+        showMessage('Use arrow keys to select item, Enter to equip, Escape to cancel', 'success');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ command: command.trim() }),
+        });
+
+        const data = await response.json();
+        gameState = data.game_state;
+
+        // Handle state transitions for overlays
+        handleStateTransition(data);
+
+        // Add to history
+        commandHistory.push({
+            command: command.trim(),
+            response: data.message,
+            success: data.success,
+        });
+        if (commandHistory.length > 50) {
+            commandHistory.shift();
+        }
+
+        renderHistory();
+        renderGame();
+        updateStatus();
+        showMessage(data.message, data.success ? 'success' : 'error');
+    } catch (error) {
+        console.error('Failed to execute command:', error);
+        showMessage('Failed to execute command', 'error');
+    }
+}
+
+// Render the game display
+function renderGame() {
+    const display = document.getElementById('game-display');
+    
+    // Remove any existing inventory overlay first (it's attached to body, not game-display)
+    const existingOverlay = document.getElementById('inventory-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+    
+    // Check frontend overlays first (these are shown on top of the actual view)
+    if (displayOverlay === 'inventory') {
+        // For inventory, render the underlying view first, then show inventory overlay
+        renderUnderlyingView(display);
+        renderInventoryOverlay();
+    } else if (displayOverlay === 'equip-select') {
+        // For equip selection, render the underlying view first, then show equip selector
+        renderUnderlyingView(display);
+        renderEquipSelectOverlay();
+    } else if (displayOverlay === 'death') {
+        display.innerHTML = '<div class="screen-view death-screen" id="death-screen"></div>';
+        renderDeathScreen();
+    } else if (displayOverlay === 'win') {
+        display.innerHTML = '<div class="screen-view win-screen" id="win-screen"></div>';
+        renderWinScreen();
+    } else {
+        // Render based on core_state.type (discriminated union)
+        renderUnderlyingView(display);
+    }
+}
+
+// Render the underlying view based on core_state type
+function renderUnderlyingView(display) {
+    const state = gameState.core_state;
+    switch (state.type) {
+        case 'Terrain':
+            display.innerHTML = '<div class="terrain-view" id="terrain-grid"></div>';
+            renderTerrainView(state);
+            break;
+        case 'Land':
+            display.innerHTML = '<div class="land-view" id="land-grid"></div>';
+            renderLandView(state);
+            break;
+        case 'Combat':
+            display.innerHTML = '<div class="combat-view" id="combat-view"></div>';
+            renderCombatView(state);
+            break;
+    }
+}
+
+// Render death screen
+function renderDeathScreen() {
+    const screen = document.getElementById('death-screen');
+    screen.innerHTML = `
+        <div class="screen-icon" id="death-icon"></div>
+        <div class="screen-title">Defeated</div>
+        <div class="screen-message">You have been defeated in combat!</div>
+        <div class="screen-instruction">Press ENTER to continue</div>
+    `;
+    document.getElementById('death-icon').appendChild(renderGraphic(GRAPHICS.deathSkull, 80));
+}
+
+// Render win screen
+function renderWinScreen() {
+    const screen = document.getElementById('win-screen');
+    screen.innerHTML = `
+        <div class="screen-icon" id="win-icon"></div>
+        <div class="screen-title">Victory</div>
+        <div class="screen-message">You have defeated your enemy!</div>
+        <div class="screen-instruction">Press ENTER to continue</div>
+    `;
+    document.getElementById('win-icon').appendChild(renderGraphic(GRAPHICS.victoryTrophy, 80));
+}
+
+// Render inventory overlay
+function renderInventoryOverlay() {
+    // Create overlay container
+    const overlay = document.createElement('div');
+    overlay.className = 'inventory-overlay';
+    overlay.id = 'inventory-overlay';
+    
+    const inventory = gameState.character.inventory || [];
+    const itemsHtml = inventory.length > 0
+        ? inventory.map(itemName => {
+            const graphic = OBJECT_GRAPHICS[itemName];
+            let iconHtml = '';
+            if (graphic) {
+                const iconContainer = document.createElement('div');
+                iconContainer.className = 'inventory-item-icon';
+                iconContainer.appendChild(renderGraphic(graphic, 32));
+                iconHtml = iconContainer.outerHTML;
+            }
+            return `
+                <div class="inventory-item">
+                    ${iconHtml}
+                    <div class="inventory-item-name">${itemName}</div>
+                </div>
+            `;
+        }).join('')
+        : '<div class="inventory-empty">Your inventory is empty</div>';
+    
+    overlay.innerHTML = `
+        <div class="inventory-panel">
+            <div class="inventory-header">
+                <div class="inventory-title">Inventory</div>
+                <div class="inventory-subtitle">${inventory.length} item${inventory.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="inventory-list">
+                ${itemsHtml}
+            </div>
+            <div class="inventory-instructions">
+                <p>Press <code>\`</code> (backtick) or <code>I</code> to close inventory</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+// Render equip selection overlay
+function renderEquipSelectOverlay() {
+    // Create overlay container
+    const overlay = document.createElement('div');
+    overlay.className = 'inventory-overlay';
+    overlay.id = 'inventory-overlay';
+    
+    const inventory = gameState.character.inventory || [];
+    
+    // Clamp selected index
+    if (equipSelectIndex >= inventory.length) {
+        equipSelectIndex = inventory.length - 1;
+    }
+    if (equipSelectIndex < 0) {
+        equipSelectIndex = 0;
+    }
+    
+    const itemsHtml = inventory.map((itemName, index) => {
+        const graphic = OBJECT_GRAPHICS[itemName];
+        let iconHtml = '';
+        if (graphic) {
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'inventory-item-icon';
+            iconContainer.appendChild(renderGraphic(graphic, 32));
+            iconHtml = iconContainer.outerHTML;
+        }
+        const selectedClass = index === equipSelectIndex ? ' selected' : '';
+        return `
+            <div class="inventory-item${selectedClass}">
+                <div class="inventory-item-index">${index}</div>
+                ${iconHtml}
+                <div class="inventory-item-name">${itemName}</div>
+            </div>
+        `;
+    }).join('');
+    
+    overlay.innerHTML = `
+        <div class="inventory-panel equip-mode">
+            <div class="inventory-header">
+                <div class="inventory-title">⚔️ Equip Item</div>
+                <div class="inventory-subtitle">Select item to equip (${equipSelectIndex + 1}/${inventory.length})</div>
+            </div>
+            <div class="inventory-list">
+                ${itemsHtml}
+            </div>
+            <div class="inventory-instructions">
+                <p>Use <code>↑</code> / <code>↓</code> arrow keys to navigate</p>
+                <p>Press <code>Enter</code> to equip selected item</p>
+                <p>Press <code>Escape</code> or <code>\`</code> to cancel</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+// Render terrain view (5x5 grid)
+function renderTerrainView(terrainState) {
+    const grid = document.getElementById('terrain-grid');
+    const [currentX, currentY] = terrainState.current_land;
+
+    // Build a map for quick land lookup
+    const landMap = {};
+    terrainState.lands.forEach(land => {
+        const key = `${land.coords[0]},${land.coords[1]}`;
+        landMap[key] = land;
+    });
+
+    for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 5; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'terrain-cell';
+            
+            if (x === currentX && y === currentY) {
+                cell.classList.add('current');
+            }
+
+            const landKey = `${x},${y}`;
+            const land = landMap[landKey];
+            
+            if (land) {
+                cell.style.backgroundColor = rgbToCss(getBiomeColor(land.biome));
+                
+                // Build tooltip with enemy info if present
+                let title = `Land (${x}, ${y}): ${land.biome}`;
+                if (land.enemy) {
+                    const enemyStatus = land.enemy.is_defeated ? 'Defeated' : 'Alive';
+                    title += ` | Enemy: ${enemyStatus} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
+                }
+                cell.title = title;
+                
+                // Add enemy indicator if enemy exists
+                if (land.enemy) {
+                    const isDefeated = land.enemy.is_defeated;
+                    const enemyIndicator = document.createElement('div');
+                    enemyIndicator.className = 'enemy-indicator' + (isDefeated ? ' defeated' : '');
+                    enemyIndicator.title = `Enemy: ${isDefeated ? 'Defeated' : 'Alive'} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
+                    
+                    const graphic = isDefeated ? GRAPHICS.enemyIndicatorDefeated : GRAPHICS.enemyIndicator;
+                    enemyIndicator.appendChild(renderGraphic(graphic, 20));
+                    cell.appendChild(enemyIndicator);
+                }
+            } else {
+                cell.style.backgroundColor = '#1a1a1a';
+                cell.title = `Ungenerated (${x}, ${y})`;
+            }
+
+            // Add character if on this land
+            if (x === currentX && y === currentY) {
+                const charContainer = document.createElement('div');
+                charContainer.className = 'character-sprite';
+                charContainer.style.display = 'flex';
+                charContainer.style.alignItems = 'center';
+                charContainer.style.justifyContent = 'center';
+                charContainer.title = 'Character';
+                charContainer.appendChild(renderGraphic(GRAPHICS.player, 36));
+                cell.appendChild(charContainer);
+            }
+
+            grid.appendChild(cell);
+        }
+    }
+}
+
+// Render land view (8x8 grid)
+function renderLandView(landState) {
+    const grid = document.getElementById('land-grid');
+    const [tileX, tileY] = landState.current_tile;
+    const tiles = landState.tiles;
+
+    for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'tile-cell';
+            
+            if (x === tileX && y === tileY) {
+                cell.classList.add('current');
+            }
+
+            const tile = tiles[y][x];
+            cell.style.backgroundColor = rgbToCss(getSubstrateColor(tile.substrate));
+            
+            // Render object if present
+            if (tile.objects && tile.objects.length > 0) {
+                const objectName = tile.objects[0];
+                const objectGraphic = OBJECT_GRAPHICS[objectName];
+                
+                if (objectGraphic) {
+                    const objectEl = document.createElement('div');
+                    objectEl.className = 'tile-object-icon';
+                    objectEl.title = objectName;
+                    objectEl.appendChild(renderGraphic(objectGraphic, 20));
+                    cell.appendChild(objectEl);
+                } else {
+                    // Fallback to color fill if no graphic defined
+                    cell.style.backgroundColor = rgbToCss(getObjectColor(objectName));
+                }
+            }
+            
+            // Render character if on this tile
+            if (x === tileX && y === tileY) {
+                const charContainer = document.createElement('div');
+                charContainer.className = 'character-sprite';
+                charContainer.style.display = 'flex';
+                charContainer.style.alignItems = 'center';
+                charContainer.style.justifyContent = 'center';
+                charContainer.title = 'Character';
+                charContainer.appendChild(renderGraphic(GRAPHICS.player, 24));
+                cell.appendChild(charContainer);
+            }
+            
+            const objectsStr = tile.objects.length > 0 ? ' + ' + tile.objects[0] : '';
+            cell.title = `Tile (${x}, ${y}): ${tile.substrate}${objectsStr}`;
+
+            grid.appendChild(cell);
+        }
+    }
+}
+
+// Note: Color helper functions (getBiomeColor, getSubstrateColor, getObjectColor, rgbToCss)
+// are now defined at the top of the script in the Color Utilities section.
+
+// Render combat view
+function renderCombatView(combatState) {
+    const combatView = document.getElementById('combat-view');
+    
+    const player = combatState.player;
+    const enemy = combatState.enemy;
+    const playerMaxHealth = gameState.character.max_health;
+    const enemyMaxHealth = combatState.enemy_max_health;
+
+    const playerHealthPercent = Math.max(0, (player.health / playerMaxHealth) * 100);
+    const enemyHealthPercent = Math.max(0, (enemy.health / enemyMaxHealth) * 100);
+
+    const getHealthClass = (percent) => percent > 60 ? 'high' : (percent > 30 ? 'medium' : 'low');
+
+    // Build the combat view structure
+    combatView.innerHTML = `
+        <div class="combat-header">
+            <div class="combat-title">Combat</div>
+            <div class="combat-round">Round ${combatState.round}</div>
+        </div>
+        <div class="combat-panels">
+            <div class="combatant-panel player">
+                <div class="combatant-name">Player</div>
+                <div class="combatant-sprite" id="player-sprite"></div>
+                <div class="combatant-stats">
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">HP</span>
+                        <span class="combat-stat-value">${player.health}/${playerMaxHealth}</span>
+                    </div>
+                    <div class="combat-health-bar-container">
+                        <div class="combat-health-bar ${getHealthClass(playerHealthPercent)}" style="width: ${playerHealthPercent}%"></div>
+                    </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">ATK</span>
+                        <span class="combat-stat-value">${player.attack}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="combatant-panel enemy">
+                <div class="combatant-name">Enemy</div>
+                <div class="combatant-sprite" id="enemy-sprite"></div>
+                <div class="combatant-stats">
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">HP</span>
+                        <span class="combat-stat-value">${enemy.health}/${enemyMaxHealth}</span>
+                    </div>
+                    <div class="combat-health-bar-container">
+                        <div class="combat-health-bar ${getHealthClass(enemyHealthPercent)}" style="width: ${enemyHealthPercent}%"></div>
+                    </div>
+                    <div class="combat-stat-row">
+                        <span class="combat-stat-label">ATK</span>
+                        <span class="combat-stat-value">${enemy.attack}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="combat-actions">
+            <h3>Combat Commands</h3>
+            <p><code>A</code> or <code>ATTACK</code> - Attack the enemy</p>
+            <p><code>X</code> / <code>EXIT</code> - Flee combat</p>
+        </div>
+    `;
+
+    // Render sprites using the Graphic system
+    const playerSpriteEl = document.getElementById('player-sprite');
+    playerSpriteEl.style.display = 'flex';
+    playerSpriteEl.style.alignItems = 'center';
+    playerSpriteEl.style.justifyContent = 'center';
+    playerSpriteEl.appendChild(renderGraphic(GRAPHICS.player, 60));
+
+    const enemySpriteEl = document.getElementById('enemy-sprite');
+    enemySpriteEl.style.display = 'flex';
+    enemySpriteEl.style.alignItems = 'center';
+    enemySpriteEl.style.justifyContent = 'center';
+    enemySpriteEl.appendChild(renderGraphic(GRAPHICS.enemyMonster, 60));
+}
+
+// Update status bar
+function updateStatus() {
+    const coreState = gameState.core_state;
+    document.getElementById('view-mode').textContent = coreState.type;
+    
+    // Get current land based on state type
+    let currentLand;
+    if (coreState.type === 'Terrain') {
+        currentLand = coreState.current_land;
+    } else if (coreState.type === 'Land') {
+        currentLand = coreState.land_coords;
+    } else if (coreState.type === 'Combat') {
+        currentLand = coreState.land_coords;
+    }
+    
+    document.getElementById('current-land').textContent = 
+        `(${currentLand[0]}, ${currentLand[1]})`;
+
+    // Show biome in Terrain view
+    const biomeItem = document.getElementById('biome-item');
+    if (coreState.type === 'Terrain') {
+        // Find the current land in the lands array
+        const land = coreState.lands.find(l => 
+            l.coords[0] === currentLand[0] && l.coords[1] === currentLand[1]
+        );
+        if (land) {
+            document.getElementById('current-biome').textContent = land.biome;
+            biomeItem.style.display = 'flex';
+        } else {
+            biomeItem.style.display = 'none';
+        }
+    } else {
+        biomeItem.style.display = 'none';
+    }
+
+    // Update tile information if available (Land view only)
+    const tileInfoSection = document.getElementById('tile-info-section');
+    if (coreState.type === 'Land') {
+        const [tileX, tileY] = coreState.current_tile;
+        const tile = coreState.tiles[tileY][tileX];
+        
+        document.getElementById('tile-biome').textContent = coreState.biome;
+        document.getElementById('tile-substrate').textContent = tile.substrate;
+        
+        if (tile.objects && tile.objects.length > 0) {
+            document.getElementById('tile-objects').textContent = tile.objects.join(', ');
+        } else {
+            document.getElementById('tile-objects').textContent = 'None';
+        }
+        
+        tileInfoSection.style.display = 'flex';
+    } else {
+        tileInfoSection.style.display = 'none';
+    }
+
+    // Update character stats
+    if (gameState.character) {
+        const char = gameState.character;
+        const healthPercent = (char.health / char.max_health) * 100;
+        document.getElementById('character-health').textContent = `${char.health}/${char.max_health} (${Math.round(healthPercent)}%)`;
+        document.getElementById('character-attack').textContent = char.attack.toString();
+
+        // Update health bar
+        const healthBar = document.getElementById('health-bar');
+        healthBar.style.width = `${healthPercent}%`;
+
+        // Set health bar color based on percentage
+        healthBar.className = 'health-bar';
+        if (healthPercent > 60) {
+            healthBar.classList.add('high');
+        } else if (healthPercent > 30) {
+            healthBar.classList.add('medium');
+        } else {
+            healthBar.classList.add('low');
+        }
+    }
+
+    // Update command input placeholder based on view mode
+    const commandInput = document.getElementById('command-input');
+    if (coreState.type === 'Combat') {
+        commandInput.placeholder = 'Enter command (A/ATTACK, X/FLEE, E to equip, ` for inventory, H/HELP)';
+    } else {
+        commandInput.placeholder = 'Enter command (U/D/L/R/X, E to equip, ` for inventory, H/HELP)';
+    }
+
+    // Update help section based on view mode
+    const helpContent = document.getElementById('help-content');
+    if (coreState.type === 'Combat') {
+        helpContent.innerHTML = `
+            <p><code>A</code> / <code>ATTACK</code> - Attack the enemy</p>
+            <p><code>X</code> / <code>EXIT</code> - Flee combat</p>
+            <p><code>E</code> - Open equip selector</p>
+            <p><code>\`</code> - Toggle inventory</p>
+            <p><code>C</code> - Cycle character appearance</p>
+            <p><code>H</code> - Help</p>
+        `;
+    } else if (coreState.type === 'Land') {
+        helpContent.innerHTML = `
+            <p><code>U</code> / <code>↑</code> - Move Up</p>
+            <p><code>D</code> / <code>↓</code> - Move Down</p>
+            <p><code>L</code> / <code>←</code> - Move Left</p>
+            <p><code>R</code> / <code>→</code> - Move Right</p>
+            <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
+            <p><code>E</code> - Open equip selector</p>
+            <p><code>\`</code> - Toggle inventory</p>
+            <p><code>C</code> - Cycle character appearance</p>
+            <p><code>H</code> - Help</p>
+        `;
+    } else {
+        helpContent.innerHTML = `
+            <p><code>U</code> / <code>↑</code> - Move Up</p>
+            <p><code>D</code> / <code>↓</code> - Move Down</p>
+            <p><code>L</code> / <code>←</code> - Move Left</p>
+            <p><code>R</code> / <code>→</code> - Move Right</p>
+            <p><code>X</code> / <code>ENTER</code> - Enter Land</p>
+            <p><code>E</code> - Open equip selector</p>
+            <p><code>\`</code> - Toggle inventory</p>
+            <p><code>C</code> - Cycle character appearance</p>
+            <p><code>H</code> - Help</p>
+        `;
+    }
+}
+
+// Render command history
+function renderHistory() {
+    const historyList = document.getElementById('history-list');
+    historyList.innerHTML = '';
+
+    if (commandHistory.length === 0) {
+        historyList.innerHTML = '<div style="color: #888; font-style: italic;">No commands yet</div>';
+        return;
+    }
+
+    // Show most recent first
+    const reversed = [...commandHistory].reverse();
+    reversed.forEach(item => {
+        const div = document.createElement('div');
+        
+        // Determine log type for color coding
+        const response = item.response.toLowerCase();
+        let logType = 'mundane'; // Default grey
+        
+        if (response.includes('⚔️') || response.includes('combat') || response.includes('attack') || response.includes('flee') || response.includes('victory') || response.includes('defeated')) {
+            logType = 'combat'; // Red for combat
+        }
+        
+        div.className = `history-item ${logType}`;
+        div.innerHTML = `
+            <div class="history-command">${item.command}</div>
+            <div class="history-response ${item.success ? 'success' : 'error'}">${item.response}</div>
+        `;
+        historyList.appendChild(div);
+    });
+}
+
+// Show message (permanently visible)
+function showMessage(text, type) {
+    const messageEl = document.getElementById('message');
+    messageEl.textContent = text;
+    messageEl.className = `message ${type}`;
+    // Message stays visible permanently - no auto-hide
+}
+
+// Set up event listeners
+document.getElementById('command-button').addEventListener('click', () => {
+    const input = document.getElementById('command-input');
+    executeCommand(input.value);
+    input.value = '';
+});
+
+document.getElementById('command-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        const input = document.getElementById('command-input');
+        executeCommand(input.value);
+        input.value = '';
+    }
+});
+
+// Global key handler for special keys (arrow keys, backtick, etc.)
+// This handler gates commands based on current game state to ensure consistent behavior
+document.addEventListener('keydown', (e) => {
+    if (!gameState) return;
+    
+    // Backtick behavior depends on current overlay
+    if (e.key === '`') {
+        e.preventDefault();
+        if (displayOverlay === 'equip-select') {
+            // In equip mode, backtick cancels
+            displayOverlay = null;
+            renderGame();
+            showMessage('Equip cancelled', 'error');
+        } else if (displayOverlay === 'inventory') {
+            // Close inventory
+            displayOverlay = null;
+            renderGame();
+        } else {
+            // Open inventory
+            displayOverlay = 'inventory';
+            renderGame();
+        }
+        return;
+    }
+    
+    // 'I' key also closes inventory/equip-select if open
+    if (e.key === 'i' || e.key === 'I') {
+        if (displayOverlay === 'inventory' || displayOverlay === 'equip-select') {
+            e.preventDefault();
+            const wasEquipMode = displayOverlay === 'equip-select';
+            displayOverlay = null;
+            renderGame();
+            if (wasEquipMode) {
+                showMessage('Equip cancelled', 'error');
+            }
+        }
+        return;
+    }
+    
+    // When inventory is open, only backtick/I is accepted (handled above)
+    // All other keys are ignored
+    if (displayOverlay === 'inventory') {
+        // Prevent arrow keys from doing anything else
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+        }
+        return;
+    }
+    
+    // When equip selection is active, handle navigation and confirmation
+    if (displayOverlay === 'equip-select') {
+        const inventory = gameState?.character?.inventory || [];
+        
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            equipSelectIndex = Math.max(0, equipSelectIndex - 1);
+            renderGame();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            equipSelectIndex = Math.min(inventory.length - 1, equipSelectIndex + 1);
+            renderGame();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            // Execute the equip command with selected index
+            displayOverlay = null;
+            executeCommand(`e ${equipSelectIndex}`);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            displayOverlay = null;
+            renderGame();
+            showMessage('Equip cancelled', 'error');
+        } else if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            // Prevent left/right from doing anything
+            e.preventDefault();
+        }
+        return;
+    }
+    
+    // When death/win screen is showing, only Enter dismisses it (frontend-only)
+    if (displayOverlay === 'death' || displayOverlay === 'win') {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            displayOverlay = null;
+            renderGame();
+        }
+        // Prevent arrow keys from doing anything
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+        }
+        return;
+    }
+    
+    // Normal gameplay: arrow keys trigger movement
+    const arrowKeyMap = {
+        'ArrowUp': 'U',
+        'ArrowDown': 'D',
+        'ArrowLeft': 'L',
+        'ArrowRight': 'R',
+    };
+    
+    const command = arrowKeyMap[e.key];
+    if (command) {
+        e.preventDefault();
+        executeCommand(command);
+    }
+});
+
+// Focus command input on load
+document.getElementById('command-input').focus();
+
+// Load initial state
+loadGameState();
