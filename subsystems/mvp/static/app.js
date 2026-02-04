@@ -59,15 +59,15 @@ const GRAPHICS = {
     deathSkull: createGraphic(['skull'], '#ff6b6b', '#8b0000'),
     victoryTrophy: createGraphic(['trophy'], '#51cf66', '#1a5f1a'),
     
-    // Carcasses (dead animal remains)
-    wolfCarcass: createGraphic(['wolf-head'], '#4a4a4a', '#1a1a1a'),  // gray wolf, dead
-    deerCarcass: createGraphic(['deer'], '#8b7355', '#4a3a24'),  // brown deer, dead
-    rabbitCarcass: createGraphic(['rabbit'], '#a0a0a0', '#5a5a5a'),  // gray rabbit, dead
-    foxCarcass: createGraphic(['fox'], '#b87333', '#5a3a1a'),  // brownish-orange fox, dead
-    spiderCarcass: createGraphic(['spider-face'], '#3d1f00', '#000000'),  // dark brown spider, dead
-    snakeCarcass: createGraphic(['venomous-snake'], '#4a6b4a', '#1a3a1a'),  // dark green snake, dead
-    lionCarcass: createGraphic(['lion'], '#a08060', '#5a4a30'),  // darker tan lion, dead
-    dragonCarcass: createGraphic(['dragon'], '#6b0000', '#2a0000'),  // dark red dragon, dead
+    // Carcasses (dead animal remains) - all with gore red/brown outlines
+    wolfCarcass: createGraphic(['wolf-head'], '#4a4a4a', '#5a1a1a'),  // gray wolf, gore outline
+    deerCarcass: createGraphic(['cat'], '#8b7355', '#5a1a1a'),  // brown cat (deer proxy), gore outline
+    rabbitCarcass: createGraphic(['paw-print'], '#a0a0a0', '#5a1a1a'),  // gray paw print (rabbit proxy), gore outline
+    foxCarcass: createGraphic(['fox'], '#b87333', '#5a1a1a'),  // brownish-orange fox, gore outline
+    spiderCarcass: createGraphic(['spider-face'], '#3d1f00', '#5a1a1a'),  // dark brown spider, gore outline
+    snakeCarcass: createGraphic(['venomous-snake'], '#4a6b4a', '#5a1a1a'),  // dark green snake, gore outline
+    lionCarcass: createGraphic(['lion'], '#a08060', '#5a1a1a'),  // darker tan lion, gore outline
+    dragonCarcass: createGraphic(['dragon'], '#6b0000', '#5a1a1a'),  // dark red dragon, gore outline
 };
 
 // Object type to Graphic mapping
