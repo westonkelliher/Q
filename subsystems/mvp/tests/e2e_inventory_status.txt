@@ -10,11 +10,11 @@ inventory
 i
 
 # Move around and check status at different locations
-r
+m r
 status
-d
+m d
 status
-r
+m r
 status
 
 # Check different command aliases
@@ -28,9 +28,9 @@ status
 inv
 
 # Move within land and check status
-u
+m u
 status
-l
+m l
 status
 
 # Exit and verify status in terrain view

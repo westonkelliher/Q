@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `408ed77`  
+> **Previous Commit**: `9b7612b`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -418,7 +418,8 @@ cargo run -- --help    # Show all options
 ## Commands
 
 **Movement:**
-- `U`, `D`, `L`, `R` - Move up, down, left, right
+- `M <direction>`, `MOVE <direction>` - Move in direction (e.g., `m u` for up, `move down` for down)
+  - Directions: `u`/`up`, `d`/`down`, `l`/`left`, `r`/`right`
 - `X`, `ENTER`, `EXIT` - Context-dependent: Enter/Exit land, Flee combat
 
 **Combat:**

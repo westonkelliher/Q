@@ -5,15 +5,15 @@
 recipes
 
 # Move to mountains to get materials
-r
-r
-u
-u
+m r
+m r
+m u
+m u
 e
 
 # Pickup items
 pickup
-u
+m u
 pickup
 
 # Test inventory (should work without 'i' alias)

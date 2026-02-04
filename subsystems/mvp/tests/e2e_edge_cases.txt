@@ -2,35 +2,35 @@
 # Tests coordinate clamping and invalid commands
 
 # Test moving beyond terrain boundaries (should clamp to 0-4 range)
-l
-l
-l
-l
-l
+m l
+m l
+m l
+m l
+m l
 status
 
-u
-u
-u
-u
-u
+m u
+m u
+m u
+m u
+m u
 status
 
 # Move to top-right corner
-r
-r
-r
-r
-r
-r
-r
+m r
+m r
+m r
+m r
+m r
+m r
+m r
 status
 
-u
-u
-u
-u
-u
+m u
+m u
+m u
+m u
+m u
 status
 
 # Test invalid commands
@@ -39,32 +39,32 @@ notacommand
 xyz
 
 # Enter land and test tile boundaries
-d
-d
+m d
+m d
 e
 status
 
 # Try to move beyond tile boundaries (should clamp to 0-7)
-l
-l
-l
-l
-l
-l
-l
-l
-l
+m l
+m l
+m l
+m l
+m l
+m l
+m l
+m l
+m l
 status
 
-u
-u
-u
-u
-u
-u
-u
-u
-u
+m u
+m u
+m u
+m u
+m u
+m u
+m u
+m u
+m u
 status
 
 # Exit land

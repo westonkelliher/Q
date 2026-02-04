@@ -2,22 +2,22 @@
 # Tests equipping and unequipping with actual items
 
 # Go to mountain area to find flint/ores
-r
-r
-u
-u
+m r
+m r
+m u
+m u
 e
 
 # Try pickups until we find items
 pickup
-u
+m u
 pickup
-r
+m r
 pickup
-d
+m d
 pickup
-l
-l
+m l
+m l
 pickup
 
 # Check inventory

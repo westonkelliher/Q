@@ -5,10 +5,10 @@
 status
 
 # Test terrain movement (move to safe land at 2,2)
-r
-r
-d
-d
+m r
+m r
+m d
+m d
 status
 
 # Enter the land (should be safe, no combat)
@@ -16,11 +16,11 @@ e
 status
 
 # Test tile movement within land
-u
-u
-l
-r
-d
+m u
+m u
+m l
+m r
+m d
 status
 
 # Exit land back to terrain view
@@ -28,8 +28,8 @@ e
 status
 
 # Move back to starting position
-l
-l
-u
-u
+m l
+m l
+m u
+m u
 status

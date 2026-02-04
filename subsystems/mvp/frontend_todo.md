@@ -6,7 +6,7 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Current Status
 
-All frontend changes are up to date as of commit `de52097`.
+⚠️ Pending frontend changes - see "Pending Items" below
 
 ---
 
@@ -20,7 +20,31 @@ All frontend changes are up to date as of commit `de52097`.
 
 ## Pending Items
 
-_No pending frontend integration tasks at this time._
+### Refactor Movement Commands
+
+**Backend Changes:**
+- Replaced individual movement keys (U/D/L/R) with unified `M <direction>` command
+- Commands: `m u`, `m d`, `m l`, `m r` (or `move up`, `move down`, etc.)
+- Old single-letter commands (u/d/l/r) now show helpful error directing to new syntax
+- All CLI tests updated to use new syntax
+
+**Frontend Tasks:**
+1. Remove arrow key bindings for direct movement (ArrowUp, ArrowDown, ArrowLeft, ArrowRight)
+2. Arrow keys should no longer trigger automatic commands
+3. Update all help text to remove references to arrow keys / U/D/L/R movement
+4. Users must type commands in the input box (e.g., "m u" to move up)
+5. Update command placeholders to show "m <dir>" instead of "U/D/L/R"
+
+**Rationale:**
+- Frees up keyboard real estate (U/D/L/R keys no longer reserved)
+- Consistent command-based interface (everything goes through text input)
+- Simpler to explain: one movement command instead of four
+
+**Testing:**
+- CLI: Type `m u` should move up ✅
+- CLI: Type `u` alone should show error message directing to `m u` ✅
+- Web: Arrow keys should NOT automatically move character
+- Web: Must type "m u" or "move up" in command input
 
 ---
 

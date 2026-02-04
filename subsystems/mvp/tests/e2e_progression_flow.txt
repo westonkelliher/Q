@@ -5,15 +5,15 @@
 recipes
 
 # Move to plains to find rocks and wolf carcasses
-r
-d
+m r
+m d
 e
 
 # Pickup rocks and other materials
 pickup
-u
+m u
 pickup
-l
+m l
 pickup
 
 # Check inventory
@@ -21,18 +21,18 @@ inv
 
 # Move to mountains to find flint
 e
-r
-r
-u
-u
+m r
+m r
+m u
+m u
 e
 
 # Try to pickup mountain resources
 pickup
 status
-u
+m u
 pickup
-r
+m r
 pickup
 
 # Check inventory with progression materials

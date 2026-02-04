@@ -2,17 +2,17 @@
 # Tests the CRAFT command with simple recipes
 
 # Move to mountains to get flint and rock
-r
-r
-u
-u
+m r
+m r
+m u
+m u
 e
 
 # Pickup flint and rock
 pickup
-u
+m u
 pickup
-r
+m r
 pickup
 
 # Check inventory

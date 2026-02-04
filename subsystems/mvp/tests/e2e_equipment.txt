@@ -6,17 +6,17 @@ status
 inv
 
 # Move to a safe land (2,2) and pickup some items
-r
-r
-d
-d
+m r
+m r
+m d
+m d
 e
 
 # Pickup items
 pickup
-u
+m u
 pickup
-l
+m l
 pickup
 
 # Check inventory

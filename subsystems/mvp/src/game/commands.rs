@@ -84,6 +84,41 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         return (false, format!("Recipe not found: {}", recipe_id_str));
     }
     
+    if command.starts_with("move ") || command.starts_with("m ") {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.len() < 2 {
+            return (false, "Usage: m <direction> or move <direction> (e.g., 'm u' or 'move up'). Directions: u/up, d/down, l/left, r/right".to_string());
+        }
+        
+        let direction = parts[1].to_lowercase();
+        let (dx, dy, emoji) = match direction.as_str() {
+            "u" | "up" => (0, -1, "⬆️"),
+            "d" | "down" => (0, 1, "⬇️"),
+            "l" | "left" => (-1, 0, "⬅️"),
+            "r" | "right" => (1, 0, "➡️"),
+            _ => return (false, "Invalid direction. Use u/up, d/down, l/left, or r/right".to_string()),
+        };
+        
+        return match state.current_mode {
+            CurrentMode::Terrain => {
+                state.move_terrain(dx, dy);
+                let (x, y) = state.current_land();
+                (true, format!("{} L[{},{}]", emoji, x, y))
+            }
+            CurrentMode::Combat => {
+                (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
+            }
+            CurrentMode::Land => {
+                state.move_land(dx, dy);
+                if let Some((x, y)) = state.current_tile() {
+                    (true, format!("{} T[{},{}]", emoji, x, y))
+                } else {
+                    (false, "Not in land view".to_string())
+                }
+            }
+        };
+    }
+    
     if command.starts_with("equip ") || command.starts_with("e ") {
         let parts: Vec<&str> = command.split_whitespace().collect();
         if parts.len() < 2 {
@@ -125,85 +160,13 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
     }
     
     match command {
-        "u" | "up" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(0, -1);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬆️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(0, -1);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬆️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
+        "m" => {
+            // Standalone m - show usage
+            (false, "Usage: m <direction> (e.g., 'm u' for up). Directions: u/up, d/down, l/left, r/right".to_string())
         }
-        "d" | "down" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(0, 1);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬇️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(0, 1);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬇️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
-        }
-        "l" | "left" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(-1, 0);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬅️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(-1, 0);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬅️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
-        }
-        "r" | "right" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(1, 0);
-                    let (x, y) = state.current_land();
-                    (true, format!("➡️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'x' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(1, 0);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("➡️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
+        "u" | "up" | "d" | "down" | "l" | "left" | "r" | "right" => {
+            // Legacy single-letter commands - redirect to move command
+            (false, format!("Movement now requires 'm' prefix. Use 'm {}' instead. Type 'help' for more info.", command))
         }
         "enter" | "exit" | "x" => {
             match state.current_mode {
@@ -421,12 +384,14 @@ Combat Commands:
   STATUS, STATS   - Show character status
   INV, INVENTORY  - Show inventory
   H, HELP, ?      - Show this help
+  
+  Note: Cannot move during combat
 "#
                 }
                 CurrentMode::Land => {
                     r#"
 Commands:
-  Arrow Keys      - Move around
+  M <dir>, MOVE   - Move (e.g., 'm u' or 'move up'). Directions: u/d/l/r
   X, EXIT         - Exit land view
   PICKUP, P, GET  - Pick up item from current tile
   DROP            - Drop first item from inventory
@@ -443,7 +408,7 @@ Commands:
                 _ => {
                     r#"
 Commands:
-  Arrow Keys      - Move around
+  M <dir>, MOVE   - Move (e.g., 'm u' or 'move up'). Directions: u/d/l/r
   X, ENTER        - Enter land view (may trigger combat if enemy present)
   E, EQUIP <idx>  - Equip item from inventory (e.g., 'e 0')
   UNEQUIP         - Unequip current item

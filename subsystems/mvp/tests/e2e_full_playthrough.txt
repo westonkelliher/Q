@@ -6,15 +6,15 @@ status
 inv
 
 # Explore the starting area
-r
-d
-l
-u
+m r
+m d
+m l
+m u
 status
 
 # === First Combat Encounter ===
 # Move to land with weak enemy
-r
+m r
 e
 status
 
@@ -26,10 +26,10 @@ status
 
 # === Post-Combat Exploration ===
 # Explore the land we just entered
-u
-l
-d
-r
+m u
+m l
+m d
+m r
 status
 inv
 
@@ -38,9 +38,9 @@ e
 status
 
 # === Navigate to Another Area ===
-d
-d
-r
+m d
+m d
+m r
 status
 
 # === Second Combat Encounter ===
@@ -66,9 +66,9 @@ status
 e
 
 # === Explore Different Lands ===
-l
-l
-u
+m l
+m l
+m u
 status
 
 # Check a safe land (2,2 should be safe)
@@ -76,14 +76,14 @@ e
 status
 
 # Move around the land
-u
-l
-d
-r
-u
-r
-d
-l
+m u
+m l
+m d
+m r
+m u
+m r
+m d
+m l
 status
 
 # === Final Status Check ===
@@ -93,6 +93,6 @@ inv
 stats
 
 # Return to origin
-l
-u
+m l
+m u
 status

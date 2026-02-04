@@ -8,8 +8,8 @@ inv
 recipes
 
 # Move to a forest land (should have trees)
-r
-r
+m r
+m r
 e
 
 # Check current position
@@ -31,8 +31,8 @@ inv
 pickup
 
 # Move to different tile
-u
-l
+m u
+m l
 
 # Try to pickup another item
 pickup

@@ -2,7 +2,7 @@
 # Tests entering combat, attacking, and winning
 
 # Move to a land with a weak enemy (1,0)
-r
+m r
 status
 
 # Enter land - should trigger combat
@@ -26,10 +26,10 @@ a
 status
 
 # Verify we can move around the land
-u
-d
-l
-r
+m u
+m d
+m l
+m r
 
 # Exit land
 e

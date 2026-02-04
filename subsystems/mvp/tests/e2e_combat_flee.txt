@@ -5,8 +5,8 @@
 status
 
 # Move to land with enemy
-r
-d
+m r
+m d
 
 # Enter combat
 e
