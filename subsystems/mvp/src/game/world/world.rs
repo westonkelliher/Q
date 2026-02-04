@@ -158,27 +158,30 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
             for y in 0..8 {
                 for x in 0..8 {
                     let tile = &mut tiles[y][x];
+                    let hash = (x * 11 + y * 17 + (land_x * 3) as usize + (land_y * 5) as usize) % 64;
+                    
                     // Mix of grass and brush substrates
-                    if (x + y) % 3 == 0 {
+                    if hash % 7 == 0 {
                         tile.substrate = Substrate::Brush;
                     }
-                    // Add trees throughout (more dense)
-                    if ((x + y) as i32 + land_x + land_y) % 3 == 0 {
+                    
+                    // Trees common in forests
+                    if hash % 4 == 0 {
                         let tree_instance = create_simple_item_instance(crafting_registry, "tree");
                         tile.items.push(tree_instance);
                     }
-                    // Some sticks on the ground
-                    else if (x + y) % 5 == 0 {
+                    // Sticks on the ground
+                    else if hash % 13 == 3 {
                         let stick_instance = create_simple_item_instance(crafting_registry, "stick");
                         tile.items.push(stick_instance);
                     }
-                    // Plant fiber in forests
-                    else if (x * 2 + y) % 7 == 0 {
+                    // Plant fiber
+                    else if hash % 11 == 2 {
                         let fiber_instance = create_simple_item_instance(crafting_registry, "plant_fiber");
                         tile.items.push(fiber_instance);
                     }
                     // Occasional deer carcass
-                    else if ((x + y) as i32 + land_x * 3 + land_y * 2) % 11 == 0 {
+                    else if hash % 29 == 7 {
                         let carcass_instance = create_simple_item_instance(crafting_registry, "deer_carcass");
                         tile.items.push(carcass_instance);
                     }
@@ -191,54 +194,59 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
                 for x in 0..8 {
                     let tile = &mut tiles[y][x];
                     
-                    // In starting land (0,0), prioritize essential crafting materials
+                    // Use pseudo-random placement based on position (avoids diagonal patterns)
+                    let hash = (x * 7 + y * 13) % 64;
+                    
+                    // In starting land (0,0), provide essential crafting materials
                     if land_x == 0 && land_y == 0 {
-                        // Clay patches (need 3 for forge) - PRIORITY (place first to ensure availability)
-                        if (x + y) % 5 == 0 || (x * 2 + y) % 6 == 0 {
+                        // Rocks (need 5 for forge) - ~12 tiles (18% of map)
+                        if hash % 6 == 0 || hash % 7 == 1 {
+                            let rock_instance = create_simple_item_instance(crafting_registry, "rock");
+                            tile.items.push(rock_instance);
+                        }
+                        // Clay patches (need 3 for forge) - ~7 tiles (11% of map)
+                        else if hash % 9 == 0 || hash % 11 == 1 {
                             tile.substrate = Substrate::Clay;
                             let clay_instance = create_simple_item_instance(crafting_registry, "clay");
                             tile.items.push(clay_instance);
                         }
-                        // Rocks (need 5 for forge) - very common
-                        else if (x + y) % 3 == 0 || x % 4 == 0 || y % 4 == 1 {
-                            let rock_instance = create_simple_item_instance(crafting_registry, "rock");
-                            tile.items.push(rock_instance);
-                        }
-                        // Flint (need 1 for blade) - common
-                        else if (x * y) % 6 == 1 || (x + y) % 7 == 2 {
+                        // Flint (need 1 for blade) - ~3 tiles
+                        else if hash % 19 == 5 || hash % 23 == 7 {
                             let flint_instance = create_simple_item_instance(crafting_registry, "flint");
                             tile.items.push(flint_instance);
                         }
-                        // Plant fiber still available
-                        else if (x + y) % 4 == 0 {
+                        // Plant fiber - sparse (~5 tiles)
+                        else if hash % 13 == 3 {
                             let fiber_instance = create_simple_item_instance(crafting_registry, "plant_fiber");
                             tile.items.push(fiber_instance);
                         }
-                        // Sticks still available
-                        else if (x + y) % 8 == 0 {
+                        // Sticks - sparse (~3 tiles)
+                        else if hash % 17 == 4 {
                             let stick_instance = create_simple_item_instance(crafting_registry, "stick");
                             tile.items.push(stick_instance);
                         }
-                        // Trees for later wood chopping (sparse)
-                        else if (x * y) % 11 == 5 {
+                        // Trees - very sparse (~2 tiles)
+                        else if hash % 29 == 11 {
                             let tree_instance = create_simple_item_instance(crafting_registry, "tree");
                             tile.items.push(tree_instance);
                         }
                     } else {
-                        // Other meadow lands - original distribution
-                        if (x + y) % 4 == 0 {
+                        // Other meadow lands - natural distribution
+                        let hash_var = (hash + (land_x * 7) as usize + (land_y * 11) as usize) % 64;
+                        
+                        if hash_var % 11 == 0 {
                             let fiber_instance = create_simple_item_instance(crafting_registry, "plant_fiber");
                             tile.items.push(fiber_instance);
                         }
-                        else if (x + y) % 6 == 0 {
+                        else if hash_var % 13 == 2 {
                             let stick_instance = create_simple_item_instance(crafting_registry, "stick");
                             tile.items.push(stick_instance);
                         }
-                        else if (x + y) % 9 == 0 {
+                        else if hash_var % 17 == 5 {
                             let rock_instance = create_simple_item_instance(crafting_registry, "rock");
                             tile.items.push(rock_instance);
                         }
-                        else if ((x + y) as i32 + land_x) % 10 == 0 {
+                        else if hash_var % 23 == 7 {
                             let tree_instance = create_simple_item_instance(crafting_registry, "tree");
                             tile.items.push(tree_instance);
                         }
@@ -251,13 +259,15 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
             for y in 0..8 {
                 for x in 0..8 {
                     let tile = &mut tiles[y][x];
+                    let hash = (x * 19 + y * 29 + (land_x * 11) as usize + (land_y * 13) as usize) % 64;
+                    
                     // Center area is water
                     let dist_from_center = ((x as f32 - 3.5).abs() + (y as f32 - 3.5).abs()) / 2.0;
                     if dist_from_center < 2.5 {
                         tile.substrate = Substrate::Water;
                     } else if dist_from_center < 3.0 {
                         // Clay patches near water
-                        if (x + y) % 3 == 0 {
+                        if hash % 7 == 0 {
                             tile.substrate = Substrate::Clay;
                         } else {
                             tile.substrate = Substrate::Mud;
@@ -265,13 +275,14 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
                     } else if dist_from_center < 3.5 {
                         tile.substrate = Substrate::Mud;
                     }
+                    
                     // Rocks near water edges
-                    if dist_from_center > 2.5 && dist_from_center < 3.5 && (x + y) % 4 == 0 {
+                    if dist_from_center > 2.5 && dist_from_center < 3.5 && hash % 11 == 2 {
                         let rock_instance = create_simple_item_instance(crafting_registry, "rock");
                         tile.items.push(rock_instance);
                     }
                     // Clay items on clay substrate
-                    if tile.substrate == Substrate::Clay && (x * y) % 5 == 0 {
+                    if tile.substrate == Substrate::Clay && hash % 5 == 1 {
                         let clay_instance = create_simple_item_instance(crafting_registry, "clay");
                         tile.items.push(clay_instance);
                     }
@@ -283,35 +294,40 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
             for y in 0..8 {
                 for x in 0..8 {
                     let tile = &mut tiles[y][x];
-                    // Mix of stone and dirt
-                    if (x + y) % 2 == 0 {
+                    let hash = (x * 13 + y * 19 + (land_x * 5) as usize + (land_y * 7) as usize) % 64;
+                    
+                    // Mix of stone and dirt substrates
+                    if hash % 5 == 0 {
                         tile.substrate = Substrate::Stone;
-                    } else {
+                    } else if hash % 5 == 1 {
                         tile.substrate = Substrate::Dirt;
+                    } else {
+                        tile.substrate = Substrate::Stone;
                     }
-                    // Many rocks (pickupable)
-                    if ((x + y) as i32 + land_x + land_y) % 2 == 0 {
+                    
+                    // Rocks common (pickupable)
+                    if hash % 6 == 0 {
                         let rock_instance = create_simple_item_instance(crafting_registry, "rock");
                         tile.items.push(rock_instance);
                     }
                     // Flint deposits (pickupable)
-                    else if ((x * y) as i32 + land_x) % 7 == 0 {
+                    else if hash % 11 == 3 {
                         let flint_instance = create_simple_item_instance(crafting_registry, "flint");
                         tile.items.push(flint_instance);
                     }
-                    // Copper ore boulders (resource nodes - not pickupable)
-                    else if ((x + y) as i32 * 2 + land_x) % 9 == 0 {
+                    // Copper ore boulders (resource nodes)
+                    else if hash % 13 == 5 {
                         let boulder_instance = create_simple_item_instance(crafting_registry, "copper_ore_boulder");
                         tile.items.push(boulder_instance);
                     }
-                    // Tin ore boulders (rare, mountains only)
-                    else if ((x * 3 + y * 2) as i32 + land_y) % 13 == 0 {
-                        let boulder_instance = create_simple_item_instance(crafting_registry, "tin_ore_boulder");
+                    // Iron ore boulders
+                    else if hash % 17 == 7 {
+                        let boulder_instance = create_simple_item_instance(crafting_registry, "iron_ore_boulder");
                         tile.items.push(boulder_instance);
                     }
-                    // Iron ore boulders (less common)
-                    else if ((x + y) as i32 * 3 + land_x * 2) % 11 == 0 {
-                        let boulder_instance = create_simple_item_instance(crafting_registry, "iron_ore_boulder");
+                    // Tin ore boulders (rare)
+                    else if hash % 23 == 11 {
+                        let boulder_instance = create_simple_item_instance(crafting_registry, "tin_ore_boulder");
                         tile.items.push(boulder_instance);
                     }
                 }
@@ -322,27 +338,30 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
             for y in 0..8 {
                 for x in 0..8 {
                     let tile = &mut tiles[y][x];
+                    let hash = (x * 17 + y * 23 + (land_x * 7) as usize + (land_y * 11) as usize) % 64;
+                    
                     // Some dirt patches
-                    if (x + y) % 4 == 0 {
+                    if hash % 7 == 0 {
                         tile.substrate = Substrate::Dirt;
                     }
+                    
                     // Rocks common in plains
-                    if (x + y) % 5 == 0 {
+                    if hash % 9 == 0 {
                         let rock_instance = create_simple_item_instance(crafting_registry, "rock");
                         tile.items.push(rock_instance);
                     }
                     // Plant fiber
-                    else if (x * 2 + y) % 6 == 0 {
+                    else if hash % 11 == 2 {
                         let fiber_instance = create_simple_item_instance(crafting_registry, "plant_fiber");
                         tile.items.push(fiber_instance);
                     }
-                    // Some sticks
-                    else if (x + y) % 7 == 0 {
+                    // Sticks
+                    else if hash % 13 == 4 {
                         let stick_instance = create_simple_item_instance(crafting_registry, "stick");
                         tile.items.push(stick_instance);
                     }
                     // Occasional wolf carcass
-                    else if ((x + y) as i32 * 2 + land_x + land_y * 3) % 13 == 0 {
+                    else if hash % 29 == 9 {
                         let carcass_instance = create_simple_item_instance(crafting_registry, "wolf_carcass");
                         tile.items.push(carcass_instance);
                     }
