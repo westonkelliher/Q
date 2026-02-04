@@ -6,108 +6,79 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tower_http::services::ServeDir;
 
 pub mod display;
 
-use crate::game::game_state::{GameState, ViewMode, DisplayOverlay};
-use crate::game::world::types::{Biome, Object, Substrate};
+use crate::game::game_state::{GameState, CurrentMode};
 use crate::game::combat::CombatResult;
 
 /// Shared game state wrapped in Arc<Mutex<>> for thread safety
 pub type SharedGameState = Arc<Mutex<GameState>>;
 
-/// Serializable Biome with color information
+/// Serializable tile for land view
 #[derive(Debug, Serialize)]
-pub struct SerializableBiome {
-    pub name: String,
-    pub color: [f32; 3], // RGB values 0.0-1.0
-}
-
-impl From<&Biome> for SerializableBiome {
-    fn from(biome: &Biome) -> Self {
-        let (r, g, b) = biome.to_color();
-        Self {
-            name: format!("{:?}", biome),
-            color: [r, g, b],
-        }
-    }
-}
-
-/// Serializable Substrate with color information
-#[derive(Debug, Serialize)]
-pub struct SerializableSubstrate {
-    pub name: String,
-    pub color: [f32; 3], // RGB values 0.0-1.0
-}
-
-impl From<&Substrate> for SerializableSubstrate {
-    fn from(substrate: &Substrate) -> Self {
-        let (r, g, b) = substrate.to_color();
-        Self {
-            name: format!("{:?}", substrate),
-            color: [r, g, b],
-        }
-    }
-}
-
-/// Serializable Object with color information
-#[derive(Debug, Serialize)]
-pub struct SerializableObject {
-    pub name: String,
-    pub color: [f32; 3], // RGB values 0.0-1.0
-}
-
-impl From<&Object> for SerializableObject {
-    fn from(object: &Object) -> Self {
-        let (r, g, b) = object.to_color();
-        Self {
-            name: format!("{:?}", object),
-            color: [r, g, b],
-        }
-    }
-}
-
-/// Serializable wrapper for World that converts HashMap<(i32, i32), Land> to JSON object
-#[derive(Debug, Serialize)]
-pub struct SerializableWorld {
-    pub name: String,
-    #[serde(serialize_with = "serialize_terrain")]
-    pub terrain: HashMap<(i32, i32), crate::Land>,
-    pub seed: u64,
-}
-
-fn serialize_terrain<S>(
-    terrain: &HashMap<(i32, i32), crate::Land>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    use serde::ser::SerializeMap;
-    let mut map = serializer.serialize_map(Some(terrain.len()))?;
-    for ((x, y), land) in terrain {
-        let key = format!("{},{}", x, y);
-        map.serialize_entry(&key, land)?;
-    }
-    map.end()
-}
-
-/// Serializable tile information
-#[derive(Debug, Serialize)]
-pub struct SerializableTileInfo {
+pub struct SerializableTile {
     pub substrate: String,
     pub objects: Vec<String>,
+}
+
+/// Enemy info for terrain view (just status + stats for tooltips)
+#[derive(Debug, Serialize)]
+pub struct TerrainEnemyInfo {
+    pub health: i32,
+    pub max_health: i32,
+    pub attack: i32,
+    pub is_defeated: bool,
+}
+
+/// Land info for terrain view (biome + enemy, no tiles)
+#[derive(Debug, Serialize)]
+pub struct TerrainLandInfo {
+    pub coords: (i32, i32),
     pub biome: String,
+    pub enemy: Option<TerrainEnemyInfo>,
+}
+
+/// Terrain view state
+#[derive(Debug, Serialize)]
+pub struct TerrainGameState {
+    pub current_land: (i32, i32),
+    pub lands: Vec<TerrainLandInfo>,
+}
+
+/// Land view state
+#[derive(Debug, Serialize)]
+pub struct LandGameState {
+    pub land_coords: (i32, i32),
+    pub current_tile: (usize, usize),
+    pub tiles: Vec<Vec<SerializableTile>>,
+    pub biome: String,
+}
+
+/// Combat view state
+#[derive(Debug, Serialize)]
+pub struct CombatGameState {
+    pub land_coords: (i32, i32),
+    pub player: SerializableCombatant,
+    pub enemy: SerializableCombatant,
+    pub enemy_max_health: i32,
+    pub round: u32,
+}
+
+/// Core game state discriminated union
+#[derive(Debug, Serialize)]
+#[serde(tag = "type")]
+pub enum CoreGameState {
+    Terrain(TerrainGameState),
+    Land(LandGameState),
+    Combat(CombatGameState),
 }
 
 /// Serializable character information
 #[derive(Debug, Serialize)]
 pub struct SerializableCharacter {
-    pub land_position: (i32, i32),
-    pub tile_position: Option<(usize, usize)>,
     pub health: i32,
     pub max_health: i32,
     pub attack: i32,
@@ -121,27 +92,11 @@ pub struct SerializableCombatant {
     pub attack: i32,
 }
 
-/// Serializable combat state
-#[derive(Debug, Serialize)]
-pub struct SerializableCombatState {
-    pub player: SerializableCombatant,
-    pub enemy: SerializableCombatant,
-    pub enemy_max_health: i32,
-    pub round: u32,
-}
-
 /// Response containing the current game state
 #[derive(Debug, Serialize)]
 pub struct GameStateResponse {
-    pub view_mode: String,
-    pub display_overlay: String,
-    pub current_land: (i32, i32),
-    pub current_tile: Option<(usize, usize)>,
-    pub current_tile_info: Option<SerializableTileInfo>,
-    pub current_biome: Option<String>, // Center biome of current land (for Terrain view)
-    pub world: SerializableWorld,
+    pub core_state: CoreGameState,
     pub character: SerializableCharacter,
-    pub combat_state: Option<SerializableCombatState>,
 }
 
 /// Command request from the client
@@ -174,67 +129,103 @@ async fn index() -> Html<&'static str> {
     Html(include_str!("../../static/index.html"))
 }
 
+/// Build terrain view state (all lands with biome + enemy info, no tiles)
+fn build_terrain_state(state: &GameState) -> TerrainGameState {
+    let mut lands = Vec::new();
+    
+    // Iterate through all lands in the world (5x5 grid)
+    for y in 0..5 {
+        for x in 0..5 {
+            let coords = (x, y);
+            if let Some(land) = state.world.terrain.get(&coords) {
+                let enemy = land.enemy.as_ref().map(|e| TerrainEnemyInfo {
+                    health: e.health,
+                    max_health: e.max_health,
+                    attack: e.attack,
+                    is_defeated: e.is_defeated(),
+                });
+                
+                lands.push(TerrainLandInfo {
+                    coords,
+                    biome: format!("{:?}", land.center),
+                    enemy,
+                });
+            }
+        }
+    }
+    
+    TerrainGameState {
+        current_land: state.current_land(),
+        lands,
+    }
+}
+
+/// Build land view state (current land's tiles only)
+fn build_land_state(state: &GameState) -> LandGameState {
+    let (land_x, land_y) = state.current_land();
+    let current_tile = state.current_tile().unwrap_or((4, 4));
+    
+    let land = state.world.terrain.get(&(land_x, land_y))
+        .expect("Land should exist when in land view");
+    
+    // Serialize the 8x8 tile grid
+    let tiles: Vec<Vec<SerializableTile>> = land.tiles.iter().map(|row| {
+        row.iter().map(|tile| {
+            SerializableTile {
+                substrate: format!("{:?}", tile.substrate),
+                objects: tile.objects.iter().map(|o| format!("{:?}", o)).collect(),
+            }
+        }).collect()
+    }).collect();
+    
+    LandGameState {
+        land_coords: (land_x, land_y),
+        current_tile,
+        tiles,
+        biome: format!("{:?}", land.center),
+    }
+}
+
+/// Build combat view state
+fn build_combat_state(state: &GameState) -> CombatGameState {
+    let (land_x, land_y) = state.current_land();
+    let enemy = state.world.terrain.get(&(land_x, land_y))
+        .and_then(|land| land.enemy.as_ref())
+        .expect("Enemy should exist when in combat view");
+    
+    CombatGameState {
+        land_coords: (land_x, land_y),
+        player: SerializableCombatant {
+            health: state.character.get_health(),
+            attack: state.character.get_attack(),
+        },
+        enemy: SerializableCombatant {
+            health: enemy.health,
+            attack: enemy.attack,
+        },
+        enemy_max_health: enemy.max_health,
+        round: state.combat_round,
+    }
+}
+
 /// Get the current game state
 async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<GameStateResponse>, StatusCode> {
     let state = game_state.lock().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
-    let current_tile_info = state.current_tile_info().map(|info| SerializableTileInfo {
-        substrate: format!("{:?}", info.substrate),
-        objects: info.objects.iter().map(|o| format!("{:?}", o)).collect(),
-        biome: format!("{:?}", info.biome),
-    });
-    
-    let current_biome = state.current_biome().map(|b| format!("{:?}", b));
-    
-    // Serialize combat state if in combat mode
-    let combat_state = if state.view_mode == ViewMode::Combat {
-        if let Some(ref combat) = state.combat_state {
-            let (land_x, land_y) = state.current_land();
-            let enemy_max_health = state.world.terrain.get(&(land_x, land_y))
-                .and_then(|land| land.enemy.as_ref())
-                .map(|enemy| enemy.max_health)
-                .unwrap_or(combat.enemy.health); // Fallback to current health if max not available
-            
-            Some(SerializableCombatState {
-                player: SerializableCombatant {
-                    health: combat.player.health,
-                    attack: combat.player.attack,
-                },
-                enemy: SerializableCombatant {
-                    health: combat.enemy.health,
-                    attack: combat.enemy.attack,
-                },
-                enemy_max_health,
-                round: combat.round,
-            })
-        } else {
-            None
-        }
-    } else {
-        None
+    let core_state = match state.current_mode {
+        CurrentMode::Terrain => CoreGameState::Terrain(build_terrain_state(&state)),
+        CurrentMode::Land => CoreGameState::Land(build_land_state(&state)),
+        CurrentMode::Combat => CoreGameState::Combat(build_combat_state(&state)),
     };
     
     Ok(Json(GameStateResponse {
-        view_mode: format!("{:?}", state.view_mode),
-        display_overlay: format!("{:?}", state.display_overlay),
-        current_land: state.current_land(),
-        current_tile: state.current_tile(),
-        current_tile_info,
-        current_biome,
-        world: SerializableWorld {
-            name: state.world.name.clone(),
-            terrain: state.world.terrain.clone(),
-            seed: state.world.seed,
-        },
+        core_state,
         character: SerializableCharacter {
-            land_position: state.character.get_land_position(),
-            tile_position: state.character.get_tile_position(),
             health: state.character.get_health(),
             max_health: state.character.get_max_health(),
             attack: state.character.get_attack(),
             inventory: state.character.get_inventory().items.iter().map(|o| format!("{:?}", o)).collect(),
         },
-        combat_state,
     }))
 }
 
@@ -248,66 +239,23 @@ async fn handle_command(
     let command = req.command.trim().to_lowercase();
     let (success, message) = execute_command(&mut state, &command);
     
-    let current_tile_info = state.current_tile_info().map(|info| SerializableTileInfo {
-        substrate: format!("{:?}", info.substrate),
-        objects: info.objects.iter().map(|o| format!("{:?}", o)).collect(),
-        biome: format!("{:?}", info.biome),
-    });
-    
-    let current_biome = state.current_biome().map(|b| format!("{:?}", b));
-    
-    // Serialize combat state if in combat mode
-    let combat_state = if state.view_mode == ViewMode::Combat {
-        if let Some(ref combat) = state.combat_state {
-            let (land_x, land_y) = state.current_land();
-            let enemy_max_health = state.world.terrain.get(&(land_x, land_y))
-                .and_then(|land| land.enemy.as_ref())
-                .map(|enemy| enemy.max_health)
-                .unwrap_or(combat.enemy.health); // Fallback to current health if max not available
-            
-            Some(SerializableCombatState {
-                player: SerializableCombatant {
-                    health: combat.player.health,
-                    attack: combat.player.attack,
-                },
-                enemy: SerializableCombatant {
-                    health: combat.enemy.health,
-                    attack: combat.enemy.attack,
-                },
-                enemy_max_health,
-                round: combat.round,
-            })
-        } else {
-            None
-        }
-    } else {
-        None
+    let core_state = match state.current_mode {
+        CurrentMode::Terrain => CoreGameState::Terrain(build_terrain_state(&state)),
+        CurrentMode::Land => CoreGameState::Land(build_land_state(&state)),
+        CurrentMode::Combat => CoreGameState::Combat(build_combat_state(&state)),
     };
     
     let response = CommandResponse {
         success,
         message,
         game_state: GameStateResponse {
-            view_mode: format!("{:?}", state.view_mode),
-            display_overlay: format!("{:?}", state.display_overlay),
-            current_land: state.current_land(),
-            current_tile: state.current_tile(),
-            current_tile_info,
-            current_biome,
-            world: SerializableWorld {
-                name: state.world.name.clone(),
-                terrain: state.world.terrain.clone(),
-                seed: state.world.seed,
-            },
+            core_state,
             character: SerializableCharacter {
-                land_position: state.character.get_land_position(),
-                tile_position: state.character.get_tile_position(),
                 health: state.character.get_health(),
                 max_health: state.character.get_max_health(),
                 attack: state.character.get_attack(),
                 inventory: state.character.get_inventory().items.iter().map(|o| format!("{:?}", o)).collect(),
             },
-            combat_state,
         },
     };
     
@@ -315,167 +263,115 @@ async fn handle_command(
 }
 
 /// Execute a command and return (success, message)
-/// Returns a message explaining why commands are blocked when an overlay is active
-fn overlay_blocked_message(overlay: DisplayOverlay) -> Option<String> {
-    match overlay {
-        DisplayOverlay::None => None,
-        DisplayOverlay::DeathScreen | DisplayOverlay::WinScreen => {
-            Some("Press ENTER to continue.".to_string())
-        }
-        DisplayOverlay::Inventory => {
-            Some("Close inventory first (press ` or I).".to_string())
-        }
-    }
-}
-
 fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
     match command {
         "u" | "up" => {
-            // Check for display overlay first
-            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
-                (false, msg)
-            } else {
-                match state.view_mode {
-                    ViewMode::Terrain => {
-                        state.move_terrain(0, -1);
-                        let (x, y) = state.current_land();
-                        (true, format!("⬆️ L[{},{}]", x, y))
-                    }
-                    ViewMode::Combat => {
-                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                    }
-                    ViewMode::Land => {
-                        state.move_land(0, -1);
-                        if let Some((x, y)) = state.current_tile() {
-                            (true, format!("⬆️ T[{},{}]", x, y))
-                        } else {
-                            (false, "Not in land view".to_string())
-                        }
+            match state.current_mode {
+                CurrentMode::Terrain => {
+                    state.move_terrain(0, -1);
+                    let (x, y) = state.current_land();
+                    (true, format!("⬆️ L[{},{}]", x, y))
+                }
+                CurrentMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                }
+                CurrentMode::Land => {
+                    state.move_land(0, -1);
+                    if let Some((x, y)) = state.current_tile() {
+                        (true, format!("⬆️ T[{},{}]", x, y))
+                    } else {
+                        (false, "Not in land view".to_string())
                     }
                 }
             }
         }
         "d" | "down" => {
-            // Check for display overlay first
-            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
-                (false, msg)
-            } else {
-                match state.view_mode {
-                    ViewMode::Terrain => {
-                        state.move_terrain(0, 1);
-                        let (x, y) = state.current_land();
-                        (true, format!("⬇️ L[{},{}]", x, y))
-                    }
-                    ViewMode::Combat => {
-                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                    }
-                    ViewMode::Land => {
-                        state.move_land(0, 1);
-                        if let Some((x, y)) = state.current_tile() {
-                            (true, format!("⬇️ T[{},{}]", x, y))
-                        } else {
-                            (false, "Not in land view".to_string())
-                        }
+            match state.current_mode {
+                CurrentMode::Terrain => {
+                    state.move_terrain(0, 1);
+                    let (x, y) = state.current_land();
+                    (true, format!("⬇️ L[{},{}]", x, y))
+                }
+                CurrentMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                }
+                CurrentMode::Land => {
+                    state.move_land(0, 1);
+                    if let Some((x, y)) = state.current_tile() {
+                        (true, format!("⬇️ T[{},{}]", x, y))
+                    } else {
+                        (false, "Not in land view".to_string())
                     }
                 }
             }
         }
         "l" | "left" => {
-            // Check for display overlay first
-            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
-                (false, msg)
-            } else {
-                match state.view_mode {
-                    ViewMode::Terrain => {
-                        state.move_terrain(-1, 0);
-                        let (x, y) = state.current_land();
-                        (true, format!("⬅️ L[{},{}]", x, y))
-                    }
-                    ViewMode::Combat => {
-                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                    }
-                    ViewMode::Land => {
-                        state.move_land(-1, 0);
-                        if let Some((x, y)) = state.current_tile() {
-                            (true, format!("⬅️ T[{},{}]", x, y))
-                        } else {
-                            (false, "Not in land view".to_string())
-                        }
+            match state.current_mode {
+                CurrentMode::Terrain => {
+                    state.move_terrain(-1, 0);
+                    let (x, y) = state.current_land();
+                    (true, format!("⬅️ L[{},{}]", x, y))
+                }
+                CurrentMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                }
+                CurrentMode::Land => {
+                    state.move_land(-1, 0);
+                    if let Some((x, y)) = state.current_tile() {
+                        (true, format!("⬅️ T[{},{}]", x, y))
+                    } else {
+                        (false, "Not in land view".to_string())
                     }
                 }
             }
         }
         "r" | "right" => {
-            // Check for display overlay first
-            if let Some(msg) = overlay_blocked_message(state.display_overlay) {
-                (false, msg)
-            } else {
-                match state.view_mode {
-                    ViewMode::Terrain => {
-                        state.move_terrain(1, 0);
-                        let (x, y) = state.current_land();
-                        (true, format!("➡️ L[{},{}]", x, y))
-                    }
-                    ViewMode::Combat => {
-                        (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                    }
-                    ViewMode::Land => {
-                        state.move_land(1, 0);
-                        if let Some((x, y)) = state.current_tile() {
-                            (true, format!("➡️ T[{},{}]", x, y))
-                        } else {
-                            (false, "Not in land view".to_string())
-                        }
+            match state.current_mode {
+                CurrentMode::Terrain => {
+                    state.move_terrain(1, 0);
+                    let (x, y) = state.current_land();
+                    (true, format!("➡️ L[{},{}]", x, y))
+                }
+                CurrentMode::Combat => {
+                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
+                }
+                CurrentMode::Land => {
+                    state.move_land(1, 0);
+                    if let Some((x, y)) = state.current_tile() {
+                        (true, format!("➡️ T[{},{}]", x, y))
+                    } else {
+                        (false, "Not in land view".to_string())
                     }
                 }
             }
         }
         "enter" | "e" => {
-            // Check for display overlays first (these take priority)
-            match state.display_overlay {
-                DisplayOverlay::DeathScreen => {
-                    state.dismiss_death_screen();
-                    (true, "💀 Continue".to_string())
-                }
-                DisplayOverlay::WinScreen => {
-                    state.dismiss_win_screen();
-                    (true, "🎉 Continue".to_string())
-                }
-                DisplayOverlay::Inventory => {
-                    // Close inventory
-                    state.toggle_inventory();
-                    (true, "Closed inventory".to_string())
-                }
-                DisplayOverlay::None => {
-                    // No overlay, handle based on view mode
-                    match state.view_mode {
-                        ViewMode::Terrain => {
-                            let (land_x, land_y) = state.current_land();
-                            state.enter_land();
-                            
-                            if state.view_mode == ViewMode::Combat {
-                                (true, "⚔️ Combat!".to_string())
-                            } else {
-                                (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
-                            }
-                        }
-                        ViewMode::Land => {
-                            let (x, y) = state.current_land();
-                            state.exit_land();
-                            (true, format!("🔼 Exit L[{},{}]", x, y))
-                        }
-                        ViewMode::Combat => {
-                            state.combat_flee();
-                            (true, "🏃 Flee!".to_string())
-                        }
+            match state.current_mode {
+                CurrentMode::Terrain => {
+                    let (land_x, land_y) = state.current_land();
+                    state.enter_land();
+                    
+                    if state.current_mode == CurrentMode::Combat {
+                        (true, "⚔️ Combat!".to_string())
+                    } else {
+                        (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
                     }
+                }
+                CurrentMode::Land => {
+                    let (x, y) = state.current_land();
+                    state.exit_land();
+                    (true, format!("🔼 Exit L[{},{}]", x, y))
+                }
+                CurrentMode::Combat => {
+                    state.combat_flee();
+                    (true, "🏃 Flee!".to_string())
                 }
             }
         }
         "exit" | "x" => {
             // 'E' is now the primary command for exit (and enter/flee)
             // Keep this for backward compatibility
-            if state.view_mode == ViewMode::Land {
+            if state.current_mode == CurrentMode::Land {
                 let (x, y) = state.current_land();
                 state.exit_land();
                 (true, format!("🔼 Exit L[{},{}]", x, y))
@@ -484,18 +380,19 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             }
         }
         "attack" | "a" => {
-            if state.view_mode == ViewMode::Combat {
+            if state.current_mode == CurrentMode::Combat {
                 let result = state.combat_attack();
                 match result {
                     CombatResult::Ongoing => {
-                        let combat = state.combat_state.as_ref().unwrap();
+                        let (land_x, land_y) = state.current_land();
+                        let enemy = state.world.terrain.get(&(land_x, land_y))
+                            .and_then(|land| land.enemy.as_ref())
+                            .unwrap();
                         (true, format!("⚔️ Attack! P:{}/{} E:{}/{}", 
-                            combat.player.health, state.character.get_max_health(),
-                            combat.enemy.health, 
-                            state.world.terrain.get(&state.current_land())
-                                .and_then(|land| land.enemy.as_ref())
-                                .map(|e| e.max_health)
-                                .unwrap_or(0)))
+                            state.character.get_health(),
+                            state.character.get_max_health(),
+                            enemy.health,
+                            enemy.max_health))
                     }
                     CombatResult::PlayerWins => {
                         (true, "⚔️ Victory!".to_string())
@@ -511,77 +408,38 @@ fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         "flee" | "f" => {
             // 'E' is now the primary command for flee (and enter/exit)
             // Keep this for backward compatibility
-            if state.view_mode == ViewMode::Combat {
+            if state.current_mode == CurrentMode::Combat {
                 state.combat_flee();
                 (true, "🏃 Flee!".to_string())
             } else {
                 (false, "Use 'E' to flee combat (or enter/exit based on context)".to_string())
             }
         }
-        "`" | "inventory" | "i" => {
-            // Toggle inventory overlay
-            state.toggle_inventory();
-            let is_open = state.display_overlay == DisplayOverlay::Inventory;
-            if is_open {
-                (true, "🎒 Opened inventory".to_string())
-            } else {
-                (true, "Closed inventory".to_string())
-            }
-        }
         "help" | "h" | "?" => {
-            let help_text = match state.display_overlay {
-                DisplayOverlay::DeathScreen => {
+            let help_text = match state.current_mode {
+                CurrentMode::Combat => {
                     r#"
-Death Screen:
-  E, ENTER  - Continue (dismiss overlay)
-  H, HELP   - Show this help
-"#
-                }
-                DisplayOverlay::WinScreen => {
-                    r#"
-Victory Screen:
-  E, ENTER  - Continue (dismiss overlay)
-  H, HELP   - Show this help
-"#
-                }
-                DisplayOverlay::Inventory => {
-                    r#"
-Inventory:
-  `, I      - Close inventory
-  E, ENTER  - Close inventory
-  H, HELP   - Show this help
-"#
-                }
-                DisplayOverlay::None => {
-                    match state.view_mode {
-                        ViewMode::Combat => {
-                            r#"
 Combat Commands:
   A, ATTACK - Attack the enemy
   E, ENTER  - Flee combat (returns to terrain view)
-  `, I      - Toggle inventory
   H, HELP   - Show this help
 "#
-                        }
-                        ViewMode::Land => {
-                            r#"
+                }
+                CurrentMode::Land => {
+                    r#"
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Exit land view
-  `, I       - Toggle inventory
   H, HELP, ? - Show this help
 "#
-                        }
-                        _ => {
-                            r#"
+                }
+                _ => {
+                    r#"
 Commands:
   U, D, L, R - Move up, down, left, right
   E, ENTER   - Enter land view (may trigger combat if enemy present)
-  `, I       - Toggle inventory
   H, HELP, ? - Show this help
 "#
-                        }
-                    }
                 }
             };
             (true, help_text.trim().to_string())
@@ -689,7 +547,7 @@ mod tests {
         
         assert!(success);
         assert!(message.contains("Entered land view"));
-        assert_eq!(state.view_mode, ViewMode::Land);
+        assert_eq!(state.current_mode, CurrentMode::Land);
         assert_eq!(state.current_land(), (2, 2));
     }
 
@@ -717,7 +575,7 @@ mod tests {
         
         assert!(success);
         assert!(message.contains("Exited to terrain view"));
-        assert_eq!(state.view_mode, ViewMode::Terrain);
+        assert_eq!(state.current_mode, CurrentMode::Terrain);
         assert_eq!(state.current_land(), (2, 2));
     }
 

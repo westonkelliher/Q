@@ -1,6 +1,6 @@
 use super::world::types::{World, Substrate, Object, Biome};
 use super::character::Character;
-use super::combat::{CombatState, Combatant, CombatResult};
+use super::combat::CombatResult;
 
 /// Information about a tile
 #[derive(Debug, Clone)]
@@ -15,7 +15,7 @@ use super::world::land_view::LandCamera;
 
 /// View mode enum for tracking which view is active
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ViewMode {
+pub enum CurrentMode {
     /// Terrain view: Shows biome overview (one tile per land)
     Terrain,
     /// Combat view: Combat sequence before entering a land
@@ -24,30 +24,15 @@ pub enum ViewMode {
     Land,
 }
 
-/// Display overlay for showing temporary screens
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DisplayOverlay {
-    /// No overlay
-    None,
-    /// Death screen overlay (shown after dying in combat)
-    DeathScreen,
-    /// Win screen overlay (shown after winning combat)
-    WinScreen,
-    /// Inventory overlay (toggled with backtick key)
-    Inventory,
-}
-
 /// Game state that tracks the current world and player position
 pub struct GameState {
     pub world: World,
-    pub view_mode: ViewMode,
-    pub terrain_camera: TerrainCamera,
+    pub current_mode: CurrentMode,
+    pub terrain_camera: TerrainCamera, // r TODO: no such thing as cameras on the backend, we just need an x,y; e.g. zooming should be done on frontend
     pub land_camera: LandCamera,
     pub character: Character,
-    /// Active combat state (Some when in Combat view mode)
-    pub combat_state: Option<CombatState>,
-    /// Display overlay for temporary screens (not persisted across refreshes)
-    pub display_overlay: DisplayOverlay,
+    /// Combat round counter (0 when not in combat, increments during combat)
+    pub combat_round: u32,
 }
 
 impl GameState {
@@ -65,12 +50,11 @@ impl GameState {
 
         Self {
             world,
-            view_mode: ViewMode::Terrain,
+            current_mode: CurrentMode::Terrain,
             terrain_camera,
             land_camera,
             character,
-            combat_state: None,
-            display_overlay: DisplayOverlay::None,
+            combat_round: 0,
         }
     }
 
@@ -118,7 +102,7 @@ impl GameState {
     /// Get current tile information (substrate, objects, biome)
     /// Returns None if in terrain view or if land doesn't exist
     pub fn current_tile_info(&self) -> Option<TileInfo> {
-        if self.view_mode != ViewMode::Land {
+        if self.current_mode != CurrentMode::Land {
             return None;
         }
 
@@ -139,7 +123,7 @@ impl GameState {
     /// Move between lands (terrain view)
     /// Clamps coordinates to 0-4 range
     pub fn move_terrain(&mut self, dx: i32, dy: i32) {
-        if self.view_mode != ViewMode::Terrain {
+        if self.current_mode != CurrentMode::Terrain {
             return;
         }
 
@@ -160,7 +144,7 @@ impl GameState {
     /// Move within the current land (land view)
     /// Clamps coordinates to 0-7 range
     pub fn move_land(&mut self, dx: i32, dy: i32) {
-        if self.view_mode != ViewMode::Land {
+        if self.current_mode != CurrentMode::Land {
             return;
         }
 
@@ -180,7 +164,7 @@ impl GameState {
     /// Enter land view for the currently selected land
     /// If the land has an enemy, enters combat mode instead
     pub fn enter_land(&mut self) {
-        if self.view_mode != ViewMode::Terrain {
+        if self.current_mode != CurrentMode::Terrain {
             return;
         }
 
@@ -217,7 +201,7 @@ impl GameState {
         let land_center_y = land_y as f32 + 0.5;
         self.land_camera.sync_position_from(land_center_x, land_center_y);
         
-        self.view_mode = ViewMode::Land;
+        self.current_mode = CurrentMode::Land;
     }
 
     /// Start combat with an enemy
@@ -232,71 +216,83 @@ impl GameState {
             }
         }
         
-        let player_combatant = Combatant::new(
-            self.character.get_health(),
-            self.character.get_attack(),
-        );
-        let enemy_combatant = Combatant::new(enemy.health, enemy.attack);
-        
-        self.combat_state = Some(CombatState::new(player_combatant, enemy_combatant));
-        self.view_mode = ViewMode::Combat;
+        // Enter combat mode and reset round counter
+        self.current_mode = CurrentMode::Combat;
+        self.combat_round = 0;
     }
 
     /// Execute a combat round (attack)
     /// Returns the combat result
     pub fn combat_attack(&mut self) -> CombatResult {
-        if let Some(ref mut combat) = self.combat_state {
-            let result = combat.execute_round();
-            
-            // Update character health from combat
-            self.character.health = combat.player.health;
-            
-            // Update enemy health in world
-            let (land_x, land_y) = self.character.get_land_position();
-            if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
-                if let Some(ref mut enemy) = land.enemy {
-                    enemy.health = combat.enemy.health;
-                }
-            }
-            
-            // Check if combat is over
-            match result {
-                CombatResult::PlayerWins => {
-                    // Combat won - immediately enter land view and show win screen overlay
-                    let (land_x, land_y) = self.character.get_land_position();
-                    self.combat_state = None;
-                    self.enter_land_view_internal(land_x, land_y);
-                    self.display_overlay = DisplayOverlay::WinScreen;
-                }
-                CombatResult::EnemyWins | CombatResult::Draw => {
-                    // Player defeated - restore to half health, return to terrain view, show death screen overlay
-                    let (land_x, land_y) = self.character.get_land_position();
-                    
-                    // Restore enemy health in world (so they're full health next time)
-                    if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
-                        if let Some(ref mut enemy) = land.enemy {
-                            enemy.restore_health();
-                        }
-                    }
-                    
-                    // Restore character to half health
-                    let half_health = self.character.get_max_health() / 2;
-                    self.character.health = half_health;
-                    
-                    // Exit combat and return to terrain view
-                    self.combat_state = None;
-                    self.view_mode = ViewMode::Terrain;
-                    self.display_overlay = DisplayOverlay::DeathScreen;
-                }
-                CombatResult::Ongoing => {
-                    // Combat continues
-                }
-            }
-            
-            result
-        } else {
-            CombatResult::Ongoing
+        if self.current_mode != CurrentMode::Combat {
+            return CombatResult::Ongoing;
         }
+        
+        // Increment round counter
+        self.combat_round += 1;
+        
+        let (land_x, land_y) = self.character.get_land_position();
+        
+        // Get enemy (must exist if we're in combat)
+        let enemy = self.world.terrain.get_mut(&(land_x, land_y))
+            .and_then(|land| land.enemy.as_mut())
+            .expect("Enemy must exist in combat mode");
+        
+        // Store attack values before mutations
+        let player_attack = self.character.get_attack();
+        let enemy_attack = enemy.attack;
+        
+        // Execute simultaneous attacks
+        self.character.health -= enemy_attack;
+        enemy.health -= player_attack;
+        
+        // Ensure health doesn't go below 0
+        self.character.health = self.character.health.max(0);
+        enemy.health = enemy.health.max(0);
+        
+        // Determine result
+        let player_defeated = self.character.health <= 0;
+        let enemy_defeated = enemy.health <= 0;
+        
+        let result = match (player_defeated, enemy_defeated) {
+            (false, false) => CombatResult::Ongoing,
+            (true, false) => CombatResult::EnemyWins,
+            (false, true) => CombatResult::PlayerWins,
+            (true, true) => CombatResult::Draw,
+        };
+        
+        // Handle combat conclusion
+        match result {
+            CombatResult::PlayerWins => {
+                // Combat won - reset round counter and enter land view
+                self.combat_round = 0;
+                self.enter_land_view_internal(land_x, land_y);
+            }
+            CombatResult::EnemyWins | CombatResult::Draw => {
+                // Player defeated - restore both to their starting states
+                let (land_x, land_y) = self.character.get_land_position();
+                
+                // Restore enemy health in world (so they're full health next time)
+                if let Some(land) = self.world.terrain.get_mut(&(land_x, land_y)) {
+                    if let Some(ref mut enemy) = land.enemy {
+                        enemy.restore_health();
+                    }
+                }
+                
+                // Restore character to half health
+                let half_health = self.character.get_max_health() / 2;
+                self.character.health = half_health;
+                
+                // Exit combat and return to terrain view
+                self.combat_round = 0;
+                self.current_mode = CurrentMode::Terrain;
+            }
+            CombatResult::Ongoing => {
+                // Combat continues
+            }
+        }
+        
+        result
     }
 
     /// Flee from combat (restore enemy health and return to terrain view)
@@ -312,13 +308,13 @@ impl GameState {
         
         // Exit combat and return to terrain view
         // Character health is NOT restored - it persists
-        self.combat_state = None;
-        self.view_mode = ViewMode::Terrain;
+        self.combat_round = 0;
+        self.current_mode = CurrentMode::Terrain;
     }
 
     /// Exit land view and return to terrain view
     pub fn exit_land(&mut self) {
-        if self.view_mode != ViewMode::Land {
+        if self.current_mode != CurrentMode::Land {
             return;
         }
 
@@ -335,30 +331,7 @@ impl GameState {
         let land_center_y = land_y as f32;
         self.terrain_camera.sync_position_from(land_center_x, land_center_y);
         
-        self.view_mode = ViewMode::Terrain;
-    }
-
-    /// Dismiss death screen overlay (just hides the overlay, state already updated)
-    pub fn dismiss_death_screen(&mut self) {
-        if self.display_overlay == DisplayOverlay::DeathScreen {
-            self.display_overlay = DisplayOverlay::None;
-        }
-    }
-
-    /// Dismiss win screen overlay (just hides the overlay, state already updated)
-    pub fn dismiss_win_screen(&mut self) {
-        if self.display_overlay == DisplayOverlay::WinScreen {
-            self.display_overlay = DisplayOverlay::None;
-        }
-    }
-
-    /// Toggle inventory overlay
-    pub fn toggle_inventory(&mut self) {
-        if self.display_overlay == DisplayOverlay::Inventory {
-            self.display_overlay = DisplayOverlay::None;
-        } else {
-            self.display_overlay = DisplayOverlay::Inventory;
-        }
+        self.current_mode = CurrentMode::Terrain;
     }
 
     /// Check if a land exists at the given coordinates
@@ -415,7 +388,7 @@ mod tests {
         
         // Enter land view
         state.enter_land();
-        assert_eq!(state.view_mode, ViewMode::Land);
+        assert_eq!(state.current_mode, CurrentMode::Land);
         
         // Try to move terrain (should not work)
         let original_land = state.current_land();
@@ -429,10 +402,10 @@ mod tests {
         let mut state = GameState::new(world);
         
         state.move_terrain(2, 2);
-        assert_eq!(state.view_mode, ViewMode::Terrain);
+        assert_eq!(state.current_mode, CurrentMode::Terrain);
         
         state.enter_land();
-        assert_eq!(state.view_mode, ViewMode::Land);
+        assert_eq!(state.current_mode, CurrentMode::Land);
         assert_eq!(state.current_land(), (2, 2));
         assert!(state.current_tile().is_some());
     }
@@ -493,7 +466,7 @@ mod tests {
         let world = create_hardcoded_world();
         let mut state = GameState::new(world);
         
-        assert_eq!(state.view_mode, ViewMode::Terrain);
+        assert_eq!(state.current_mode, CurrentMode::Terrain);
         
         // Try to move land (should not work)
         state.move_land(1, 0);
@@ -508,10 +481,10 @@ mod tests {
         // Use (2,2) which has no enemy, or (0,0) which is the start
         state.move_terrain(2, 2);
         state.enter_land();
-        assert_eq!(state.view_mode, ViewMode::Land);
+        assert_eq!(state.current_mode, CurrentMode::Land);
         
         state.exit_land();
-        assert_eq!(state.view_mode, ViewMode::Terrain);
+        assert_eq!(state.current_mode, CurrentMode::Terrain);
         assert_eq!(state.current_land(), (2, 2));
         assert_eq!(state.current_tile(), None);
     }

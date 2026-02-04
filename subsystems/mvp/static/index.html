@@ -1086,6 +1086,10 @@
         
         let gameState = null;
         let commandHistory = [];
+        
+        // Frontend-only overlay state
+        let displayOverlay = null; // 'death' | 'win' | 'inventory' | null
+        let previousViewMode = null;
 
         // Load initial game state
         async function loadGameState() {
@@ -1093,12 +1097,33 @@
                 const response = await fetch('/api/state');
                 const data = await response.json();
                 gameState = data;
+                previousViewMode = gameState.core_state.type;
                 renderGame();
                 updateStatus();
             } catch (error) {
                 console.error('Failed to load game state:', error);
                 showMessage('Failed to load game state', 'error');
             }
+        }
+
+        // Detect state transitions and show appropriate overlays
+        function handleStateTransition(commandResponse) {
+            const newMode = gameState.core_state.type;
+            const message = commandResponse?.message || '';
+            
+            // Detect death: was in Combat, now in Terrain, message indicates defeat
+            if (previousViewMode === 'Combat' && newMode === 'Terrain' && 
+                (message.includes('Defeated') || message.includes('💀'))) {
+                displayOverlay = 'death';
+            }
+            
+            // Detect win: was in Combat, now in Land, message indicates victory
+            if (previousViewMode === 'Combat' && newMode === 'Land' &&
+                (message.includes('Victory') || message.includes('⚔️ Victory'))) {
+                displayOverlay = 'win';
+            }
+            
+            previousViewMode = newMode;
         }
 
         // Execute a command
@@ -1116,6 +1141,9 @@
 
                 const data = await response.json();
                 gameState = data.game_state;
+
+                // Handle state transitions for overlays
+                handleStateTransition(data);
 
                 // Add to history
                 commandHistory.push({
@@ -1147,36 +1175,39 @@
                 existingOverlay.remove();
             }
             
-            // Check for display overlay first (these are shown on top of the actual view)
-            if (gameState.display_overlay === 'Inventory') {
+            // Check frontend overlays first (these are shown on top of the actual view)
+            if (displayOverlay === 'inventory') {
                 // For inventory, render the underlying view first, then show inventory overlay
-                if (gameState.view_mode === 'Terrain') {
-                    display.innerHTML = '<div class="terrain-view" id="terrain-grid"></div>';
-                    renderTerrainView();
-                } else if (gameState.view_mode === 'Combat') {
-                    display.innerHTML = '<div class="combat-view" id="combat-view"></div>';
-                    renderCombatView();
-                } else {
-                    display.innerHTML = '<div class="land-view" id="land-grid"></div>';
-                    renderLandView();
-                }
-                // Add inventory overlay on top
+                renderUnderlyingView(display);
                 renderInventoryOverlay();
-            } else if (gameState.display_overlay === 'DeathScreen') {
+            } else if (displayOverlay === 'death') {
                 display.innerHTML = '<div class="screen-view death-screen" id="death-screen"></div>';
                 renderDeathScreen();
-            } else if (gameState.display_overlay === 'WinScreen') {
+            } else if (displayOverlay === 'win') {
                 display.innerHTML = '<div class="screen-view win-screen" id="win-screen"></div>';
                 renderWinScreen();
-            } else if (gameState.view_mode === 'Terrain') {
-                display.innerHTML = '<div class="terrain-view" id="terrain-grid"></div>';
-                renderTerrainView();
-            } else if (gameState.view_mode === 'Combat') {
-                display.innerHTML = '<div class="combat-view" id="combat-view"></div>';
-                renderCombatView();
             } else {
-                display.innerHTML = '<div class="land-view" id="land-grid"></div>';
-                renderLandView();
+                // Render based on core_state.type (discriminated union)
+                renderUnderlyingView(display);
+            }
+        }
+        
+        // Render the underlying view based on core_state type
+        function renderUnderlyingView(display) {
+            const state = gameState.core_state;
+            switch (state.type) {
+                case 'Terrain':
+                    display.innerHTML = '<div class="terrain-view" id="terrain-grid"></div>';
+                    renderTerrainView(state);
+                    break;
+                case 'Land':
+                    display.innerHTML = '<div class="land-view" id="land-grid"></div>';
+                    renderLandView(state);
+                    break;
+                case 'Combat':
+                    display.innerHTML = '<div class="combat-view" id="combat-view"></div>';
+                    renderCombatView(state);
+                    break;
             }
         }
 
@@ -1250,37 +1281,43 @@
         }
 
         // Render terrain view (5x5 grid)
-        function renderTerrainView() {
+        function renderTerrainView(terrainState) {
             const grid = document.getElementById('terrain-grid');
-            const [charLandX, charLandY] = gameState.character.land_position;
+            const [currentX, currentY] = terrainState.current_land;
+
+            // Build a map for quick land lookup
+            const landMap = {};
+            terrainState.lands.forEach(land => {
+                const key = `${land.coords[0]},${land.coords[1]}`;
+                landMap[key] = land;
+            });
 
             for (let y = 0; y < 5; y++) {
                 for (let x = 0; x < 5; x++) {
                     const cell = document.createElement('div');
                     cell.className = 'terrain-cell';
                     
-                    const [currentX, currentY] = gameState.current_land;
                     if (x === currentX && y === currentY) {
                         cell.classList.add('current');
                     }
 
                     const landKey = `${x},${y}`;
-                    const land = gameState.world.terrain[landKey];
+                    const land = landMap[landKey];
                     
                     if (land) {
-                        cell.style.backgroundColor = rgbToCss(getBiomeColor(land.center));
+                        cell.style.backgroundColor = rgbToCss(getBiomeColor(land.biome));
                         
                         // Build tooltip with enemy info if present
-                        let title = `Land (${x}, ${y}): ${land.center}`;
+                        let title = `Land (${x}, ${y}): ${land.biome}`;
                         if (land.enemy) {
-                            const enemyStatus = land.enemy.health > 0 ? 'Alive' : 'Defeated';
+                            const enemyStatus = land.enemy.is_defeated ? 'Defeated' : 'Alive';
                             title += ` | Enemy: ${enemyStatus} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
                         }
                         cell.title = title;
                         
                         // Add enemy indicator if enemy exists
                         if (land.enemy) {
-                            const isDefeated = land.enemy.health <= 0;
+                            const isDefeated = land.enemy.is_defeated;
                             const enemyIndicator = document.createElement('div');
                             enemyIndicator.className = 'enemy-indicator' + (isDefeated ? ' defeated' : '');
                             enemyIndicator.title = `Enemy: ${isDefeated ? 'Defeated' : 'Alive'} (HP: ${land.enemy.health}/${land.enemy.max_health}, ATK: ${land.enemy.attack})`;
@@ -1295,7 +1332,7 @@
                     }
 
                     // Add character if on this land
-                    if (x === charLandX && y === charLandY) {
+                    if (x === currentX && y === currentY) {
                         const charContainer = document.createElement('div');
                         charContainer.className = 'character-sprite';
                         charContainer.style.display = 'flex';
@@ -1312,19 +1349,10 @@
         }
 
         // Render land view (8x8 grid)
-        function renderLandView() {
+        function renderLandView(landState) {
             const grid = document.getElementById('land-grid');
-            const [landX, landY] = gameState.current_land;
-            const [tileX, tileY] = gameState.current_tile || [0, 0];
-            const charTilePos = gameState.character.tile_position;
-
-            const landKey = `${landX},${landY}`;
-            const land = gameState.world.terrain[landKey];
-
-            if (!land) {
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">Land not found</div>';
-                return;
-            }
+            const [tileX, tileY] = landState.current_tile;
+            const tiles = landState.tiles;
 
             for (let y = 0; y < 8; y++) {
                 for (let x = 0; x < 8; x++) {
@@ -1335,7 +1363,7 @@
                         cell.classList.add('current');
                     }
 
-                    const tile = land.tiles[y][x];
+                    const tile = tiles[y][x];
                     cell.style.backgroundColor = rgbToCss(getSubstrateColor(tile.substrate));
                     
                     // Render object if present
@@ -1356,7 +1384,7 @@
                     }
                     
                     // Render character if on this tile
-                    if (charTilePos && x === charTilePos[0] && y === charTilePos[1]) {
+                    if (x === tileX && y === tileY) {
                         const charContainer = document.createElement('div');
                         charContainer.className = 'character-sprite';
                         charContainer.style.display = 'flex';
@@ -1379,19 +1407,13 @@
         // are now defined at the top of the script in the Color Utilities section.
 
         // Render combat view
-        function renderCombatView() {
+        function renderCombatView(combatState) {
             const combatView = document.getElementById('combat-view');
             
-            if (!gameState.combat_state) {
-                combatView.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">No combat data available</div>';
-                return;
-            }
-
-            const combat = gameState.combat_state;
-            const player = combat.player;
-            const enemy = combat.enemy;
+            const player = combatState.player;
+            const enemy = combatState.enemy;
             const playerMaxHealth = gameState.character.max_health;
-            const enemyMaxHealth = combat.enemy_max_health;
+            const enemyMaxHealth = combatState.enemy_max_health;
 
             const playerHealthPercent = Math.max(0, (player.health / playerMaxHealth) * 100);
             const enemyHealthPercent = Math.max(0, (enemy.health / enemyMaxHealth) * 100);
@@ -1402,7 +1424,7 @@
             combatView.innerHTML = `
                 <div class="combat-header">
                     <div class="combat-title">Combat</div>
-                    <div class="combat-round">Round ${combat.round}</div>
+                    <div class="combat-round">Round ${combatState.round}</div>
                 </div>
                 <div class="combat-panels">
                     <div class="combatant-panel player">
@@ -1463,28 +1485,50 @@
 
         // Update status bar
         function updateStatus() {
-            document.getElementById('view-mode').textContent = gameState.view_mode;
+            const coreState = gameState.core_state;
+            document.getElementById('view-mode').textContent = coreState.type;
+            
+            // Get current land based on state type
+            let currentLand;
+            if (coreState.type === 'Terrain') {
+                currentLand = coreState.current_land;
+            } else if (coreState.type === 'Land') {
+                currentLand = coreState.land_coords;
+            } else if (coreState.type === 'Combat') {
+                currentLand = coreState.land_coords;
+            }
+            
             document.getElementById('current-land').textContent = 
-                `(${gameState.current_land[0]}, ${gameState.current_land[1]})`;
+                `(${currentLand[0]}, ${currentLand[1]})`;
 
-            // Show biome in Terrain view (hide during combat)
+            // Show biome in Terrain view
             const biomeItem = document.getElementById('biome-item');
-            if (gameState.view_mode === 'Terrain' && gameState.current_biome) {
-                document.getElementById('current-biome').textContent = gameState.current_biome;
-                biomeItem.style.display = 'flex';
+            if (coreState.type === 'Terrain') {
+                // Find the current land in the lands array
+                const land = coreState.lands.find(l => 
+                    l.coords[0] === currentLand[0] && l.coords[1] === currentLand[1]
+                );
+                if (land) {
+                    document.getElementById('current-biome').textContent = land.biome;
+                    biomeItem.style.display = 'flex';
+                } else {
+                    biomeItem.style.display = 'none';
+                }
             } else {
                 biomeItem.style.display = 'none';
             }
 
-            // Update tile information if available (Land view only, hide during combat)
+            // Update tile information if available (Land view only)
             const tileInfoSection = document.getElementById('tile-info-section');
-            if (gameState.view_mode === 'Land' && gameState.current_tile_info) {
-                const info = gameState.current_tile_info;
-                document.getElementById('tile-biome').textContent = info.biome;
-                document.getElementById('tile-substrate').textContent = info.substrate;
+            if (coreState.type === 'Land') {
+                const [tileX, tileY] = coreState.current_tile;
+                const tile = coreState.tiles[tileY][tileX];
                 
-                if (info.objects && info.objects.length > 0) {
-                    document.getElementById('tile-objects').textContent = info.objects.join(', ');
+                document.getElementById('tile-biome').textContent = coreState.biome;
+                document.getElementById('tile-substrate').textContent = tile.substrate;
+                
+                if (tile.objects && tile.objects.length > 0) {
+                    document.getElementById('tile-objects').textContent = tile.objects.join(', ');
                 } else {
                     document.getElementById('tile-objects').textContent = 'None';
                 }
@@ -1518,7 +1562,7 @@
 
             // Update command input placeholder based on view mode
             const commandInput = document.getElementById('command-input');
-            if (gameState.view_mode === 'Combat') {
+            if (coreState.type === 'Combat') {
                 commandInput.placeholder = 'Enter command (A/ATTACK, E/FLEE, `/I for inventory, H/HELP)';
             } else {
                 commandInput.placeholder = 'Enter command (U/D/L/R/E, `/I for inventory, H/HELP)';
@@ -1526,7 +1570,7 @@
 
             // Update help section based on view mode
             const helpContent = document.getElementById('help-content');
-            if (gameState.view_mode === 'Combat') {
+            if (coreState.type === 'Combat') {
                 helpContent.innerHTML = `
                     <p><code>A</code> / <code>ATTACK</code> - Attack the enemy</p>
                     <p><code>E</code> / <code>ENTER</code> - Flee combat</p>
@@ -1534,7 +1578,7 @@
                     <p><code>C</code> - Cycle character appearance</p>
                     <p><code>H</code> - Help</p>
                 `;
-            } else if (gameState.view_mode === 'Land') {
+            } else if (coreState.type === 'Land') {
                 helpContent.innerHTML = `
                     <p><code>U</code> / <code>↑</code> - Move Up</p>
                     <p><code>D</code> / <code>↓</code> - Move Down</p>
@@ -1619,18 +1663,17 @@
         document.addEventListener('keydown', (e) => {
             if (!gameState) return;
             
-            const overlay = gameState.display_overlay;
-            
-            // Backtick always toggles inventory (regardless of state)
-            if (e.key === '`') {
+            // Backtick always toggles inventory (frontend-only, no backend call)
+            if (e.key === '`' || e.key === 'i' || e.key === 'I') {
                 e.preventDefault();
-                executeCommand('`');
+                displayOverlay = (displayOverlay === 'inventory') ? null : 'inventory';
+                renderGame();
                 return;
             }
             
-            // When inventory is open, only backtick is accepted (handled above)
+            // When inventory is open, only backtick/I is accepted (handled above)
             // All other keys are ignored
-            if (overlay === 'Inventory') {
+            if (displayOverlay === 'inventory') {
                 // Prevent arrow keys from doing anything else
                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                     e.preventDefault();
@@ -1638,11 +1681,12 @@
                 return;
             }
             
-            // When death/win screen is showing, only Enter dismisses it
-            if (overlay === 'DeathScreen' || overlay === 'WinScreen') {
+            // When death/win screen is showing, only Enter dismisses it (frontend-only)
+            if (displayOverlay === 'death' || displayOverlay === 'win') {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    executeCommand('e');
+                    displayOverlay = null;
+                    renderGame();
                 }
                 // Prevent arrow keys from doing anything
                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
