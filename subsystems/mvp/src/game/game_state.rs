@@ -10,9 +10,6 @@ pub struct TileInfo {
     pub biome: Biome,
 }
 
-use super::world::terrain_view::TerrainCamera;
-use super::world::land_view::LandCamera;
-
 /// View mode enum for tracking which view is active
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CurrentMode {
@@ -28,8 +25,6 @@ pub enum CurrentMode {
 pub struct GameState {
     pub world: World,
     pub current_mode: CurrentMode,
-    pub terrain_camera: TerrainCamera, // r TODO: no such thing as cameras on the backend, we just need an x,y; e.g. zooming should be done on frontend
-    pub land_camera: LandCamera,
     pub character: Character,
     /// Combat round counter (0 when not in combat, increments during combat)
     pub combat_round: u32,
@@ -38,12 +33,6 @@ pub struct GameState {
 impl GameState {
     /// Create a new game state with the given world
     pub fn new(world: World) -> Self {
-        let mut terrain_camera = TerrainCamera::new();
-        terrain_camera.update_target();
-        
-        let mut land_camera = LandCamera::new();
-        land_camera.update_target();
-
         let mut character = Character::new();
         character.set_land_position(0, 0);
         character.set_tile_position(None);
@@ -51,8 +40,6 @@ impl GameState {
         Self {
             world,
             current_mode: CurrentMode::Terrain,
-            terrain_camera,
-            land_camera,
             character,
             combat_round: 0,
         }
@@ -134,11 +121,6 @@ impl GameState {
         // Update character position (source of truth)
         self.character.set_land_position(new_x, new_y);
         self.character.set_tile_position(None);
-        
-        // Update camera to follow character
-        self.terrain_camera.selected_land_x = new_x;
-        self.terrain_camera.selected_land_y = new_y;
-        self.terrain_camera.update_target();
     }
 
     /// Move within the current land (land view)
@@ -154,11 +136,6 @@ impl GameState {
         
         // Update character position (source of truth)
         self.character.set_tile_position(Some((new_x, new_y)));
-        
-        // Update camera to follow character
-        self.land_camera.selected_tile_x = new_x;
-        self.land_camera.selected_tile_y = new_y;
-        self.land_camera.update_target();
     }
 
     /// Enter land view for the currently selected land
@@ -189,17 +166,9 @@ impl GameState {
     }
 
     /// Internal helper to enter land view (after combat or if no enemy)
-    fn enter_land_view_internal(&mut self, land_x: i32, land_y: i32) {
+    fn enter_land_view_internal(&mut self, _land_x: i32, _land_y: i32) {
         // Update character to have a tile position (default to center)
         self.character.set_tile_position(Some((4, 4)));
-        
-        // Update camera to follow character
-        self.land_camera.set_land(land_x, land_y);
-        
-        // Sync land camera position from terrain camera
-        let land_center_x = land_x as f32 + 0.5;
-        let land_center_y = land_y as f32 + 0.5;
-        self.land_camera.sync_position_from(land_center_x, land_center_y);
         
         self.current_mode = CurrentMode::Land;
     }
@@ -317,19 +286,9 @@ impl GameState {
         if self.current_mode != CurrentMode::Land {
             return;
         }
-
-        let (land_x, land_y) = self.character.get_land_position();
         
         // Update character to remove tile position
         self.character.set_tile_position(None);
-        
-        // Update camera to follow character
-        self.terrain_camera.set_selected_land(land_x, land_y);
-        
-        // Sync terrain camera position from land camera
-        let land_center_x = land_x as f32;
-        let land_center_y = land_y as f32;
-        self.terrain_camera.sync_position_from(land_center_x, land_center_y);
         
         self.current_mode = CurrentMode::Terrain;
     }
