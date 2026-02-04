@@ -60,15 +60,15 @@ const GRAPHICS = {
     deathSkull: createGraphic(['skull'], '#ff6b6b', '#8b0000'),
     victoryTrophy: createGraphic(['trophy'], '#51cf66', '#1a5f1a'),
     
-    // Carcasses (dead animal remains) - all with gore red/brown outlines
-    wolfCarcass: createGraphic(['wolf-head'], '#4a4a4a', '#5a1a1a'),  // gray wolf, gore outline
-    deerCarcass: createGraphic(['cat'], '#8b7355', '#5a1a1a'),  // brown cat (deer proxy), gore outline
-    rabbitCarcass: createGraphic(['paw-print'], '#a0a0a0', '#5a1a1a'),  // gray paw print (rabbit proxy), gore outline
-    foxCarcass: createGraphic(['fox'], '#b87333', '#5a1a1a'),  // brownish-orange fox, gore outline
-    spiderCarcass: createGraphic(['spider-face'], '#3d1f00', '#5a1a1a'),  // dark brown spider, gore outline
-    snakeCarcass: createGraphic(['venomous-snake'], '#4a6b4a', '#5a1a1a'),  // dark green snake, gore outline
-    lionCarcass: createGraphic(['lion'], '#a08060', '#5a1a1a'),  // darker tan lion, gore outline
-    dragonCarcass: createGraphic(['dragon'], '#6b0000', '#5a1a1a'),  // dark red dragon, gore outline
+    // Carcasses (dead animal remains) - all use same gorey colors
+    wolfCarcass: createGraphic(['wolf-head'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
+    deerCarcass: createGraphic(['cat'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
+    rabbitCarcass: createGraphic(['paw-print'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
+    foxCarcass: createGraphic(['fox'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
+    spiderCarcass: createGraphic(['spider-face'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
+    snakeCarcass: createGraphic(['venomous-snake'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
+    lionCarcass: createGraphic(['lion'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
+    dragonCarcass: createGraphic(['dragon'], '#8b4545', '#4a0000'),  // dark red-brown / blood red
 };
 
 // Object type to Graphic mapping
