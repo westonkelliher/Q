@@ -44,6 +44,9 @@
             gap: 6.25px;
             max-width: 312.5px;
             margin: 0 auto;
+            transform: scale(1.5);
+            transform-origin: top center;
+            margin-bottom: 100px; /* compensate for scaled height */
         }
 
         .terrain-cell {
@@ -70,6 +73,9 @@
             gap: 2px;
             max-width: 320px;
             margin: 0 auto;
+            transform: scale(1.5);
+            transform-origin: top center;
+            margin-bottom: 160px; /* compensate for scaled height */
         }
 
         .tile-cell {
@@ -186,18 +192,19 @@
             background: #2a2a2a;
             border: 2px solid #444;
             border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+            padding: 10px;
+            margin-bottom: 15px;
         }
 
         .status-bar h2 {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             color: #4a9eff;
+            font-size: 18px;
         }
 
         .status-info {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             flex-wrap: wrap;
         }
 
@@ -207,13 +214,13 @@
         }
 
         .status-label {
-            font-size: 12px;
+            font-size: 10px;
             color: #888;
             text-transform: uppercase;
         }
 
         .status-value {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
         }
 
@@ -227,10 +234,10 @@
             background: #2a2a2a;
             border: 2px solid #444;
             border-radius: 8px;
-            padding: 15px;
+            padding: 10px;
             color: #e0e0e0;
             font-family: 'Courier New', monospace;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .command-input:focus {
@@ -242,10 +249,10 @@
             background: #4a9eff;
             border: none;
             border-radius: 8px;
-            padding: 15px 30px;
+            padding: 10px 20px;
             color: white;
             font-family: 'Courier New', monospace;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
             font-weight: bold;
         }
@@ -341,11 +348,12 @@
         }
 
         .message {
-            margin-top: 10px;
-            padding: 10px;
+            margin-top: 8px;
+            padding: 8px;
             border-radius: 4px;
             background: #333;
-            min-height: 20px;
+            min-height: 16px;
+            font-size: 13px;
         }
         
         .message:empty {
@@ -728,14 +736,17 @@
         
         /**
          * Creates a Graphic definition object.
-         * @param {string[]} icons - Array of RPG Awesome icon class names (without 'ra-' prefix)
+         * @param {string[]|object} definition - Either:
+         *   - Array of RPG Awesome icon class names (without 'ra-' prefix), OR
+         *   - Shape object: { shape: 'line'|'circle'|'rect', dimensions: {...}, strokeCap?: 'round'|'square'|'butt' }
          * @param {string} foreground - CSS color for the main fill
          * @param {string} background - CSS color for the outline/stroke
          * @param {object} options - Optional settings: strokeWidth, scaleX, scaleY, rotation (degrees)
          */
-        function createGraphic(icons, foreground, background, options = {}) {
+        function createGraphic(definition, foreground, background, options = {}) {
             return {
-                icons,
+                type: Array.isArray(definition) ? 'icon' : 'shape',
+                definition,  // either icons array or shape object
                 foreground,
                 background,
                 strokeWidth: options.strokeWidth ?? 3,
@@ -755,7 +766,12 @@
             // Objects
             tree: createGraphic(['pine-tree'], '#51cf66', '#1a5f1a'),
             rock: createGraphic(['gem'], '#888888', '#333333'),
-            stick: createGraphic(['bowling-pin'], '#8b6f47', '#4a3a24', { scaleX: 0.8, scaleY: 1.3 }),
+            stick: createGraphic(
+                { shape: 'line', dimensions: { x1: 0, y1: -0.4, x2: 0, y2: 0.4 }, strokeCap: 'round' },
+                '#8b6f47',  // brown foreground
+                '#4a3a24',  // darker brown outline
+                { rotation: 80 }
+            ),
             
             // Enemies
             enemyIndicator: createGraphic(['crossed-swords'], '#ff6b6b', '#8b0000'),
@@ -775,6 +791,79 @@
         };
 
         /**
+         * Renders an SVG shape with outline effect.
+         * @param {object} shapeDef - Shape definition { shape, dimensions, strokeCap }
+         * @param {string} foreground - Fill color
+         * @param {string} background - Outline/stroke color
+         * @param {number} strokeWidth - Outline thickness
+         * @param {number} fontSize - Base size for scaling dimensions
+         * @returns {SVGElement} - The rendered SVG element
+         */
+        function renderSVGShape(shapeDef, foreground, background, strokeWidth, fontSize) {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', fontSize);
+            svg.setAttribute('height', fontSize);
+            svg.setAttribute('viewBox', `${-fontSize/2} ${-fontSize/2} ${fontSize} ${fontSize}`);
+            svg.style.display = 'block';
+            svg.style.overflow = 'visible';
+            
+            const { shape, dimensions, strokeCap = 'round' } = shapeDef;
+            
+            // Helper to create shape element
+            const createShapeElement = () => {
+                if (shape === 'line') {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', dimensions.x1 * fontSize);
+                    line.setAttribute('y1', dimensions.y1 * fontSize);
+                    line.setAttribute('x2', dimensions.x2 * fontSize);
+                    line.setAttribute('y2', dimensions.y2 * fontSize);
+                    line.setAttribute('stroke-linecap', strokeCap);
+                    return line;
+                } else if (shape === 'circle') {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', 0);
+                    circle.setAttribute('cy', 0);
+                    circle.setAttribute('r', dimensions.r * fontSize);
+                    return circle;
+                } else if (shape === 'rect') {
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    const w = dimensions.width * fontSize;
+                    const h = dimensions.height * fontSize;
+                    rect.setAttribute('x', -w/2);
+                    rect.setAttribute('y', -h/2);
+                    rect.setAttribute('width', w);
+                    rect.setAttribute('height', h);
+                    return rect;
+                }
+            };
+            
+            // Background/outline layer - drawn with thick stroke
+            const bgShape = createShapeElement();
+            bgShape.setAttribute('fill', 'none');
+            bgShape.setAttribute('stroke', background);
+            bgShape.setAttribute('stroke-width', strokeWidth * 2);
+            if (shape === 'line') {
+                bgShape.setAttribute('stroke-linecap', strokeCap);
+            }
+            svg.appendChild(bgShape);
+            
+            // Foreground layer - drawn with fill or thin stroke
+            const fgShape = createShapeElement();
+            if (shape === 'line') {
+                fgShape.setAttribute('fill', 'none');
+                fgShape.setAttribute('stroke', foreground);
+                fgShape.setAttribute('stroke-width', strokeWidth);
+                fgShape.setAttribute('stroke-linecap', strokeCap);
+            } else {
+                fgShape.setAttribute('fill', foreground);
+                fgShape.setAttribute('stroke', 'none');
+            }
+            svg.appendChild(fgShape);
+            
+            return svg;
+        }
+
+        /**
          * Renders a Graphic definition as a DOM element.
          * Draws background layer with stroke first, then foreground layer on top.
          * @param {object} graphic - Graphic definition from GRAPHICS
@@ -787,32 +876,47 @@
             container.style.fontSize = `${fontSize}px`;
             
             // Build transform string from scale and rotation
+            // CSS transforms apply right-to-left, so order is: rotate, scale
+            // This means scale is applied first, then rotation
             const transforms = [];
-            if (graphic.scaleX !== 1 || graphic.scaleY !== 1) {
-                transforms.push(`scale(${graphic.scaleX}, ${graphic.scaleY})`);
-            }
             if (graphic.rotation !== 0) {
                 transforms.push(`rotate(${graphic.rotation}deg)`);
+            }
+            if (graphic.scaleX !== 1 || graphic.scaleY !== 1) {
+                transforms.push(`scale(${graphic.scaleX}, ${graphic.scaleY})`);
             }
             if (transforms.length > 0) {
                 container.style.transform = transforms.join(' ');
                 container.style.transformOrigin = 'center';
             }
 
-            // Render each icon in the graphic
-            for (const iconName of graphic.icons) {
-                // Background layer (outline/stroke)
-                const bgIcon = document.createElement('i');
-                bgIcon.className = `ra ra-${iconName} graphic-bg`;
-                bgIcon.style.color = graphic.background;
-                bgIcon.style.webkitTextStroke = `${graphic.strokeWidth}px ${graphic.background}`;
-                container.appendChild(bgIcon);
+            // Route to appropriate renderer based on type
+            if (graphic.type === 'shape') {
+                // Render SVG shape
+                const svg = renderSVGShape(
+                    graphic.definition,
+                    graphic.foreground,
+                    graphic.background,
+                    graphic.strokeWidth,
+                    fontSize
+                );
+                container.appendChild(svg);
+            } else {
+                // Render font icon(s)
+                for (const iconName of graphic.definition) {
+                    // Background layer (outline/stroke)
+                    const bgIcon = document.createElement('i');
+                    bgIcon.className = `ra ra-${iconName} graphic-bg`;
+                    bgIcon.style.color = graphic.background;
+                    bgIcon.style.webkitTextStroke = `${graphic.strokeWidth}px ${graphic.background}`;
+                    container.appendChild(bgIcon);
 
-                // Foreground layer (fill)
-                const fgIcon = document.createElement('i');
-                fgIcon.className = `ra ra-${iconName} graphic-fg`;
-                fgIcon.style.color = graphic.foreground;
-                container.appendChild(fgIcon);
+                    // Foreground layer (fill)
+                    const fgIcon = document.createElement('i');
+                    fgIcon.className = `ra ra-${iconName} graphic-fg`;
+                    fgIcon.style.color = graphic.foreground;
+                    container.appendChild(fgIcon);
+                }
             }
 
             return container;
