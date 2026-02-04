@@ -824,10 +824,7 @@ function updateStatus() {
         `;
     } else if (coreState.type === 'Land') {
         helpContent.innerHTML = `
-            <p><code>M U</code> / <code>↑</code> - Move Up</p>
-            <p><code>M D</code> / <code>↓</code> - Move Down</p>
-            <p><code>M L</code> / <code>←</code> - Move Left</p>
-            <p><code>M R</code> / <code>→</code> - Move Right</p>
+            <p><code>Arrow Keys</code> or <code>M &lt;dir&gt;</code> - Move (u/d/l/r)</p>
             <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>\`</code> - Toggle inventory</p>
@@ -835,10 +832,7 @@ function updateStatus() {
         `;
     } else {
         helpContent.innerHTML = `
-            <p><code>M U</code> / <code>↑</code> - Move Up</p>
-            <p><code>M D</code> / <code>↓</code> - Move Down</p>
-            <p><code>M L</code> / <code>←</code> - Move Left</p>
-            <p><code>M R</code> / <code>→</code> - Move Right</p>
+            <p><code>Arrow Keys</code> or <code>M &lt;dir&gt;</code> - Move (u/d/l/r)</p>
             <p><code>X</code> / <code>ENTER</code> - Enter Land</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>\`</code> - Toggle inventory</p>
