@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `90941d7`  
+> **Previous Commit**: `9203243`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -442,7 +442,6 @@ cargo run -- --help    # Show all options
 
 **Web-Only:**
 - `` ` `` (backtick) - Toggle inventory overlay
-- `C`, `CYCLE` - Cycle character appearance
 
 ---
 

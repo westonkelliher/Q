@@ -232,6 +232,10 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             // Alias for equip command - must provide an index
             (false, "Usage: e <inventory_index> or equip <inventory_index> (e.g., 'e 0' to equip first item)".to_string())
         }
+        "c" => {
+            // Alias for craft command - must provide a recipe
+            (false, "Usage: c <recipe_id> or craft <recipe_id> (e.g., 'c knap_flint_blade'). Type 'recipes' to see available recipes.".to_string())
+        }
         "attack" | "a" => {
             if state.current_mode == CurrentMode::Combat {
                 let result = state.combat_attack();
