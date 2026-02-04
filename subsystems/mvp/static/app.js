@@ -229,8 +229,8 @@ function renderCharacterWithEquipment(fontSize = 24) {
         equipmentEl.style.pointerEvents = 'none';
         equipmentEl.title = `Equipped: ${equippedName}`;
         
-        // Render equipment at ~60% size
-        const equipmentSize = Math.round(fontSize * 0.6);
+        // Render equipment at ~40% size
+        const equipmentSize = Math.round(fontSize * 0.4);
         equipmentEl.appendChild(renderGraphic(OBJECT_GRAPHICS[equippedName], equipmentSize));
         container.appendChild(equipmentEl);
     }
