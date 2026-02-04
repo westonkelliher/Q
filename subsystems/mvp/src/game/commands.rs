@@ -4,7 +4,7 @@ use super::combat::CombatResult;
 /// Execute a command and return (success, message)
 pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
     // Handle commands with arguments first
-    if command.starts_with("craft ") {
+    if command.starts_with("craft ") || command.starts_with("c ") {
         let parts: Vec<&str> = command.split_whitespace().collect();
         if parts.len() < 2 {
             return (false, "Usage: craft <recipe_id> (e.g., 'craft knap_flint_blade')".to_string());
@@ -422,7 +422,7 @@ Combat Commands:
   EQUIP <index>  - Equip item from inventory
   UNEQUIP        - Unequip current item
   STATUS, STATS  - Show character status
-  INV, I         - Show inventory
+  INV, INVENTORY - Show inventory
   H, HELP, ?     - Show this help
 "#
                 }
@@ -436,9 +436,10 @@ Commands:
   EQUIP <index>   - Equip item from inventory (e.g., 'equip 0')
   UNEQUIP         - Unequip current item to inventory
   CRAFT <recipe>  - Craft item from recipe (e.g., 'craft knap_flint_blade')
+  C <recipe>      - Shortcut for craft
   RECIPES         - List available recipes
   STATUS, STATS   - Show character status
-  INV, I          - Show inventory
+  INV, INVENTORY  - Show inventory
   H, HELP, ?      - Show this help
 "#
                 }
@@ -461,7 +462,7 @@ Commands:
             };
             (true, help_text.trim().to_string())
         }
-        "inventory" | "inv" | "i" => {
+        "inventory" | "inv" => {
             let mut output = String::new();
             
             // Show equipped item

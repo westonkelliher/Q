@@ -1,0 +1,31 @@
+# E2E Test: Command Aliases
+# Tests new command shortcuts: c for craft, removed i for inventory
+
+# Test recipes list
+recipes
+
+# Move to mountains to get materials
+r
+r
+u
+u
+e
+
+# Pickup items
+pickup
+u
+pickup
+
+# Test inventory (should work without 'i' alias)
+inv
+inventory
+
+# Test equip
+equip 0
+
+# Test craft shortcut 'c'
+c knap_flint_blade
+
+# Check result
+inv
+status
