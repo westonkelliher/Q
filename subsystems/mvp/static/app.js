@@ -58,6 +58,16 @@ const GRAPHICS = {
     // UI Icons
     deathSkull: createGraphic(['skull'], '#ff6b6b', '#8b0000'),
     victoryTrophy: createGraphic(['trophy'], '#51cf66', '#1a5f1a'),
+    
+    // Carcasses (dead animal remains)
+    wolfCarcass: createGraphic(['wolf-head'], '#4a4a4a', '#1a1a1a'),  // gray wolf, dead
+    deerCarcass: createGraphic(['deer'], '#8b7355', '#4a3a24'),  // brown deer, dead
+    rabbitCarcass: createGraphic(['rabbit'], '#a0a0a0', '#5a5a5a'),  // gray rabbit, dead
+    foxCarcass: createGraphic(['fox'], '#b87333', '#5a3a1a'),  // brownish-orange fox, dead
+    spiderCarcass: createGraphic(['spider-face'], '#3d1f00', '#000000'),  // dark brown spider, dead
+    snakeCarcass: createGraphic(['venomous-snake'], '#4a6b4a', '#1a3a1a'),  // dark green snake, dead
+    lionCarcass: createGraphic(['lion'], '#a08060', '#5a4a30'),  // darker tan lion, dead
+    dragonCarcass: createGraphic(['dragon'], '#6b0000', '#2a0000'),  // dark red dragon, dead
 };
 
 // Object type to Graphic mapping
@@ -65,6 +75,14 @@ const OBJECT_GRAPHICS = {
     'Rock': GRAPHICS.rock,
     'Tree': GRAPHICS.tree,
     'Stick': GRAPHICS.stick,
+    'Wolf Carcass': GRAPHICS.wolfCarcass,
+    'Deer Carcass': GRAPHICS.deerCarcass,
+    'Rabbit Carcass': GRAPHICS.rabbitCarcass,
+    'Fox Carcass': GRAPHICS.foxCarcass,
+    'Spider Carcass': GRAPHICS.spiderCarcass,
+    'Snake Carcass': GRAPHICS.snakeCarcass,
+    'Lion Carcass': GRAPHICS.lionCarcass,
+    'Dragon Carcass': GRAPHICS.dragonCarcass,
 };
 
 // Biome decorative icons (simple, no outline)
