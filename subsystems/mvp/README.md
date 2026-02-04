@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `c47c1e0`  
+> **Previous Commit**: `90941d7`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -380,13 +380,18 @@ subsystems/mvp/
     │       └── land_view.rs    # LandCamera (tile-level view)
     └── web/
         ├── mod.rs              # Web server, API, and HTTP handlers
+        ├── types.rs            # Serialization types and API models
+        ├── state_builder.rs    # Game state to API response builders
+        ├── serialization.rs    # Item serialization helpers
         └── display.rs          # Text-based display utilities
 ```
 
 **Key Files:**
 - `game_state.rs` - Core game logic, movement, mode transitions
 - `commands.rs` - Unified command processing for all interfaces
-- `web/mod.rs` - HTTP API and state serialization
+- `web/mod.rs` - HTTP server and routing
+- `web/types.rs` - API request/response models
+- `web/state_builder.rs` - Game state to JSON converters
 - `cli.rs` - REPL and script execution
 - `main.rs` - Argument parsing, mode selection
 

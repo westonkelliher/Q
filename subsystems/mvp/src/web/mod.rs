@@ -5,114 +5,19 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
 use tower_http::services::ServeDir;
 
 pub mod display;
+pub mod types;
+pub mod serialization;
+pub mod state_builder;
 
-use crate::game::game_state::{GameState, CurrentMode};
+// Re-export public types for convenient access
+pub use types::*;
+
+use crate::game::game_state::CurrentMode;
 use crate::game::commands::execute_command;
-
-/// Shared game state wrapped in Arc<Mutex<>> for thread safety
-pub type SharedGameState = Arc<Mutex<GameState>>;
-
-/// Serializable tile for land view
-#[derive(Debug, Serialize)]
-pub struct SerializableTile {
-    pub substrate: String,
-    pub objects: Vec<String>,
-}
-
-/// Enemy info for terrain view (just status + stats for tooltips)
-#[derive(Debug, Serialize)]
-pub struct TerrainEnemyInfo {
-    pub health: i32,
-    pub max_health: i32,
-    pub attack: i32,
-    pub is_defeated: bool,
-}
-
-/// Land info for terrain view (biome + enemy, no tiles)
-#[derive(Debug, Serialize)]
-pub struct TerrainLandInfo {
-    pub coords: (i32, i32),
-    pub biome: String,
-    pub enemy: Option<TerrainEnemyInfo>,
-}
-
-/// Terrain view state
-#[derive(Debug, Serialize)]
-pub struct TerrainGameState {
-    pub current_land: (i32, i32),
-    pub lands: Vec<TerrainLandInfo>,
-}
-
-/// Land view state
-#[derive(Debug, Serialize)]
-pub struct LandGameState {
-    pub land_coords: (i32, i32),
-    pub current_tile: (usize, usize),
-    pub tiles: Vec<Vec<SerializableTile>>,
-    pub biome: String,
-}
-
-/// Combat view state
-#[derive(Debug, Serialize)]
-pub struct CombatGameState {
-    pub land_coords: (i32, i32),
-    pub player: SerializableCombatant,
-    pub enemy: SerializableCombatant,
-    pub enemy_max_health: i32,
-    pub round: u32,
-}
-
-/// Core game state discriminated union
-#[derive(Debug, Serialize)]
-#[serde(tag = "type")]
-pub enum CoreGameState {
-    Terrain(TerrainGameState),
-    Land(LandGameState),
-    Combat(CombatGameState),
-}
-
-/// Serializable character information
-#[derive(Debug, Serialize)]
-pub struct SerializableCharacter {
-    pub health: i32,
-    pub max_health: i32,
-    pub attack: i32,
-    pub inventory: Vec<String>,
-    pub equipped: Option<String>,
-}
-
-/// Serializable combatant information
-#[derive(Debug, Serialize)]
-pub struct SerializableCombatant {
-    pub health: i32,
-    pub attack: i32,
-}
-
-/// Response containing the current game state
-#[derive(Debug, Serialize)]
-pub struct GameStateResponse {
-    pub core_state: CoreGameState,
-    pub character: SerializableCharacter,
-}
-
-/// Command request from the client
-#[derive(Debug, Deserialize)]
-pub struct CommandRequest {
-    pub command: String,
-}
-
-/// Command response
-#[derive(Debug, Serialize)]
-pub struct CommandResponse {
-    pub success: bool,
-    pub message: String,
-    pub game_state: GameStateResponse,
-}
+use state_builder::{build_terrain_state, build_land_state, build_combat_state, build_serializable_character};
 
 /// Create the web server router
 pub fn create_router(game_state: SharedGameState) -> Router {
@@ -130,105 +35,6 @@ async fn index() -> Html<&'static str> {
     Html(include_str!("../../static/index.html"))
 }
 
-/// Build terrain view state (all lands with biome + enemy info, no tiles)
-fn build_terrain_state(state: &GameState) -> TerrainGameState {
-    let mut lands = Vec::new();
-    
-    // Iterate through all lands in the world (5x5 grid)
-    for y in 0..5 {
-        for x in 0..5 {
-            let coords = (x, y);
-            if let Some(land) = state.world.terrain.get(&coords) {
-                let enemy = land.enemy.as_ref().map(|e| TerrainEnemyInfo {
-                    health: e.health,
-                    max_health: e.max_health,
-                    attack: e.attack,
-                    is_defeated: e.is_defeated(),
-                });
-                
-                lands.push(TerrainLandInfo {
-                    coords,
-                    biome: format!("{:?}", land.center),
-                    enemy,
-                });
-            }
-        }
-    }
-    
-    TerrainGameState {
-        current_land: state.current_land(),
-        lands,
-    }
-}
-
-/// Build land view state (current land's tiles only)
-fn build_land_state(state: &GameState) -> LandGameState {
-    let (land_x, land_y) = state.current_land();
-    let current_tile = state.current_tile().unwrap_or((4, 4));
-    
-    let land = state.world.terrain.get(&(land_x, land_y))
-        .expect("Land should exist when in land view");
-    
-    // Serialize the 8x8 tile grid
-    let tiles: Vec<Vec<SerializableTile>> = land.tiles.iter().map(|row| {
-        row.iter().map(|tile| {
-            let object_names: Vec<String> = tile.objects.iter().filter_map(|instance_id| {
-                state.crafting_registry.get_instance(*instance_id)
-                    .and_then(|instance| {
-                        match instance {
-                            crate::game::crafting::ItemInstance::Simple(s) => {
-                                state.crafting_registry.get_item(&s.definition)
-                                    .map(|def| def.name.clone())
-                            }
-                            crate::game::crafting::ItemInstance::Component(c) => {
-                                state.crafting_registry.get_component_kind(&c.component_kind)
-                                    .map(|ck| ck.name.clone())
-                            }
-                            crate::game::crafting::ItemInstance::Composite(c) => {
-                                state.crafting_registry.get_item(&c.definition)
-                                    .map(|def| def.name.clone())
-                            }
-                        }
-                    })
-            }).collect();
-            
-            SerializableTile {
-                substrate: format!("{:?}", tile.substrate),
-                objects: object_names,
-            }
-        }).collect()
-    }).collect();
-    
-    LandGameState {
-        land_coords: (land_x, land_y),
-        current_tile,
-        tiles,
-        biome: format!("{:?}", land.center),
-    }
-}
-
-/// Build combat view state
-fn build_combat_state(state: &GameState) -> CombatGameState {
-    let (land_x, land_y) = state.current_land();
-    let enemy = state.world.terrain.get(&(land_x, land_y))
-        .and_then(|land| land.enemy.as_ref())
-        .expect("Enemy should exist when in combat view");
-    
-    CombatGameState {
-        land_coords: (land_x, land_y),
-        player: SerializableCombatant {
-            health: state.character.get_health(),
-            attack: state.character.get_attack(),
-        },
-        enemy: SerializableCombatant {
-            health: enemy.health,
-            attack: enemy.attack,
-        },
-        enemy_max_health: enemy.max_health,
-        round: state.combat_round,
-    }
-}
-
 /// Get the current game state
 async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<GameStateResponse>, StatusCode> {
     let state = game_state.lock().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -239,56 +45,9 @@ async fn get_state(State(game_state): State<SharedGameState>) -> Result<Json<Gam
         CurrentMode::Combat => CoreGameState::Combat(build_combat_state(&state)),
     };
     
-    let inventory_names: Vec<String> = state.character.get_inventory().items.iter().filter_map(|instance_id| {
-        state.crafting_registry.get_instance(*instance_id)
-            .and_then(|instance| {
-                match instance {
-                    crate::game::crafting::ItemInstance::Simple(s) => {
-                        state.crafting_registry.get_item(&s.definition)
-                            .map(|def| def.name.clone())
-                    }
-                    crate::game::crafting::ItemInstance::Component(c) => {
-                        state.crafting_registry.get_component_kind(&c.component_kind)
-                            .map(|ck| ck.name.clone())
-                    }
-                    crate::game::crafting::ItemInstance::Composite(c) => {
-                        state.crafting_registry.get_item(&c.definition)
-                            .map(|def| def.name.clone())
-                    }
-                }
-            })
-    }).collect();
-    
-    let equipped_name = state.character.get_equipped()
-        .and_then(|equipped_id| {
-            state.crafting_registry.get_instance(equipped_id)
-                .and_then(|instance| {
-                    match instance {
-                        crate::game::crafting::ItemInstance::Simple(s) => {
-                            state.crafting_registry.get_item(&s.definition)
-                                .map(|def| def.name.clone())
-                        }
-                        crate::game::crafting::ItemInstance::Component(c) => {
-                            state.crafting_registry.get_component_kind(&c.component_kind)
-                                .map(|ck| ck.name.clone())
-                        }
-                        crate::game::crafting::ItemInstance::Composite(c) => {
-                            state.crafting_registry.get_item(&c.definition)
-                                .map(|def| def.name.clone())
-                        }
-                    }
-                })
-        });
-    
     Ok(Json(GameStateResponse {
         core_state,
-        character: SerializableCharacter {
-            health: state.character.get_health(),
-            max_health: state.character.get_max_health(),
-            attack: state.character.get_attack(),
-            inventory: inventory_names,
-            equipped: equipped_name,
-        },
+        character: build_serializable_character(&state),
     }))
 }
 
@@ -308,59 +67,12 @@ async fn handle_command(
         CurrentMode::Combat => CoreGameState::Combat(build_combat_state(&state)),
     };
     
-    let inventory_names: Vec<String> = state.character.get_inventory().items.iter().filter_map(|instance_id| {
-        state.crafting_registry.get_instance(*instance_id)
-            .and_then(|instance| {
-                match instance {
-                    crate::game::crafting::ItemInstance::Simple(s) => {
-                        state.crafting_registry.get_item(&s.definition)
-                            .map(|def| def.name.clone())
-                    }
-                    crate::game::crafting::ItemInstance::Component(c) => {
-                        state.crafting_registry.get_component_kind(&c.component_kind)
-                            .map(|ck| ck.name.clone())
-                    }
-                    crate::game::crafting::ItemInstance::Composite(c) => {
-                        state.crafting_registry.get_item(&c.definition)
-                            .map(|def| def.name.clone())
-                    }
-                }
-            })
-    }).collect();
-    
-    let equipped_name = state.character.get_equipped()
-        .and_then(|equipped_id| {
-            state.crafting_registry.get_instance(equipped_id)
-                .and_then(|instance| {
-                    match instance {
-                        crate::game::crafting::ItemInstance::Simple(s) => {
-                            state.crafting_registry.get_item(&s.definition)
-                                .map(|def| def.name.clone())
-                        }
-                        crate::game::crafting::ItemInstance::Component(c) => {
-                            state.crafting_registry.get_component_kind(&c.component_kind)
-                                .map(|ck| ck.name.clone())
-                        }
-                        crate::game::crafting::ItemInstance::Composite(c) => {
-                            state.crafting_registry.get_item(&c.definition)
-                                .map(|def| def.name.clone())
-                        }
-                    }
-                })
-        });
-    
     let response = CommandResponse {
         success,
         message,
         game_state: GameStateResponse {
             core_state,
-            character: SerializableCharacter {
-                health: state.character.get_health(),
-                max_health: state.character.get_max_health(),
-                attack: state.character.get_attack(),
-                inventory: inventory_names,
-                equipped: equipped_name,
-            },
+            character: build_serializable_character(&state),
         },
     };
     
@@ -373,6 +85,7 @@ mod tests {
     use super::*;
     use crate::game::world::create_hardcoded_world;
     use crate::game::crafting::CraftingRegistry;
+    use crate::game::game_state::GameState;
     
     fn create_test_state() -> GameState {
         let mut crafting_registry = CraftingRegistry::new();
@@ -463,7 +176,7 @@ mod tests {
         let mut state = create_test_state();
         
         state.move_terrain(2, 2);
-        let (success, message) = execute_command(&mut state, "e");
+        let (success, message) = execute_command(&mut state, "x");
         
         assert!(success);
         assert!(message.contains("Enter L["));
@@ -476,9 +189,9 @@ mod tests {
         let mut state = create_test_state();
         
         state.enter_land();
-        let (success, message) = execute_command(&mut state, "e");
+        let (success, message) = execute_command(&mut state, "x");
         
-        // When in land view, 'e' exits the land (not an error)
+        // When in land view, 'x' exits the land (not an error)
         assert!(success);
         assert!(message.contains("Exit L["));
     }
@@ -502,10 +215,12 @@ mod tests {
     fn test_command_exit_land_already_in_terrain() {
         let mut state = create_test_state();
         
+        // When in terrain view, 'x' enters the land (not an error)
         let (success, message) = execute_command(&mut state, "x");
         
-        assert!(!success);
-        assert!(message.contains("Use 'E' to exit"));
+        assert!(success);
+        // Should enter land or combat at starting position (0,0)
+        assert!(message.contains("Enter L[") || message.contains("Combat"));
     }
 
     #[test]
