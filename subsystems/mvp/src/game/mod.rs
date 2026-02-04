@@ -2,6 +2,7 @@ pub mod world;
 pub mod game_state;
 pub mod character;
 pub mod combat;
+pub mod commands;
 
 // Re-export commonly used types for convenience
 pub use world::{Biome, Land, Object, Substrate, Tile, World};
@@ -10,3 +11,4 @@ pub use world::create_hardcoded_world;
 pub use game_state::{GameState, CurrentMode};
 pub use character::Character;
 pub use combat::CombatResult;
+pub use commands::execute_command;

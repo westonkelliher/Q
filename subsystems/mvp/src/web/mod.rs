@@ -12,7 +12,7 @@ use tower_http::services::ServeDir;
 pub mod display;
 
 use crate::game::game_state::{GameState, CurrentMode};
-use crate::game::combat::CombatResult;
+use crate::game::commands::execute_command;
 
 /// Shared game state wrapped in Arc<Mutex<>> for thread safety
 pub type SharedGameState = Arc<Mutex<GameState>>;
@@ -262,192 +262,6 @@ async fn handle_command(
     Ok(Json(response))
 }
 
-/// Execute a command and return (success, message)
-fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
-    match command {
-        "u" | "up" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(0, -1);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬆️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(0, -1);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬆️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
-        }
-        "d" | "down" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(0, 1);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬇️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(0, 1);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬇️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
-        }
-        "l" | "left" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(-1, 0);
-                    let (x, y) = state.current_land();
-                    (true, format!("⬅️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(-1, 0);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("⬅️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
-        }
-        "r" | "right" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    state.move_terrain(1, 0);
-                    let (x, y) = state.current_land();
-                    (true, format!("➡️ L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    (false, "Cannot move during combat. Use 'a' to attack or 'e' to flee.".to_string())
-                }
-                CurrentMode::Land => {
-                    state.move_land(1, 0);
-                    if let Some((x, y)) = state.current_tile() {
-                        (true, format!("➡️ T[{},{}]", x, y))
-                    } else {
-                        (false, "Not in land view".to_string())
-                    }
-                }
-            }
-        }
-        "enter" | "e" => {
-            match state.current_mode {
-                CurrentMode::Terrain => {
-                    let (land_x, land_y) = state.current_land();
-                    state.enter_land();
-                    
-                    if state.current_mode == CurrentMode::Combat {
-                        (true, "⚔️ Combat!".to_string())
-                    } else {
-                        (true, format!("🔽 Enter L[{},{}]", land_x, land_y))
-                    }
-                }
-                CurrentMode::Land => {
-                    let (x, y) = state.current_land();
-                    state.exit_land();
-                    (true, format!("🔼 Exit L[{},{}]", x, y))
-                }
-                CurrentMode::Combat => {
-                    state.combat_flee();
-                    (true, "🏃 Flee!".to_string())
-                }
-            }
-        }
-        "exit" | "x" => {
-            // 'E' is now the primary command for exit (and enter/flee)
-            // Keep this for backward compatibility
-            if state.current_mode == CurrentMode::Land {
-                let (x, y) = state.current_land();
-                state.exit_land();
-                (true, format!("🔼 Exit L[{},{}]", x, y))
-            } else {
-                (false, "Use 'E' to exit land view (or enter/flee based on context)".to_string())
-            }
-        }
-        "attack" | "a" => {
-            if state.current_mode == CurrentMode::Combat {
-                let result = state.combat_attack();
-                match result {
-                    CombatResult::Ongoing => {
-                        let (land_x, land_y) = state.current_land();
-                        let enemy = state.world.terrain.get(&(land_x, land_y))
-                            .and_then(|land| land.enemy.as_ref())
-                            .unwrap();
-                        (true, format!("⚔️ Attack! P:{}/{} E:{}/{}", 
-                            state.character.get_health(),
-                            state.character.get_max_health(),
-                            enemy.health,
-                            enemy.max_health))
-                    }
-                    CombatResult::PlayerWins => {
-                        (true, "⚔️ Victory!".to_string())
-                    }
-                    CombatResult::EnemyWins | CombatResult::Draw => {
-                        (true, "⚔️ Defeated!".to_string())
-                    }
-                }
-            } else {
-                (false, "Not in combat. Use 'E' to enter a land with enemies.".to_string())
-            }
-        }
-        "flee" | "f" => {
-            // 'E' is now the primary command for flee (and enter/exit)
-            // Keep this for backward compatibility
-            if state.current_mode == CurrentMode::Combat {
-                state.combat_flee();
-                (true, "🏃 Flee!".to_string())
-            } else {
-                (false, "Use 'E' to flee combat (or enter/exit based on context)".to_string())
-            }
-        }
-        "help" | "h" | "?" => {
-            let help_text = match state.current_mode {
-                CurrentMode::Combat => {
-                    r#"
-Combat Commands:
-  A, ATTACK - Attack the enemy
-  E, ENTER  - Flee combat (returns to terrain view)
-  H, HELP   - Show this help
-"#
-                }
-                CurrentMode::Land => {
-                    r#"
-Commands:
-  U, D, L, R - Move up, down, left, right
-  E, ENTER   - Exit land view
-  H, HELP, ? - Show this help
-"#
-                }
-                _ => {
-                    r#"
-Commands:
-  U, D, L, R - Move up, down, left, right
-  E, ENTER   - Enter land view (may trigger combat if enemy present)
-  H, HELP, ? - Show this help
-"#
-                }
-            };
-            (true, help_text.trim().to_string())
-        }
-        "" => (false, "Empty command".to_string()),
-        _ => (false, format!("Unknown command: {}. Type 'help' for commands.", command)),
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -463,7 +277,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "u");
         
         assert!(success);
-        assert!(message.contains("Moved up"));
+        assert!(message.contains("L["));
         assert_eq!(state.current_land(), (2, 1));
     }
 
@@ -475,7 +289,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "d");
         
         assert!(success);
-        assert!(message.contains("Moved down"));
+        assert!(message.contains("L["));
         assert_eq!(state.current_land(), (0, 1));
     }
 
@@ -488,7 +302,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "l");
         
         assert!(success);
-        assert!(message.contains("Moved left"));
+        assert!(message.contains("L["));
         assert_eq!(state.current_land(), (1, 2));
     }
 
@@ -500,7 +314,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "r");
         
         assert!(success);
-        assert!(message.contains("Moved right"));
+        assert!(message.contains("L["));
         assert_eq!(state.current_land(), (1, 0));
     }
 
@@ -516,7 +330,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "u");
         
         assert!(success);
-        assert!(message.contains("Moved up"));
+        assert!(message.contains("T["));
         let tile = state.current_tile().unwrap();
         assert_eq!(tile.1, initial_tile.1 + 1); // Should be one up from where we moved
     }
@@ -532,7 +346,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "d");
         
         assert!(success);
-        assert!(message.contains("Moved down"));
+        assert!(message.contains("T["));
         let tile = state.current_tile().unwrap();
         assert_eq!(tile.1, initial_tile.1 + 1);
     }
@@ -546,7 +360,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "e");
         
         assert!(success);
-        assert!(message.contains("Entered land view"));
+        assert!(message.contains("Enter L["));
         assert_eq!(state.current_mode, CurrentMode::Land);
         assert_eq!(state.current_land(), (2, 2));
     }
@@ -559,8 +373,9 @@ mod tests {
         state.enter_land();
         let (success, message) = execute_command(&mut state, "e");
         
-        assert!(!success);
-        assert!(message.contains("Already in land view"));
+        // When in land view, 'e' exits the land (not an error)
+        assert!(success);
+        assert!(message.contains("Exit L["));
     }
 
     #[test]
@@ -574,7 +389,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "x");
         
         assert!(success);
-        assert!(message.contains("Exited to terrain view"));
+        assert!(message.contains("Exit L["));
         assert_eq!(state.current_mode, CurrentMode::Terrain);
         assert_eq!(state.current_land(), (2, 2));
     }
@@ -587,7 +402,7 @@ mod tests {
         let (success, message) = execute_command(&mut state, "x");
         
         assert!(!success);
-        assert!(message.contains("Already in terrain view"));
+        assert!(message.contains("Use 'E' to exit"));
     }
 
     #[test]
