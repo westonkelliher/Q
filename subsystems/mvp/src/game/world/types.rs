@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use crate::game::crafting::ItemInstanceId;
+use crate::game::crafting::{ItemInstanceId, WorldObjectInstanceId};
 
 /// Simple enemy stats (copied from combat module)
 /// Stored separately to avoid circular dependencies
@@ -26,6 +26,7 @@ pub enum Substrate {
 pub struct Tile {
     pub substrate: Substrate,
     pub objects: Vec<ItemInstanceId>,
+    pub world_objects: Vec<WorldObjectInstanceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

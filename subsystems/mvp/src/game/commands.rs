@@ -119,6 +119,80 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         };
     }
     
+    if command.starts_with("place ") || command.starts_with("l ") {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.len() < 2 {
+            return (false, "Usage: l <inventory_index> or place <inventory_index> (e.g., 'l 0' to place first item)".to_string());
+        }
+        
+        // Can only place in land view
+        if state.current_mode != CurrentMode::Land {
+            return (false, "Can only place items in land view".to_string());
+        }
+        
+        let index: usize = match parts[1].parse() {
+            Ok(i) => i,
+            Err(_) => return (false, "Invalid index. Use a number (e.g., 'place 0')".to_string()),
+        };
+        
+        // Get item from inventory
+        let item_instance_id = match state.character.inventory.items.get(index) {
+            Some(&id) => id,
+            None => return (false, format!("No item at index {}. Use 'inv' to see your inventory.", index)),
+        };
+        
+        // Get item definition
+        let item_instance = match state.crafting_registry.get_instance(item_instance_id) {
+            Some(inst) => inst,
+            None => return (false, "Item instance not found in registry".to_string()),
+        };
+        
+        let item_def_id = match item_instance {
+            crate::game::crafting::ItemInstance::Simple(s) => &s.definition,
+            _ => return (false, "Can only place simple items".to_string()),
+        };
+        
+        let item_def = match state.crafting_registry.get_item(item_def_id) {
+            Some(def) => def,
+            None => return (false, "Item definition not found".to_string()),
+        };
+        
+        // Check if item is placeable and clone what we need before mutable borrows
+        let world_object_kind = match &item_def.placeable {
+            Some(kind) => kind.clone(),
+            None => return (false, format!("{} cannot be placed", item_def.name)),
+        };
+        let item_name = item_def.name.clone();
+        
+        // Get current tile position
+        let (land_x, land_y) = state.current_land();
+        let (tile_x, tile_y) = match state.current_tile() {
+            Some(pos) => pos,
+            None => return (false, "Not in land view".to_string()),
+        };
+        
+        // Create world object instance
+        let world_object_id = state.crafting_registry.next_world_object_id();
+        let world_object = crate::game::crafting::WorldObjectInstance {
+            id: world_object_id,
+            kind: world_object_kind,
+            tags: vec![], // TODO: Add tags based on item type if needed
+        };
+        state.crafting_registry.register_world_object(world_object);
+        
+        // Add to tile
+        if let Some(land) = state.world.terrain.get_mut(&(land_x, land_y)) {
+            land.tiles[tile_y][tile_x].world_objects.push(world_object_id);
+            
+            // Remove from inventory
+            state.character.inventory.remove_item(index);
+            
+            return (true, format!("🏗️ Placed {} at tile [{},{}]", item_name, tile_x, tile_y));
+        } else {
+            return (false, "Land not found".to_string());
+        }
+    }
+    
     if command.starts_with("equip ") || command.starts_with("e ") {
         let parts: Vec<&str> = command.split_whitespace().collect();
         if parts.len() < 2 {
@@ -164,9 +238,13 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             // Standalone m - show usage
             (false, "Usage: m <direction> (e.g., 'm u' for up). Directions: u/up, d/down, l/left, r/right".to_string())
         }
-        "u" | "up" | "d" | "down" | "l" | "left" | "r" | "right" => {
+        "u" | "up" | "d" | "down" | "r" | "right" => {
             // Legacy single-letter commands - redirect to move command
             (false, format!("Movement now requires 'm' prefix. Use 'm {}' instead. Type 'help' for more info.", command))
+        }
+        "left" => {
+            // Legacy left command - redirect to move command
+            (false, "Movement now requires 'm' prefix. Use 'm l' instead. Type 'help' for more info.".to_string())
         }
         "enter" | "exit" | "x" => {
             match state.current_mode {
@@ -198,6 +276,10 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
         "c" => {
             // Alias for craft command - must provide a recipe
             (false, "Usage: c <recipe_id> or craft <recipe_id> (e.g., 'c knap_flint_blade'). Type 'recipes' to see available recipes.".to_string())
+        }
+        "l" | "place" => {
+            // Alias for place command - must provide an index
+            (false, "Usage: l <inventory_index> or place <inventory_index> (e.g., 'l 0' to place first item)".to_string())
         }
         "attack" | "a" => {
             if state.current_mode == CurrentMode::Combat {
@@ -395,6 +477,7 @@ Commands:
   X, EXIT         - Exit land view
   PICKUP, P, GET  - Pick up item from current tile
   DROP            - Drop first item from inventory
+  L, PLACE <idx>  - Place item as world object (e.g., 'l 0' to place forge)
   E, EQUIP <idx>  - Equip item from inventory (e.g., 'e 0')
   UNEQUIP         - Unequip current item to inventory
   CRAFT <recipe>  - Craft item from recipe (e.g., 'craft knap_flint_blade')

@@ -6,7 +6,7 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Current Status
 
-All frontend changes are up to date as of commit `9b7612b`.
+⚠️ Pending frontend changes - see "Pending Items" below
 
 ---
 
@@ -21,7 +21,24 @@ All frontend changes are up to date as of commit `9b7612b`.
 
 ## Pending Items
 
-_No pending frontend integration tasks at this time._
+### Add Place Command Support (Backend Complete)
+
+**Backend Changes:**
+- Added `place <index>` / `l <index>` command to place items from inventory as world objects
+- Added world_objects field to Tile struct (Vec<WorldObjectInstanceId>)
+- Added placeable field to ItemDefinition (Option<WorldObjectKind>)
+- Created three crafting station items: forge, workbench, anvil
+- Added recipes to build crafting stations (build_forge, build_workbench, build_anvil)
+- Placement only works in Land mode
+
+**Frontend Tasks:**
+- No immediate changes required (CLI-only command)
+- Future enhancement: Display world objects (crafting stations) on tiles in Land view with icons
+
+**Testing:**
+- CLI: `l 0` places first inventory item if placeable ✅
+- CLI: Error shown for non-placeable items ✅
+- New test file: tests/e2e_placement.txt ✅
 
 ---
 

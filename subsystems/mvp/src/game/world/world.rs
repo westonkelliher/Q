@@ -123,6 +123,7 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_re
         std::array::from_fn(|_| Tile {
             substrate: Substrate::Grass,
             objects: vec![],
+            world_objects: vec![],
         })
     });
 

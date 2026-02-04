@@ -1,0 +1,40 @@
+# E2E Test: Item Placement (World Objects)
+# Tests placing items as world objects (crafting stations)
+
+# Check initial status
+status
+
+# Test error: cannot place in terrain mode
+l 0
+
+# Enter a land to start gathering materials
+x
+
+# Test error: no item at invalid index
+l 99
+
+# Test error: standalone l shows usage
+l
+
+# Test error: standalone place shows usage
+place
+
+# Pick up an item to test placement
+p
+
+# Move to another location
+m d
+m r
+
+# Check inventory
+inv
+
+# Test error: try to place non-placeable item (plant fiber or rock)
+l 0
+
+# Test shows proper error: "cannot be placed"
+# This validates that the placeable check works
+
+# Exit land
+x
+status

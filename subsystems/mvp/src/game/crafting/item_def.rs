@@ -1,4 +1,5 @@
 use super::ids::{ItemId, SubmaterialId, ComponentKindId};
+use super::world_object::WorldObjectKind;
 
 /// Defines what an item IS - its template/blueprint
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -7,6 +8,8 @@ pub struct ItemDefinition {
     pub name: String,
     pub description: String,
     pub kind: ItemKind,
+    /// If this item can be placed as a world object, specifies what kind
+    pub placeable: Option<WorldObjectKind>,
 }
 
 /// The kind of item - mutually exclusive categories

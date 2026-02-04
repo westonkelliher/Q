@@ -318,6 +318,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Stick".to_string(),
         description: "A fallen branch. Can be used as makeshift shovel or crafted into handle.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -325,6 +326,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Rock".to_string(),
         description: "A large stone. Can be used as makeshift hammer or knapping tool.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -332,6 +334,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Flint".to_string(),
         description: "Sharp-edged stone perfect for knapping into blades.".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("flint_stone")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -339,6 +342,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Tree".to_string(),
         description: "A living tree that can be chopped for wood".to_string(),
         kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -346,6 +350,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Plant Fiber".to_string(),
         description: "Natural plant fibers for binding".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("plant_fiber")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -353,6 +358,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Clay".to_string(),
         description: "Wet clay, useful for building".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("clay_lump")) },
+        placeable: None,
     });
 
     // Carcasses
@@ -361,6 +367,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Wolf Carcass".to_string(),
         description: "Remains of a slain wolf. Can be processed for materials.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -368,6 +375,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Deer Carcass".to_string(),
         description: "Remains of a slain deer. Can be processed for materials.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
+        placeable: None,
     });
 
     // =========================================================================
@@ -380,6 +388,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Flint Blade".to_string(),
         description: "Knapped flint blade, sharp but fragile.".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("flint_blade")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -387,6 +396,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Flint Axe Head".to_string(),
         description: "Knapped axe head for chopping".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("flint_axe_head")) },
+        placeable: None,
     });
 
     // Animal products (from processing carcasses)
@@ -395,6 +405,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Wolf Bone".to_string(),
         description: "Dense wolf bone, good for tools".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_bone")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -402,6 +413,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Wolf Sinew".to_string(),
         description: "Strong animal tendon for binding".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_sinew")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -409,6 +421,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Wolf Hide".to_string(),
         description: "Untanned wolf pelt".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_hide")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -416,6 +429,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Wolf Meat".to_string(),
         description: "Raw wolf meat, can be cooked".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_meat")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -423,6 +437,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Deer Bone".to_string(),
         description: "Light deer bone".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_bone")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -430,6 +445,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Deer Sinew".to_string(),
         description: "Flexible animal tendon".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_sinew")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -437,6 +453,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Deer Hide".to_string(),
         description: "Soft untanned deer pelt".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_hide")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -444,6 +461,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Deer Meat".to_string(),
         description: "Raw deer meat, can be cooked".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_meat")) },
+        placeable: None,
     });
 
     // Wood products
@@ -452,6 +470,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Wood Log".to_string(),
         description: "Chopped wood from a tree".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wood_log")) },
+        placeable: None,
     });
 
     // Metal ores
@@ -460,6 +479,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Copper Ore".to_string(),
         description: "Raw copper ore".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("copper_ore")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -467,6 +487,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Tin Ore".to_string(),
         description: "Raw tin ore, found in mountains".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("tin_ore")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -474,6 +495,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Iron Ore".to_string(),
         description: "Raw iron ore".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("iron_ore")) },
+        placeable: None,
     });
 
     // Metal bars
@@ -482,6 +504,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Copper Bar".to_string(),
         description: "Smelted copper bar".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("copper_bar")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -489,6 +512,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Bronze Bar".to_string(),
         description: "Alloyed bronze bar (copper + tin)".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("bronze_bar")) },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -496,6 +520,35 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Iron Bar".to_string(),
         description: "Smelted iron bar".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("iron_bar")) },
+        placeable: None,
+    });
+
+    // =========================================================================
+    // CRAFTING STATIONS - Placeable structures for advanced crafting
+    // =========================================================================
+    
+    registry.register_item(ItemDefinition {
+        id: item("forge"),
+        name: "Forge".to_string(),
+        description: "A high-heat crafting station for smelting metal ores into bars.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("forge".to_string()))),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("workbench"),
+        name: "Workbench".to_string(),
+        description: "A sturdy work surface for precise crafting.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("workbench".to_string()))),
+    });
+
+    registry.register_item(ItemDefinition {
+        id: item("anvil"),
+        name: "Anvil".to_string(),
+        description: "A heavy iron anvil for forging metal tools and weapons.".to_string(),
+        kind: ItemKind::Simple { submaterial: None },
+        placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("anvil".to_string()))),
     });
 
     // =========================================================================
@@ -507,6 +560,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Handle".to_string(),
         description: "Tool handle, made from wood or bone".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("handle") },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -514,6 +568,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Binding".to_string(),
         description: "Binding to secure tool parts".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("binding") },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -521,6 +576,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Knife Blade".to_string(),
         description: "Blade for a knife".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("knife_blade") },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -528,6 +584,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Axe Head".to_string(),
         description: "Head for an axe".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("axe_head") },
+        placeable: None,
     });
 
     registry.register_item(ItemDefinition {
@@ -535,6 +592,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         name: "Pickaxe Head".to_string(),
         description: "Head for a pickaxe".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("pickaxe_head") },
+        placeable: None,
     });
 
     // =========================================================================
@@ -564,6 +622,7 @@ fn register_items(registry: &mut CraftingRegistry) {
             category: CompositeCategory::Tool,
             tool_type: Some(ToolType::Knife),
         }),
+        placeable: None,
     });
 
     // Axes
@@ -589,6 +648,7 @@ fn register_items(registry: &mut CraftingRegistry) {
             category: CompositeCategory::Tool,
             tool_type: Some(ToolType::Axe),
         }),
+        placeable: None,
     });
 
     // Pickaxes
@@ -614,10 +674,76 @@ fn register_items(registry: &mut CraftingRegistry) {
             category: CompositeCategory::Tool,
             tool_type: Some(ToolType::Pickaxe),
         }),
+        placeable: None,
     });
 }
 
 fn register_recipes(registry: &mut CraftingRegistry) {
+    // =========================================================================
+    // STAGE 1: CRAFTING STATIONS - Build infrastructure for advanced crafting
+    // =========================================================================
+    
+    // Build a simple forge from rocks and clay
+    registry.register_simple_recipe(SimpleRecipe {
+        id: recipe("build_forge"),
+        name: "Build Forge".to_string(),
+        output: item("forge"),
+        output_quantity: 1,
+        inputs: vec![
+            SimpleInput {
+                item_id: item("rock"),
+                quantity: 5,
+            },
+            SimpleInput {
+                item_id: item("clay"),
+                quantity: 3,
+            },
+        ],
+        tool: None,
+        world_object: None,
+    });
+    
+    // Build a workbench from wood logs
+    registry.register_simple_recipe(SimpleRecipe {
+        id: recipe("build_workbench"),
+        name: "Build Workbench".to_string(),
+        output: item("workbench"),
+        output_quantity: 1,
+        inputs: vec![
+            SimpleInput {
+                item_id: item("wood_log"),
+                quantity: 4,
+            },
+        ],
+        tool: Some(ToolRequirement {
+            tool_type: ToolType::Axe,
+            min_quality: Quality::Crude,
+        }),
+        world_object: None,
+    });
+    
+    // Build an anvil from iron bars (requires forge first)
+    registry.register_simple_recipe(SimpleRecipe {
+        id: recipe("build_anvil"),
+        name: "Build Anvil".to_string(),
+        output: item("anvil"),
+        output_quantity: 1,
+        inputs: vec![
+            SimpleInput {
+                item_id: item("iron_bar"),
+                quantity: 3,
+            },
+        ],
+        tool: Some(ToolRequirement {
+            tool_type: ToolType::Hammer,
+            min_quality: Quality::Crude,
+        }),
+        world_object: Some(WorldObjectRequirement {
+            kind: Some(WorldObjectKind::CraftingStation(CraftingStationId("forge".to_string()))),
+            required_tags: vec![],
+        }),
+    });
+
     // =========================================================================
     // STAGE 2: FLINT KNAPPING (Crude Quality)
     // =========================================================================
