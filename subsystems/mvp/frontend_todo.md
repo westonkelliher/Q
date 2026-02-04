@@ -6,7 +6,7 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Current Status
 
-⚠️ Pending frontend changes - see "Pending Items" below
+✅ All backend changes implemented on frontend as of commit `1006319`.
 
 ---
 
@@ -21,43 +21,22 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Pending Items
 
-### Add Drop Alias and Pickupable Field (Backend Complete)
+_No pending frontend integration tasks at this time._
 
-**Backend Changes:**
-- Added 'd' as shorthand for 'drop' command
-- Added pickupable field to ItemDefinition (bool)
-- Trees marked as pickupable: false (cannot pick up directly)
-- Pickup command now checks pickupable field
-- Error message: "[Item] cannot be picked up. You may need to use a tool to harvest it."
+## Future Enhancements
 
-**Frontend Tasks:**
-- No immediate changes required
-- Future: Could show visual indicator for non-pickupable items
+These backend features work in CLI but could have visual improvements in the web UI:
 
-**Testing:**
-- CLI: 'd' command drops items ✅
-- CLI: 'drop' command still works ✅
-- CLI: Attempting to pick up tree shows error ✅
-- New test: tests/e2e_drop_pickup.txt ✅
+### Display World Objects (Crafting Stations)
+- **Status**: Backend complete, API updates needed
+- **What**: Show forge/workbench/anvil icons on tiles in Land view
+- **Blocked by**: SerializableTile needs world_object field added to API
+- **Implementation**: Once API updated, add world object graphics and render them on tiles
 
-### Add Place Command Support (Backend Complete)
-
-**Backend Changes:**
-- Added `place <index>` / `l <index>` command to place items from inventory as world objects
-- Added world_objects field to Tile struct (Vec<WorldObjectInstanceId>)
-- Added placeable field to ItemDefinition (Option<WorldObjectKind>)
-- Created three crafting station items: forge, workbench, anvil
-- Added recipes to build crafting stations (build_forge, build_workbench, build_anvil)
-- Placement only works in Land mode
-
-**Frontend Tasks:**
-- No immediate changes required (CLI-only command)
-- Future enhancement: Display world objects (crafting stations) on tiles in Land view with icons
-
-**Testing:**
-- CLI: `l 0` places first inventory item if placeable ✅
-- CLI: Error shown for non-placeable items ✅
-- New test file: tests/e2e_placement.txt ✅
+### Visual Indicator for Non-Pickupable Items  
+- **Status**: Backend complete, frontend enhancement optional
+- **What**: Show visual cue that trees can't be picked up directly
+- **Note**: Backend already provides proper error messages, so not critical
 
 ---
 
