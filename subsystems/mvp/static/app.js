@@ -514,9 +514,8 @@ function renderEquipSelectOverlay() {
                 ${itemsHtml}
             </div>
             <div class="inventory-instructions">
-                <p>Use <code>↑</code> / <code>↓</code> arrow keys to navigate</p>
-                <p>Press <code>Enter</code> to equip selected item</p>
-                <p>Press <code>Escape</code> or <code>\`</code> to cancel</p>
+                <p>Use <code>Arrow Keys</code> to navigate grid • <code>0-9</code> to jump to item</p>
+                <p>Press <code>Enter</code> to equip • <code>Escape</code> or <code>\`</code> to cancel</p>
             </div>
         </div>
     `;
@@ -948,15 +947,52 @@ document.addEventListener('keydown', (e) => {
     // When equip selection is active, handle navigation and confirmation
     if (displayOverlay === 'equip-select') {
         const inventory = gameState?.character?.inventory || [];
+        const ITEMS_PER_ROW = 5;
         
-        if (e.key === 'ArrowUp') {
+        // Number keys 0-9 for instant selection
+        if (e.key >= '0' && e.key <= '9') {
             e.preventDefault();
-            equipSelectIndex = Math.max(0, equipSelectIndex - 1);
-            renderGame();
+            const targetIndex = parseInt(e.key);
+            if (targetIndex < inventory.length) {
+                equipSelectIndex = targetIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            // Move up one row (subtract 5)
+            const newIndex = equipSelectIndex - ITEMS_PER_ROW;
+            if (newIndex >= 0) {
+                equipSelectIndex = newIndex;
+                renderGame();
+            }
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
-            equipSelectIndex = Math.min(inventory.length - 1, equipSelectIndex + 1);
-            renderGame();
+            // Move down one row (add 5)
+            const newIndex = equipSelectIndex + ITEMS_PER_ROW;
+            if (newIndex < inventory.length) {
+                equipSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            // Move left within row (subtract 1, stay in same row)
+            const currentRow = Math.floor(equipSelectIndex / ITEMS_PER_ROW);
+            const newIndex = equipSelectIndex - 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex >= 0 && newRow === currentRow) {
+                equipSelectIndex = newIndex;
+                renderGame();
+            }
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            // Move right within row (add 1, stay in same row)
+            const currentRow = Math.floor(equipSelectIndex / ITEMS_PER_ROW);
+            const newIndex = equipSelectIndex + 1;
+            const newRow = Math.floor(newIndex / ITEMS_PER_ROW);
+            if (newIndex < inventory.length && newRow === currentRow) {
+                equipSelectIndex = newIndex;
+                renderGame();
+            }
         } else if (e.key === 'Enter') {
             e.preventDefault();
             // Execute the equip command with selected index
@@ -967,9 +1003,6 @@ document.addEventListener('keydown', (e) => {
             displayOverlay = null;
             renderGame();
             showMessage('Equip cancelled', 'error');
-        } else if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            // Prevent left/right from doing anything
-            e.preventDefault();
         }
         return;
     }
