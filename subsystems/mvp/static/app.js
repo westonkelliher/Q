@@ -809,7 +809,7 @@ function updateStatus() {
     if (coreState.type === 'Combat') {
         commandInput.placeholder = 'Enter command (A/ATTACK, X/FLEE, E to equip, ` for inventory, H/HELP)';
     } else {
-        commandInput.placeholder = 'Enter command (U/D/L/R/X, E to equip, ` for inventory, H/HELP)';
+        commandInput.placeholder = 'Enter command (M <dir>/X, E to equip, ` for inventory, H/HELP)';
     }
 
     // Update help section based on view mode
@@ -825,10 +825,10 @@ function updateStatus() {
         `;
     } else if (coreState.type === 'Land') {
         helpContent.innerHTML = `
-            <p><code>U</code> / <code>↑</code> - Move Up</p>
-            <p><code>D</code> / <code>↓</code> - Move Down</p>
-            <p><code>L</code> / <code>←</code> - Move Left</p>
-            <p><code>R</code> / <code>→</code> - Move Right</p>
+            <p><code>M U</code> / <code>↑</code> - Move Up</p>
+            <p><code>M D</code> / <code>↓</code> - Move Down</p>
+            <p><code>M L</code> / <code>←</code> - Move Left</p>
+            <p><code>M R</code> / <code>→</code> - Move Right</p>
             <p><code>X</code> / <code>EXIT</code> - Exit Land</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>\`</code> - Toggle inventory</p>
@@ -837,10 +837,10 @@ function updateStatus() {
         `;
     } else {
         helpContent.innerHTML = `
-            <p><code>U</code> / <code>↑</code> - Move Up</p>
-            <p><code>D</code> / <code>↓</code> - Move Down</p>
-            <p><code>L</code> / <code>←</code> - Move Left</p>
-            <p><code>R</code> / <code>→</code> - Move Right</p>
+            <p><code>M U</code> / <code>↑</code> - Move Up</p>
+            <p><code>M D</code> / <code>↓</code> - Move Down</p>
+            <p><code>M L</code> / <code>←</code> - Move Left</p>
+            <p><code>M R</code> / <code>→</code> - Move Right</p>
             <p><code>X</code> / <code>ENTER</code> - Enter Land</p>
             <p><code>E</code> - Open equip selector</p>
             <p><code>\`</code> - Toggle inventory</p>
@@ -999,10 +999,10 @@ document.addEventListener('keydown', (e) => {
     
     // Normal gameplay: arrow keys trigger movement
     const arrowKeyMap = {
-        'ArrowUp': 'U',
-        'ArrowDown': 'D',
-        'ArrowLeft': 'L',
-        'ArrowRight': 'R',
+        'ArrowUp': 'm u',
+        'ArrowDown': 'm d',
+        'ArrowLeft': 'm l',
+        'ArrowRight': 'm r',
     };
     
     const command = arrowKeyMap[e.key];
