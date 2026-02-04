@@ -204,9 +204,10 @@ function renderCharacter(fontSize = 24) {
  * Renders a character with equipped item overlay.
  * If an equipped item exists, draws it smaller to the right of the character.
  * @param {number} fontSize - Base font size for character
+ * @param {number} equipmentScale - Scale factor for equipment (default 0.4)
  * @returns {HTMLElement} Container with character and equipped item
  */
-function renderCharacterWithEquipment(fontSize = 24) {
+function renderCharacterWithEquipment(fontSize = 24, equipmentScale = 0.4) {
     const container = document.createElement('div');
     container.style.position = 'relative';
     container.style.display = 'inline-flex';
@@ -229,8 +230,8 @@ function renderCharacterWithEquipment(fontSize = 24) {
         equipmentEl.style.pointerEvents = 'none';
         equipmentEl.title = `Equipped: ${equippedName}`;
         
-        // Render equipment at ~40% size
-        const equipmentSize = Math.round(fontSize * 0.4);
+        // Render equipment at specified scale
+        const equipmentSize = Math.round(fontSize * equipmentScale);
         equipmentEl.appendChild(renderGraphic(OBJECT_GRAPHICS[equippedName], equipmentSize));
         container.appendChild(equipmentEl);
     }
@@ -620,7 +621,7 @@ function renderTerrainView(terrainState) {
                 charContainer.style.alignItems = 'center';
                 charContainer.style.justifyContent = 'center';
                 charContainer.title = 'Character';
-                charContainer.appendChild(renderCharacterWithEquipment(36));
+                charContainer.appendChild(renderCharacterWithEquipment(36, 0.5)); // 50% for terrain view
                 cell.appendChild(charContainer);
             }
 
