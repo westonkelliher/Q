@@ -1,0 +1,38 @@
+# E2E Test: Inventory and Status Commands
+# Tests various status and inventory commands
+
+# Initial checks
+status
+stats
+s
+inv
+inventory
+i
+
+# Move around and check status at different locations
+r
+status
+d
+status
+r
+status
+
+# Check different command aliases
+h
+help
+?
+
+# Enter a land and check status in land view
+e
+status
+inv
+
+# Move within land and check status
+u
+status
+l
+status
+
+# Exit and verify status in terrain view
+e
+status

@@ -1,0 +1,98 @@
+# E2E Test: Full Playthrough
+# Comprehensive test that simulates a longer play session
+
+# === Setup and Initial Exploration ===
+status
+inv
+
+# Explore the starting area
+r
+d
+l
+u
+status
+
+# === First Combat Encounter ===
+# Move to land with weak enemy
+r
+e
+status
+
+# Win first combat
+a
+a
+a
+status
+
+# === Post-Combat Exploration ===
+# Explore the land we just entered
+u
+l
+d
+r
+status
+inv
+
+# Exit land
+e
+status
+
+# === Navigate to Another Area ===
+d
+d
+r
+status
+
+# === Second Combat Encounter ===
+e
+status
+
+# Attack a few times
+a
+status
+a
+status
+
+# Flee to test flee mechanics
+e
+status
+
+# === Health Management Test ===
+# Re-enter same land (enemy should be full health)
+e
+status
+
+# Flee again
+e
+
+# === Explore Different Lands ===
+l
+l
+u
+status
+
+# Check a safe land (2,2 should be safe)
+e
+status
+
+# Move around the land
+u
+l
+d
+r
+u
+r
+d
+l
+status
+
+# === Final Status Check ===
+e
+status
+inv
+stats
+
+# Return to origin
+l
+u
+status

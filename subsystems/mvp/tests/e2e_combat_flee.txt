@@ -1,0 +1,31 @@
+# E2E Test: Combat Flee
+# Tests fleeing from combat and health persistence
+
+# Check initial health
+status
+
+# Move to land with enemy
+r
+d
+
+# Enter combat
+e
+status
+
+# Take some damage by attacking a few times
+a
+status
+a
+status
+
+# Flee from combat (health should persist)
+e
+status
+
+# Try to re-enter - should start fresh combat with enemy at full health
+e
+status
+
+# Flee again
+e
+status

@@ -1,0 +1,36 @@
+# E2E Test: Combat Victory
+# Tests entering combat, attacking, and winning
+
+# Move to a land with a weak enemy (1,0)
+r
+status
+
+# Enter land - should trigger combat
+e
+status
+
+# Check initial inventory
+inv
+
+# Attack until victory (weak enemy should be defeated quickly)
+a
+a
+a
+a
+a
+a
+a
+a
+
+# Check status after combat - should be in land view
+status
+
+# Verify we can move around the land
+u
+d
+l
+r
+
+# Exit land
+e
+status

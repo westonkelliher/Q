@@ -1,0 +1,78 @@
+# E2E Test: Edge Cases and Boundaries
+# Tests coordinate clamping and invalid commands
+
+# Test moving beyond terrain boundaries (should clamp to 0-4 range)
+l
+l
+l
+l
+l
+status
+
+u
+u
+u
+u
+u
+status
+
+# Move to top-right corner
+r
+r
+r
+r
+r
+r
+r
+status
+
+u
+u
+u
+u
+u
+status
+
+# Test invalid commands
+invalid
+notacommand
+xyz
+
+# Enter land and test tile boundaries
+d
+d
+e
+status
+
+# Try to move beyond tile boundaries (should clamp to 0-7)
+l
+l
+l
+l
+l
+l
+l
+l
+l
+status
+
+u
+u
+u
+u
+u
+u
+u
+u
+u
+status
+
+# Exit land
+e
+status
+
+# Test combat-specific commands outside combat (should error)
+a
+f
+attack
+flee

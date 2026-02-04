@@ -1,0 +1,35 @@
+# E2E Test: Basic Movement and Navigation
+# Tests terrain movement, land entry/exit, and tile movement
+
+# Initial status check
+status
+
+# Test terrain movement (move to safe land at 2,2)
+r
+r
+d
+d
+status
+
+# Enter the land (should be safe, no combat)
+e
+status
+
+# Test tile movement within land
+u
+u
+l
+r
+d
+status
+
+# Exit land back to terrain view
+e
+status
+
+# Move back to starting position
+l
+l
+u
+u
+status
