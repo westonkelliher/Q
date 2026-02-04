@@ -227,11 +227,19 @@ function renderCharacter(fontSize = 24) {
  * @returns {HTMLElement}
  */
 function renderSimpleIcon(iconName, color, fontSize = 20) {
+    const container = document.createElement('span');
+    container.className = 'graphic';
+    container.style.fontSize = `${fontSize}px`;
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    
     const icon = document.createElement('i');
     icon.className = `ra ra-${iconName}`;
     icon.style.color = rgbToCss(color);
-    icon.style.fontSize = `${fontSize}px`;
-    return icon;
+    
+    container.appendChild(icon);
+    return container;
 }
 
 /**
