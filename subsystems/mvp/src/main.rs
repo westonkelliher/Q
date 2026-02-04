@@ -46,11 +46,15 @@ async fn main() {
 }
 
 async fn run_web_server() {
+    println!("Creating crafting registry...");
+    let mut crafting_registry = mvp::game::CraftingRegistry::new();
+    mvp::game::crafting::content::register_sample_content(&mut crafting_registry);
+    
     println!("Creating hardcoded MVP world...");
-    let world = create_hardcoded_world();
+    let world = create_hardcoded_world(&mut crafting_registry);
     
     println!("Initializing game state...");
-    let game_state = mvp::game::GameState::new(world);
+    let game_state = mvp::game::GameState::new(world, crafting_registry);
     let shared_state: SharedGameState = Arc::new(std::sync::Mutex::new(game_state));
     
     let app = create_router(shared_state);

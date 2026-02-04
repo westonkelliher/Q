@@ -1,4 +1,5 @@
 use super::types::{Biome, Land, Substrate, Tile, World, Enemy};
+use crate::game::crafting::{CraftingRegistry, ItemInstanceId, ItemId, RecipeId, Provenance};
 use std::collections::HashMap;
 
 /// Creates a hardcoded 5x5 world for the MVP
@@ -12,7 +13,9 @@ use std::collections::HashMap;
 /// - Row 2: Plains, Forest, Lake, Plains, Forest
 /// - Row 3: Meadow, Plains, Plains, Forest, Meadow
 /// - Row 4: Forest, Meadow, Plains, Meadow, Mountain (boss)
-pub fn create_hardcoded_world() -> World {
+/// 
+/// Requires a registry to create item instances for world objects
+pub fn create_hardcoded_world(crafting_registry: &mut CraftingRegistry) -> World {
     let mut terrain = HashMap::new();
 
     // Hand-crafted 5x5 biome layout for variety
@@ -42,7 +45,7 @@ pub fn create_hardcoded_world() -> World {
             let bottom_right_biome = if y < 4 && x < 4 { biome_grid[y + 1][x + 1].clone() } else { center_biome.clone() };
 
             // Generate tiles based on biome
-            let tiles = generate_tiles_for_biome(&center_biome, x as i32, y as i32);
+            let tiles = generate_tiles_for_biome(&center_biome, x as i32, y as i32, crafting_registry);
 
             // Determine if this land has an enemy
             // Start position (0,0) has no enemy
@@ -94,8 +97,28 @@ pub fn create_hardcoded_world() -> World {
     }
 }
 
+/// Create a simple item instance (for world objects like rock, tree, stick)
+fn create_simple_item_instance(crafting_registry: &mut CraftingRegistry, item_id: &str) -> ItemInstanceId {
+    let instance_id = crafting_registry.next_instance_id();
+    let item_instance = crate::game::crafting::ItemInstance::Simple(
+        crate::game::crafting::SimpleInstance {
+            id: instance_id,
+            definition: ItemId(item_id.to_string()),
+            provenance: Provenance {
+                recipe_id: RecipeId("world_generated".to_string()),
+                consumed_inputs: vec![],
+                tool_used: None,
+                world_object_used: None,
+                crafted_at: 0,
+            },
+        }
+    );
+    crafting_registry.register_instance(item_instance);
+    instance_id
+}
+
 /// Generate tiles for a land based on its center biome
-fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 8]; 8] {
+fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32, crafting_registry: &mut CraftingRegistry) -> [[Tile; 8]; 8] {
     let mut tiles = std::array::from_fn(|_| {
         std::array::from_fn(|_| Tile {
             substrate: Substrate::Grass,
@@ -115,11 +138,13 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Add trees throughout (more dense)
                     if ((x + y) as i32 + land_x + land_y) % 3 == 0 {
-                        tile.objects.push(super::types::Object::Tree);
+                        let tree_instance = create_simple_item_instance(crafting_registry, "tree");
+                        tile.objects.push(tree_instance);
                     }
                     // Some sticks on the ground
                     if (x + y) % 5 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(super::types::Object::Stick);
+                        let stick_instance = create_simple_item_instance(crafting_registry, "stick");
+                        tile.objects.push(stick_instance);
                     }
                 }
             }
@@ -131,11 +156,13 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     let tile = &mut tiles[y][x];
                     // Occasional trees
                     if ((x + y) as i32 + land_x) % 4 == 0 {
-                        tile.objects.push(super::types::Object::Tree);
+                        let tree_instance = create_simple_item_instance(crafting_registry, "tree");
+                        tile.objects.push(tree_instance);
                     }
                     // Some sticks
                     if (x + y) % 6 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(super::types::Object::Stick);
+                        let stick_instance = create_simple_item_instance(crafting_registry, "stick");
+                        tile.objects.push(stick_instance);
                     }
                 }
             }
@@ -154,7 +181,8 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Rocks near water edges
                     if dist_from_center > 2.0 && dist_from_center < 3.0 && (x + y) % 3 == 0 {
-                        tile.objects.push(super::types::Object::Rock);
+                        let rock_instance = create_simple_item_instance(crafting_registry, "rock");
+                        tile.objects.push(rock_instance);
                     }
                 }
             }
@@ -172,7 +200,8 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Many rocks
                     if ((x + y) as i32 + land_x + land_y) % 2 == 0 {
-                        tile.objects.push(super::types::Object::Rock);
+                        let rock_instance = create_simple_item_instance(crafting_registry, "rock");
+                        tile.objects.push(rock_instance);
                     }
                 }
             }
@@ -188,15 +217,18 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
                     }
                     // Occasional trees
                     if ((x + y) as i32 + land_x) % 5 == 0 {
-                        tile.objects.push(super::types::Object::Tree);
+                        let tree_instance = create_simple_item_instance(crafting_registry, "tree");
+                        tile.objects.push(tree_instance);
                     }
                     // Some rocks
                     if (x + y) % 6 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(super::types::Object::Rock);
+                        let rock_instance = create_simple_item_instance(crafting_registry, "rock");
+                        tile.objects.push(rock_instance);
                     }
                     // Some sticks
                     if (x + y) % 7 == 0 && tile.objects.is_empty() {
-                        tile.objects.push(super::types::Object::Stick);
+                        let stick_instance = create_simple_item_instance(crafting_registry, "stick");
+                        tile.objects.push(stick_instance);
                     }
                 }
             }
@@ -209,10 +241,17 @@ fn generate_tiles_for_biome(biome: &Biome, land_x: i32, land_y: i32) -> [[Tile; 
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    fn create_test_world() -> (World, CraftingRegistry) {
+        let mut crafting_registry = CraftingRegistry::new();
+        crate::game::crafting::content::register_sample_content(&mut crafting_registry);
+        let world = create_hardcoded_world(&mut crafting_registry);
+        (world, crafting_registry)
+    }
 
     #[test]
     fn test_create_hardcoded_world() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         assert_eq!(world.name, "MVP World");
         assert_eq!(world.seed, 0);
@@ -221,7 +260,7 @@ mod tests {
 
     #[test]
     fn test_world_has_all_coordinates() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Check that all coordinates from (0,0) to (4,4) exist
         for y in 0..5 {
@@ -234,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_world_start_position() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Start position should be (0, 0) - top-left
         let start_land = world.terrain.get(&(0, 0));
@@ -248,7 +287,7 @@ mod tests {
 
     #[test]
     fn test_world_boss_position_biome() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Boss position should be (4, 4) - bottom-right
         let boss_land = world.terrain.get(&(4, 4));
@@ -262,7 +301,7 @@ mod tests {
 
     #[test]
     fn test_land_structure() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Check a few lands have correct structure
         for y in 0..5 {
@@ -292,7 +331,7 @@ mod tests {
 
     #[test]
     fn test_land_tiles_have_substrates() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Check that all tiles have substrates (varies by biome now)
         if let Some(land) = world.terrain.get(&(2, 2)) {
@@ -317,7 +356,7 @@ mod tests {
 
     #[test]
     fn test_land_has_some_objects() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Check that some lands have objects (trees, rocks, or sticks)
         let mut found_objects = false;
@@ -346,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_biome_variety() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Check that we have all 5 biomes represented
         let mut biomes_found = std::collections::HashSet::new();
@@ -363,7 +402,7 @@ mod tests {
 
     #[test]
     fn test_world_no_extra_coordinates() {
-        let world = create_hardcoded_world();
+        let (world, _crafting_registry) = create_test_world();
         
         // Check that there are no coordinates outside 0-4 range
         for (coords, _) in &world.terrain {

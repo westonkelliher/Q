@@ -1,0 +1,45 @@
+# E2E Test: Crafting and Item Pickup
+# Tests the new crafting system integration
+
+# Check initial inventory (should be empty now)
+inv
+
+# List available recipes
+recipes
+
+# Move to a forest land (should have trees)
+r
+r
+e
+
+# Check current position
+status
+
+# Try to pickup an item
+pickup
+
+# Check inventory after pickup
+inv
+
+# Try to drop the item
+drop
+
+# Check inventory after drop
+inv
+
+# Pickup again
+pickup
+
+# Move to different tile
+u
+l
+
+# Try to pickup another item
+pickup
+
+# Check inventory (should have 2 items now)
+inv
+
+# Exit land
+e
+status

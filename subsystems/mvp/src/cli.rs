@@ -1,10 +1,12 @@
-use crate::game::{create_hardcoded_world, execute_command, GameState};
+use crate::game::{create_hardcoded_world, execute_command, GameState, CraftingRegistry};
 use std::io::{self, BufRead, Write};
 
 /// Run interactive REPL mode
 pub fn run_repl() {
-    let world = create_hardcoded_world();
-    let mut state = GameState::new(world);
+    let mut crafting_registry = CraftingRegistry::new();
+    crate::game::crafting::content::register_sample_content(&mut crafting_registry);
+    let world = create_hardcoded_world(&mut crafting_registry);
+    let mut state = GameState::new(world, crafting_registry);
     
     println!("MVP CLI REPL - Type 'help' for commands, 'quit' to exit");
     
@@ -36,8 +38,10 @@ pub fn run_repl() {
 
 /// Run script execution mode
 pub fn run_script(path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let world = create_hardcoded_world();
-    let mut state = GameState::new(world);
+    let mut crafting_registry = CraftingRegistry::new();
+    crate::game::crafting::content::register_sample_content(&mut crafting_registry);
+    let world = create_hardcoded_world(&mut crafting_registry);
+    let mut state = GameState::new(world, crafting_registry);
     
     println!("Executing script: {}", path);
     

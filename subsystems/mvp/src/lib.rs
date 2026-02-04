@@ -3,8 +3,9 @@ pub mod web;
 pub mod cli;
 
 // Re-export commonly used types for convenience
-pub use game::{Biome, Land, Object, Substrate, Tile, World};
+pub use game::{Biome, Land, Substrate, Tile, World};
 pub use game::create_hardcoded_world;
 pub use game::{GameState, CurrentMode};
 pub use game::execute_command;
+pub use game::crafting;
 pub use web::display::{print_land, print_world};

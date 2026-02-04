@@ -1,10 +1,10 @@
-use super::world::types::Object;
+use super::crafting::ItemInstanceId;
 
 /// Character inventory - simple list of items (no stacking)
 #[derive(Debug, Clone)]
 pub struct Inventory {
     /// Items in the inventory (no stacking, infinite capacity for now)
-    pub items: Vec<Object>,
+    pub items: Vec<ItemInstanceId>,
 }
 
 impl Inventory {
@@ -16,13 +16,13 @@ impl Inventory {
     }
 
     /// Add an item to the inventory
-    pub fn add_item(&mut self, item: Object) {
+    pub fn add_item(&mut self, item: ItemInstanceId) {
         self.items.push(item);
     }
 
     /// Remove an item from the inventory at the given index
     /// Returns the item if it exists
-    pub fn remove_item(&mut self, index: usize) -> Option<Object> {
+    pub fn remove_item(&mut self, index: usize) -> Option<ItemInstanceId> {
         if index < self.items.len() {
             Some(self.items.remove(index))
         } else {
@@ -63,11 +63,7 @@ impl Character {
     /// Create a new character with default stats
     /// Starts at land (0, 0) with no tile position (terrain view)
     pub fn new() -> Self {
-        let mut inventory = Inventory::new();
-        // Add a few starting items for testing the inventory system
-        inventory.add_item(Object::Stick);
-        inventory.add_item(Object::Rock);
-        inventory.add_item(Object::Tree);
+        let inventory = Inventory::new();
         
         Self {
             land_position: (0, 0),

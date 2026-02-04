@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use crate::game::crafting::ItemInstanceId;
 
 /// Simple enemy stats (copied from combat module)
 /// Stored separately to avoid circular dependencies
@@ -21,16 +22,9 @@ pub enum Substrate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Object {
-    Rock,
-    Tree,
-    Stick,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tile {
     pub substrate: Substrate,
-    pub objects: Vec<Object>,
+    pub objects: Vec<ItemInstanceId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -110,25 +104,6 @@ impl Substrate {
             Substrate::Mud => (0.4, 0.3, 0.2),        // Dark brown
             Substrate::Water => (0.2, 0.4, 0.9),      // Blue
             Substrate::Brush => (0.2, 0.6, 0.15),    // Dark green, similar to forest
-        }
-    }
-}
-
-impl Object {
-    pub fn to_char(&self) -> char {
-        match self {
-            Object::Rock => '⚫',  // Black circle
-            Object::Tree => '🟩',  // Green square (same as Forest biome)
-            Object::Stick => '🟤',  // Brown circle (same as Dirt)
-        }
-    }
-
-    /// Get RGB color values (0.0-1.0) matching the main Q game
-    pub fn to_color(&self) -> (f32, f32, f32) {
-        match self {
-            Object::Rock => (0.3, 0.3, 0.3),          // Dark gray
-            Object::Tree => (0.1, 0.6, 0.1),          // Green
-            Object::Stick => (0.5, 0.3, 0.1),         // Brown
         }
     }
 }

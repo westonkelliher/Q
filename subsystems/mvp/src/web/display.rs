@@ -24,15 +24,15 @@ pub fn print_land(land: &Land) {
     for (y, row) in land.tiles.iter().enumerate() {
         print!("{} ", y);
         for tile in row.iter() {
-            // If there are objects, show only the object (not the substrate)
+            // If there are objects, show indicator (can't display item without registry)
             if tile.objects.is_empty() {
                 print!("{}", tile.substrate.to_char());
             } else {
-                // Show first object, or multiple if there are many
+                // Show object indicator
                 if tile.objects.len() == 1 {
-                    print!("{}", tile.objects[0].to_char());
+                    print!("📦"); // Box emoji for single item
                 } else {
-                    print!("🔴"); // Multiple objects (red circle - fixed width)
+                    print!("🔴"); // Red circle for multiple items
                 }
             }
         }

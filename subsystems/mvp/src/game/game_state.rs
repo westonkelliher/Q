@@ -1,12 +1,13 @@
-use super::world::types::{World, Substrate, Object, Biome};
+use super::world::types::{World, Substrate, Biome};
 use super::character::Character;
 use super::combat::CombatResult;
+use super::crafting::{CraftingRegistry, ItemInstanceId};
 
 /// Information about a tile
 #[derive(Debug, Clone)]
 pub struct TileInfo {
     pub substrate: Substrate,
-    pub objects: Vec<Object>,
+    pub objects: Vec<ItemInstanceId>,
     pub biome: Biome,
 }
 
@@ -28,11 +29,13 @@ pub struct GameState {
     pub character: Character,
     /// Combat round counter (0 when not in combat, increments during combat)
     pub combat_round: u32,
+    /// Crafting registry containing all items, recipes, and instances
+    pub crafting_registry: CraftingRegistry,
 }
 
 impl GameState {
     /// Create a new game state with the given world
-    pub fn new(world: World) -> Self {
+    pub fn new(world: World, crafting_registry: CraftingRegistry) -> Self {
         let mut character = Character::new();
         character.set_land_position(0, 0);
         character.set_tile_position(None);
@@ -42,6 +45,7 @@ impl GameState {
             current_mode: CurrentMode::Terrain,
             character,
             combat_round: 0,
+            crafting_registry,
         }
     }
 
@@ -303,11 +307,18 @@ impl GameState {
 mod tests {
     use super::*;
     use crate::game::world::create_hardcoded_world;
+    use crate::game::crafting::CraftingRegistry;
+    
+    fn create_test_state() -> GameState {
+        let mut crafting_registry = CraftingRegistry::new();
+        crate::game::crafting::content::register_sample_content(&mut crafting_registry);
+        let world = create_hardcoded_world(&mut crafting_registry);
+        GameState::new(world, crafting_registry)
+    }
 
     #[test]
     fn test_terrain_movement() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         // Move right
         state.move_terrain(1, 0);
@@ -328,8 +339,7 @@ mod tests {
 
     #[test]
     fn test_terrain_coordinate_clamping() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         // Try to move beyond bounds
         state.move_terrain(10, 10);
@@ -342,8 +352,7 @@ mod tests {
 
     #[test]
     fn test_terrain_movement_only_in_terrain_view() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         // Enter land view
         state.enter_land();
@@ -357,8 +366,7 @@ mod tests {
 
     #[test]
     fn test_enter_land_view() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         state.move_terrain(2, 2);
         assert_eq!(state.current_mode, CurrentMode::Terrain);
@@ -371,8 +379,7 @@ mod tests {
 
     #[test]
     fn test_land_movement() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         state.enter_land();
         let initial_tile = state.current_tile().unwrap();
@@ -403,8 +410,7 @@ mod tests {
 
     #[test]
     fn test_land_coordinate_clamping() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         state.enter_land();
         // Initial position is (4, 4) - center of the land
@@ -422,8 +428,7 @@ mod tests {
 
     #[test]
     fn test_land_movement_only_in_land_view() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         assert_eq!(state.current_mode, CurrentMode::Terrain);
         
@@ -434,8 +439,7 @@ mod tests {
 
     #[test]
     fn test_exit_land_view() {
-        let world = create_hardcoded_world();
-        let mut state = GameState::new(world);
+        let mut state = create_test_state();
         
         // Use (2,2) which has no enemy, or (0,0) which is the start
         state.move_terrain(2, 2);
@@ -450,8 +454,7 @@ mod tests {
 
     #[test]
     fn test_land_exists() {
-        let world = create_hardcoded_world();
-        let state = GameState::new(world);
+        let state = create_test_state();
         
         // Test existing lands
         assert!(state.land_exists(0, 0));
