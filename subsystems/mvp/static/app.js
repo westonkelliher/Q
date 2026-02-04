@@ -41,6 +41,8 @@ const GRAPHICS = {
         { rotation: 80 }
     ),
     plantFiber: createGraphic(['grass'], '#7ac74f', '#2d5016'),  // bright green / dark green
+    clay: createGraphic(['vase'], '#c07850', '#6b4423'),  // terracotta orange / dark brown
+    flint: createGraphic(['rune-stone'], '#6e7c8c', '#2c3540'),  // gray-blue / dark slate
     
     // Enemies
     enemyIndicator: createGraphic(['crossed-swords'], '#ff6b6b', '#8b0000'),
@@ -80,6 +82,8 @@ const OBJECT_GRAPHICS = {
     'Tree': GRAPHICS.tree,
     'Stick': GRAPHICS.stick,
     'Plant Fiber': GRAPHICS.plantFiber,
+    'Clay': GRAPHICS.clay,
+    'Flint': GRAPHICS.flint,
     'Wolf Carcass': GRAPHICS.wolfCarcass,
     'Deer Carcass': GRAPHICS.deerCarcass,
     'Rabbit Carcass': GRAPHICS.rabbitCarcass,
@@ -363,11 +367,13 @@ let gameState = null;
 let commandHistory = [];
 
 // Frontend-only overlay state
-let displayOverlay = null; // 'death' | 'win' | 'inventory' | 'equip-select' | 'craft-select' | null
+let displayOverlay = null; // 'death' | 'win' | 'inventory' | 'equip-select' | 'craft-select' | 'drop-select' | 'place-select' | null
 let previousViewMode = null;
 let equipSelectIndex = 0; // Currently selected item index in equip mode
 let craftSelectIndex = 0; // Currently selected recipe index in craft mode
 let craftableRecipes = []; // Array of { id: string, name: string }
+let dropSelectIndex = 0; // Currently selected item index in drop mode
+let placeSelectIndex = 0; // Currently selected item index in place mode
 
 // Load initial game state
 async function loadGameState() {
@@ -427,6 +433,34 @@ async function executeCommand(command) {
     // Intercept "c" or "craft" with no arguments - enter craft selection mode
     if (trimmedCmd === 'c' || trimmedCmd === 'craft') {
         await fetchCraftableRecipes();
+        return;
+    }
+    
+    // Intercept "d" or "drop" with no arguments - enter drop selection mode
+    if (trimmedCmd === 'd' || trimmedCmd === 'drop') {
+        const inventory = gameState?.character?.inventory || [];
+        if (inventory.length === 0) {
+            showMessage('Your inventory is empty - nothing to drop', 'error');
+            return;
+        }
+        dropSelectIndex = 0;
+        displayOverlay = 'drop-select';
+        renderGame();
+        showMessage('Select item to drop', 'success');
+        return;
+    }
+    
+    // Intercept "l" or "place" with no arguments - enter place selection mode
+    if (trimmedCmd === 'l' || trimmedCmd === 'place') {
+        const inventory = gameState?.character?.inventory || [];
+        if (inventory.length === 0) {
+            showMessage('Your inventory is empty - nothing to place', 'error');
+            return;
+        }
+        placeSelectIndex = 0;
+        displayOverlay = 'place-select';
+        renderGame();
+        showMessage('Select item to place', 'success');
         return;
     }
 
@@ -536,6 +570,14 @@ function renderGame() {
             // For craft selection, render the underlying view first, then show craft selector
             renderUnderlyingView(display);
             renderCraftSelectOverlay();
+        } else if (displayOverlay === 'drop-select') {
+            // For drop selection, render the underlying view first, then show drop selector
+            renderUnderlyingView(display);
+            renderDropSelectOverlay();
+        } else if (displayOverlay === 'place-select') {
+            // For place selection, render the underlying view first, then show place selector
+            renderUnderlyingView(display);
+            renderPlaceSelectOverlay();
         } else if (displayOverlay === 'death') {
         display.innerHTML = '<div class="screen-view death-screen" id="death-screen"></div>';
         renderDeathScreen();
@@ -718,6 +760,100 @@ function renderCraftSelectOverlay() {
             <div class="inventory-instructions">
                 <p>Use <code>Arrow Keys</code> to navigate grid • <code>0-9</code> to jump</p>
                 <p>Press <code>Enter</code> to craft • <code>Escape</code> or <code>\`</code> to cancel</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+// Render drop selection overlay
+function renderDropSelectOverlay() {
+    const overlay = document.createElement('div');
+    overlay.className = 'inventory-overlay';
+    overlay.id = 'inventory-overlay';
+    
+    const inventory = gameState.character.inventory || [];
+    
+    if (dropSelectIndex >= inventory.length) dropSelectIndex = inventory.length - 1;
+    if (dropSelectIndex < 0) dropSelectIndex = 0;
+    
+    const itemsHtml = inventory.map((itemName, index) => {
+        const graphic = OBJECT_GRAPHICS[itemName] || GRAPHICS.missingGraphic;
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'inventory-item-icon';
+        iconContainer.appendChild(renderGraphic(graphic, 32));
+        const iconHtml = iconContainer.outerHTML;
+        
+        const selectedClass = index === dropSelectIndex ? ' selected' : '';
+        return `
+            <div class="inventory-item${selectedClass}">
+                <div class="inventory-item-index">${index}</div>
+                ${iconHtml}
+                <div class="inventory-item-name">${itemName}</div>
+            </div>
+        `;
+    }).join('');
+    
+    overlay.innerHTML = `
+        <div class="inventory-panel equip-mode">
+            <div class="inventory-header">
+                <div class="inventory-title">📦 Drop Item</div>
+                <div class="inventory-subtitle">Select item to drop (${dropSelectIndex + 1}/${inventory.length})</div>
+            </div>
+            <div class="inventory-list">
+                ${itemsHtml}
+            </div>
+            <div class="inventory-instructions">
+                <p>Use <code>Arrow Keys</code> to navigate • <code>0-9</code> to jump</p>
+                <p>Press <code>Enter</code> to drop • <code>Escape</code> or <code>\`</code> to cancel</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+// Render place selection overlay
+function renderPlaceSelectOverlay() {
+    const overlay = document.createElement('div');
+    overlay.className = 'inventory-overlay';
+    overlay.id = 'inventory-overlay';
+    
+    const inventory = gameState.character.inventory || [];
+    
+    if (placeSelectIndex >= inventory.length) placeSelectIndex = inventory.length - 1;
+    if (placeSelectIndex < 0) placeSelectIndex = 0;
+    
+    const itemsHtml = inventory.map((itemName, index) => {
+        const graphic = OBJECT_GRAPHICS[itemName] || GRAPHICS.missingGraphic;
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'inventory-item-icon';
+        iconContainer.appendChild(renderGraphic(graphic, 32));
+        const iconHtml = iconContainer.outerHTML;
+        
+        const selectedClass = index === placeSelectIndex ? ' selected' : '';
+        return `
+            <div class="inventory-item${selectedClass}">
+                <div class="inventory-item-index">${index}</div>
+                ${iconHtml}
+                <div class="inventory-item-name">${itemName}</div>
+            </div>
+        `;
+    }).join('');
+    
+    overlay.innerHTML = `
+        <div class="inventory-panel equip-mode">
+            <div class="inventory-header">
+                <div class="inventory-title">🏗️ Place Item</div>
+                <div class="inventory-subtitle">Select item to place (${placeSelectIndex + 1}/${inventory.length})</div>
+            </div>
+            <div class="inventory-list">
+                ${itemsHtml}
+            </div>
+            <div class="inventory-instructions">
+                <p>Use <code>Arrow Keys</code> to navigate • <code>0-9</code> to jump</p>
+                <p>Press <code>Enter</code> to place • <code>Escape</code> or <code>\`</code> to cancel</p>
             </div>
         </div>
     `;

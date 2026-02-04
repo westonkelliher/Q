@@ -6,6 +6,8 @@ THEN: refactor the README
   crafting_tinkers
 * early progression content
 * crafting mechanic
+* content
+@ multi display floor items (2x2 then 3x3 max 4x4)
 * quest system to guide early progression
 
 
