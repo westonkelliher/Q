@@ -1,0 +1,42 @@
+# E2E Test: Crafting Simple Recipes
+# Tests the CRAFT command with simple recipes
+
+# Move to mountains to get flint and rock
+r
+r
+u
+u
+e
+
+# Pickup flint and rock
+pickup
+u
+pickup
+r
+pickup
+
+# Check inventory
+inv
+
+# Try to craft without equipping tool (should fail - needs hammer)
+craft knap_flint_blade
+
+# Equip rock (makeshift hammer)
+equip 0
+
+# Check status
+status
+
+# Try crafting again
+craft knap_flint_blade
+
+# Check inventory after crafting
+inv
+status
+
+# Try crafting another blade (should fail - no more flint)
+craft knap_flint_blade
+
+# Exit
+e
+status

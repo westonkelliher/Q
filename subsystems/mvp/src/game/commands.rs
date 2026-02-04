@@ -4,6 +4,86 @@ use super::combat::CombatResult;
 /// Execute a command and return (success, message)
 pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
     // Handle commands with arguments first
+    if command.starts_with("craft ") {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.len() < 2 {
+            return (false, "Usage: craft <recipe_id> (e.g., 'craft knap_flint_blade')".to_string());
+        }
+        
+        let recipe_id_str = parts[1];
+        let recipe_id = crate::game::crafting::RecipeId(recipe_id_str.to_string());
+        
+        // Try to find and execute the recipe
+        // First check simple recipes
+        if let Some(recipe) = state.crafting_registry.get_simple_recipe(&recipe_id).cloned() {
+            // Collect matching items from inventory
+            let mut provided_inputs = Vec::new();
+            for input in &recipe.inputs {
+                // Find matching item in inventory
+                let mut found = false;
+                for (i, inv_item_id) in state.character.inventory.items.iter().enumerate() {
+                    if let Some(instance) = state.crafting_registry.get_instance(*inv_item_id) {
+                        if let crate::game::crafting::ItemInstance::Simple(s) = instance {
+                            if s.definition == input.item_id {
+                                provided_inputs.push(*inv_item_id);
+                                // Remove from inventory
+                                state.character.inventory.remove_item(i);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if !found {
+                    // Put back items we already removed
+                    for item_id in provided_inputs.iter() {
+                        state.character.inventory.add_item(*item_id);
+                    }
+                    return (false, format!("Missing required item: {}", input.item_id.0));
+                }
+            }
+            
+            let tool_used = state.character.get_equipped();
+            
+            // Execute recipe
+            match state.crafting_registry.execute_simple_recipe(&recipe, provided_inputs, tool_used, None) {
+                Ok(result) => {
+                    let item_name = match &result {
+                        crate::game::crafting::ItemInstance::Simple(s) => {
+                            state.crafting_registry.get_item(&s.definition)
+                                .map(|def| def.name.clone())
+                                .unwrap_or_else(|| "Unknown".to_string())
+                        }
+                        _ => "Item".to_string(),
+                    };
+                    
+                    let result_id = result.id();
+                    state.crafting_registry.register_instance(result);
+                    state.character.inventory.add_item(result_id);
+                    
+                    return (true, format!("🔨 Crafted {}", item_name));
+                }
+                Err(e) => {
+                    // Return consumed items on error
+                    // (They were already consumed by execute_simple_recipe)
+                    return (false, format!("Crafting failed: {}", e));
+                }
+            }
+        }
+        
+        // Check component recipes
+        if let Some(_recipe) = state.crafting_registry.get_component_recipe(&recipe_id) {
+            return (false, "Component recipes not yet supported in REPL".to_string());
+        }
+        
+        // Check composite recipes
+        if let Some(_recipe) = state.crafting_registry.get_composite_recipe(&recipe_id) {
+            return (false, "Composite recipes not yet supported in REPL".to_string());
+        }
+        
+        return (false, format!("Recipe not found: {}", recipe_id_str));
+    }
+    
     if command.starts_with("equip ") {
         let parts: Vec<&str> = command.split_whitespace().collect();
         if parts.len() < 2 {
@@ -337,43 +417,45 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 CurrentMode::Combat => {
                     r#"
 Combat Commands:
-  A, ATTACK     - Attack the enemy
-  E, ENTER      - Flee combat (returns to terrain view)
-  EQUIP <index> - Equip item from inventory
-  UNEQUIP       - Unequip current item
-  STATUS, STATS - Show character status
-  INV, I        - Show inventory
-  H, HELP, ?    - Show this help
+  A, ATTACK      - Attack the enemy
+  E, ENTER       - Flee combat (returns to terrain view)
+  EQUIP <index>  - Equip item from inventory
+  UNEQUIP        - Unequip current item
+  STATUS, STATS  - Show character status
+  INV, I         - Show inventory
+  H, HELP, ?     - Show this help
 "#
                 }
                 CurrentMode::Land => {
                     r#"
 Commands:
-  U, D, L, R     - Move up, down, left, right
-  E, ENTER       - Exit land view
-  PICKUP, P, GET - Pick up item from current tile
-  DROP           - Drop first item from inventory
-  EQUIP <index>  - Equip item from inventory (e.g., 'equip 0')
-  UNEQUIP        - Unequip current item to inventory
-  RECIPES        - List available recipes
-  STATUS, STATS  - Show character status
-  INV, I         - Show inventory
-  H, HELP, ?     - Show this help
+  U, D, L, R      - Move up, down, left, right
+  E, ENTER        - Exit land view
+  PICKUP, P, GET  - Pick up item from current tile
+  DROP            - Drop first item from inventory
+  EQUIP <index>   - Equip item from inventory (e.g., 'equip 0')
+  UNEQUIP         - Unequip current item to inventory
+  CRAFT <recipe>  - Craft item from recipe (e.g., 'craft knap_flint_blade')
+  RECIPES         - List available recipes
+  STATUS, STATS   - Show character status
+  INV, I          - Show inventory
+  H, HELP, ?      - Show this help
 "#
                 }
                 _ => {
                     r#"
 Commands:
-  U, D, L, R     - Move up, down, left, right
-  E, ENTER       - Enter land view (may trigger combat if enemy present)
-  EQUIP <index>  - Equip item from inventory
-  UNEQUIP        - Unequip current item
-  RECIPES        - List available recipes
-  STATUS, STATS  - Show character status
-  INV, I         - Show inventory
-  H, HELP, ?     - Show this help
+  U, D, L, R      - Move up, down, left, right
+  E, ENTER        - Enter land view (may trigger combat if enemy present)
+  EQUIP <index>   - Equip item from inventory
+  UNEQUIP         - Unequip current item
+  CRAFT <recipe>  - Craft item from recipe
+  RECIPES         - List available recipes
+  STATUS, STATS   - Show character status
+  INV, I          - Show inventory
+  H, HELP, ?      - Show this help
   
-  (Enter land view to pickup/drop items)
+  (Enter land view to pickup/drop/craft items)
 "#
                 }
             };
