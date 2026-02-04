@@ -319,6 +319,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "A fallen branch. Can be used as makeshift shovel or crafted into handle.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -327,6 +328,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "A large stone. Can be used as makeshift hammer or knapping tool.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -335,6 +337,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Sharp-edged stone perfect for knapping into blades.".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("flint_stone")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -343,6 +346,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "A living tree that can be chopped for wood".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
+        pickupable: false,
     });
 
     registry.register_item(ItemDefinition {
@@ -351,6 +355,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Natural plant fibers for binding".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("plant_fiber")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -359,6 +364,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Wet clay, useful for building".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("clay_lump")) },
         placeable: None,
+        pickupable: true,
     });
 
     // Carcasses
@@ -368,6 +374,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Remains of a slain wolf. Can be processed for materials.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -376,6 +383,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Remains of a slain deer. Can be processed for materials.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: None,
+        pickupable: true,
     });
 
     // =========================================================================
@@ -389,6 +397,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Knapped flint blade, sharp but fragile.".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("flint_blade")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -397,6 +406,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Knapped axe head for chopping".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("flint_axe_head")) },
         placeable: None,
+        pickupable: true,
     });
 
     // Animal products (from processing carcasses)
@@ -406,6 +416,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Dense wolf bone, good for tools".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_bone")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -414,6 +425,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Strong animal tendon for binding".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_sinew")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -422,6 +434,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Untanned wolf pelt".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_hide")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -430,6 +443,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Raw wolf meat, can be cooked".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wolf_meat")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -438,6 +452,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Light deer bone".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_bone")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -446,6 +461,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Flexible animal tendon".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_sinew")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -454,6 +470,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Soft untanned deer pelt".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_hide")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -462,6 +479,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Raw deer meat, can be cooked".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("deer_meat")) },
         placeable: None,
+        pickupable: true,
     });
 
     // Wood products
@@ -471,6 +489,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Chopped wood from a tree".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("wood_log")) },
         placeable: None,
+        pickupable: true,
     });
 
     // Metal ores
@@ -480,6 +499,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Raw copper ore".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("copper_ore")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -488,6 +508,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Raw tin ore, found in mountains".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("tin_ore")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -496,6 +517,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Raw iron ore".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("iron_ore")) },
         placeable: None,
+        pickupable: true,
     });
 
     // Metal bars
@@ -505,6 +527,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Smelted copper bar".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("copper_bar")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -513,6 +536,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Alloyed bronze bar (copper + tin)".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("bronze_bar")) },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -521,6 +545,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Smelted iron bar".to_string(),
         kind: ItemKind::Simple { submaterial: Some(submat("iron_bar")) },
         placeable: None,
+        pickupable: true,
     });
 
     // =========================================================================
@@ -533,6 +558,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "A high-heat crafting station for smelting metal ores into bars.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("forge".to_string()))),
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -541,6 +567,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "A sturdy work surface for precise crafting.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("workbench".to_string()))),
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -549,6 +576,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "A heavy iron anvil for forging metal tools and weapons.".to_string(),
         kind: ItemKind::Simple { submaterial: None },
         placeable: Some(WorldObjectKind::CraftingStation(CraftingStationId("anvil".to_string()))),
+        pickupable: true,
     });
 
     // =========================================================================
@@ -561,6 +589,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Tool handle, made from wood or bone".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("handle") },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -569,6 +598,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Binding to secure tool parts".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("binding") },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -577,6 +607,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Blade for a knife".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("knife_blade") },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -585,6 +616,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Head for an axe".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("axe_head") },
         placeable: None,
+        pickupable: true,
     });
 
     registry.register_item(ItemDefinition {
@@ -593,6 +625,7 @@ fn register_items(registry: &mut CraftingRegistry) {
         description: "Head for a pickaxe".to_string(),
         kind: ItemKind::Component { component_kind: comp_kind("pickaxe_head") },
         placeable: None,
+        pickupable: true,
     });
 
     // =========================================================================
@@ -623,6 +656,7 @@ fn register_items(registry: &mut CraftingRegistry) {
             tool_type: Some(ToolType::Knife),
         }),
         placeable: None,
+        pickupable: true,
     });
 
     // Axes
@@ -649,6 +683,7 @@ fn register_items(registry: &mut CraftingRegistry) {
             tool_type: Some(ToolType::Axe),
         }),
         placeable: None,
+        pickupable: true,
     });
 
     // Pickaxes
@@ -675,6 +710,7 @@ fn register_items(registry: &mut CraftingRegistry) {
             tool_type: Some(ToolType::Pickaxe),
         }),
         placeable: None,
+        pickupable: true,
     });
 }
 

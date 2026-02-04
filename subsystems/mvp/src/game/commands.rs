@@ -245,7 +245,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
             // Standalone m - show usage
             (false, "Usage: m <direction> (e.g., 'm u' for up). Directions: u/up, d/down, l/left, r/right".to_string())
         }
-        "u" | "up" | "d" | "down" | "r" | "right" => {
+        "u" | "up" | "down" | "r" | "right" => {
             // Legacy single-letter commands - redirect to move command
             (false, format!("Movement now requires 'm' prefix. Use 'm {}' instead. Type 'help' for more info.", command))
         }
@@ -344,21 +344,28 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                     return (false, "No items here to pick up".to_string());
                 }
                 
-                // Pick up first item
-                let item_id = tile.items.remove(0);
+                // Get first item (without removing yet)
+                let item_id = tile.items[0];
                 
-                // Get item name for display
-                let item_name = state.crafting_registry.get_instance(item_id)
+                // Check if item is pickupable
+                let (item_name, is_pickupable) = state.crafting_registry.get_instance(item_id)
                     .and_then(|instance| {
                         match instance {
                             crate::game::crafting::ItemInstance::Simple(s) => {
-                                state.crafting_registry.get_item(&s.definition).map(|def| def.name.clone())
+                                state.crafting_registry.get_item(&s.definition)
+                                    .map(|def| (def.name.clone(), def.pickupable))
                             }
                             _ => None
                         }
                     })
-                    .unwrap_or_else(|| "Unknown Item".to_string());
+                    .unwrap_or_else(|| ("Unknown Item".to_string(), false));
                 
+                if !is_pickupable {
+                    return (false, format!("{} cannot be picked up. You may need to use a tool to harvest it.", item_name));
+                }
+                
+                // Remove from tile and add to inventory
+                tile.items.remove(0);
                 state.character.inventory.add_item(item_id);
                 
                 (true, format!("📦 Picked up {}", item_name))
@@ -366,7 +373,7 @@ pub fn execute_command(state: &mut GameState, command: &str) -> (bool, String) {
                 (false, "Land not found".to_string())
             }
         }
-        "drop" => {
+        "drop" | "d" => {
             // Can only drop in land view
             if state.current_mode != CurrentMode::Land {
                 return (false, "Can only drop items in land view".to_string());
@@ -483,7 +490,7 @@ Commands:
   M <dir>, MOVE   - Move (e.g., 'm u' or 'move up'). Directions: u/d/l/r
   X, EXIT         - Exit land view
   PICKUP, P, GET  - Pick up item from current tile
-  DROP            - Drop first item from inventory
+  D, DROP         - Drop first item from inventory
   L, PLACE <idx>  - Place item as world object (e.g., 'l 0' to place forge)
   E, EQUIP <idx>  - Equip item from inventory (e.g., 'e 0')
   UNEQUIP         - Unequip current item to inventory

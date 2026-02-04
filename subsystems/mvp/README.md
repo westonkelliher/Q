@@ -1,7 +1,7 @@
 # MVP - Minimum Viable Product
 
 > **Last Updated**: 2026-02-04  
-> **Previous Commit**: `1006319`  
+> **Previous Commit**: `c7db0b5`  
 > Check this commit hash against the previous commit to verify documentation is up-to-date.
 
 ---
@@ -438,8 +438,8 @@ cargo run -- --help    # Show all options
 
 **Crafting:**
 - `CRAFT <recipe>`, `C <recipe>` - Craft item from recipe (e.g., `craft knap_flint_blade`)
-- `PICKUP`, `P` - Pick up item from current tile
-- `DROP` - Drop first item from inventory
+- `PICKUP`, `P` - Pick up item from current tile (only pickupable items)
+- `DROP`, `D` - Drop first item from inventory
 - `PLACE <index>`, `L <index>` - Place item as world object (e.g., `l 0` to place forge)
 
 **Web-Only:**

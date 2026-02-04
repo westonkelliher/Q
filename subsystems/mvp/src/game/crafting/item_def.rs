@@ -10,6 +10,8 @@ pub struct ItemDefinition {
     pub kind: ItemKind,
     /// If this item can be placed as a world object, specifies what kind
     pub placeable: Option<WorldObjectKind>,
+    /// Whether this item can be picked up from the world (false for trees, boulders, etc.)
+    pub pickupable: bool,
 }
 
 /// The kind of item - mutually exclusive categories

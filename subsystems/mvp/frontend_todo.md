@@ -21,6 +21,25 @@ This file tracks backend changes that need corresponding frontend updates.
 
 ## Pending Items
 
+### Add Drop Alias and Pickupable Field (Backend Complete)
+
+**Backend Changes:**
+- Added 'd' as shorthand for 'drop' command
+- Added pickupable field to ItemDefinition (bool)
+- Trees marked as pickupable: false (cannot pick up directly)
+- Pickup command now checks pickupable field
+- Error message: "[Item] cannot be picked up. You may need to use a tool to harvest it."
+
+**Frontend Tasks:**
+- No immediate changes required
+- Future: Could show visual indicator for non-pickupable items
+
+**Testing:**
+- CLI: 'd' command drops items ✅
+- CLI: 'drop' command still works ✅
+- CLI: Attempting to pick up tree shows error ✅
+- New test: tests/e2e_drop_pickup.txt ✅
+
 ### Add Place Command Support (Backend Complete)
 
 **Backend Changes:**
