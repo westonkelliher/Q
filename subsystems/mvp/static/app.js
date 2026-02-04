@@ -42,7 +42,7 @@ const GRAPHICS = {
     ),
     plantFiber: createGraphic(['grass'], '#7ac74f', '#2d5016'),  // bright green / dark green
     clay: createGraphic(['ball'], '#c07850', '#6b4423'),  // terracotta orange / dark brown
-    flint: createGraphic(['diamonds'], '#6e7c8c', '#2c3540'),  // gray-blue / dark slate
+    flint: createGraphic(['diamonds', 'kettlebell', 'pawn'], '#6e7c8c', '#2c3540'),  // gray-blue / dark slate - layered icons
     
     // Enemies
     enemyIndicator: createGraphic(['crossed-swords'], '#ff6b6b', '#8b0000'),
