@@ -1,0 +1,207 @@
+:root {
+  --bg: #111216;
+  --panel: #1a1d26;
+  --text: #e8ebf5;
+  --muted: #98a0b3;
+  --line: #2a3040;
+  --morning: #8ed0ff;
+  --afternoon: #ffbe55;
+  --night: #574478;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: radial-gradient(circle at top, #1d2230 0%, var(--bg) 40%);
+  color: var(--text);
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.status-panel, .controls, .clock-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+h1, h2 { margin: 0 0 12px; }
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(100px, 1fr));
+  gap: 10px;
+}
+.status-grid span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.message { margin: 10px 0 0; color: var(--muted); min-height: 1.2em; }
+
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+button, input {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #202637;
+  color: var(--text);
+  padding: 8px 10px;
+}
+button { cursor: pointer; }
+button:hover { background: #273149; }
+#command-input { flex: 1; min-width: 220px; }
+
+.speed-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.speed-control input {
+  width: 90px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #202637;
+  color: var(--text);
+  padding: 7px 10px;
+}
+
+.clocks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.clock-15, .clock-45 {
+  width: min(380px, 85vw);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  position: relative;
+}
+
+.dial {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #202638;
+}
+
+.dial-15 {
+  transform: rotate(90deg);
+  transform-origin: center center;
+  background:
+    repeating-conic-gradient(from -90deg, rgba(0,0,0,.28) 0deg 1.3deg, transparent 1.3deg 15deg),
+    conic-gradient(
+      from -90deg,
+      var(--night) 0deg 60deg,
+      var(--morning) 60deg 180deg,
+      var(--afternoon) 180deg 300deg,
+      var(--night) 300deg 360deg
+    );
+}
+
+.dial-45-face {
+  --seg0: var(--night);
+  --seg1: var(--night);
+  --seg2: var(--night);
+  --seg3: var(--night);
+  --seg4: var(--morning);
+  --seg5: var(--morning);
+  --seg6: var(--morning);
+  --seg7: var(--morning);
+  background:
+    repeating-conic-gradient(from -90deg, rgba(0,0,0,.42) 0deg 2deg, transparent 2deg 45deg),
+    conic-gradient(
+      from -90deg,
+      var(--seg0) 0deg 45deg,
+      var(--seg1) 45deg 90deg,
+      var(--seg2) 90deg 135deg,
+      var(--seg3) 135deg 180deg,
+      var(--seg4) 180deg 225deg,
+      var(--seg5) 225deg 270deg,
+      var(--seg6) 270deg 315deg,
+      var(--seg7) 315deg 360deg
+    );
+}
+
+.hand {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 3px;
+  height: 44%;
+  background: #fff;
+  transform-origin: 50% 100%;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(255,255,255,.45);
+  z-index: 5;
+}
+
+.rotating {
+  transform-origin: center center;
+}
+
+.wedge-mask {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #708090;
+  clip-path: polygon(50% 50%, 28% 0%, 72% 0%);
+  z-index: 4;
+}
+
+.bottom-arrow {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  width: 4px;
+  height: 46%;
+  background: #f4f7ff;
+  translate: -50% 0;
+  border-radius: 6px;
+  z-index: 5;
+}
+.bottom-arrow::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -12px;
+  translate: -50% 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 12px solid #f4f7ff;
+}
+
+.center-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: #fff;
+  z-index: 6;
+}
+
+@media (max-width: 900px) {
+  .clocks { grid-template-columns: 1fr; }
+  .status-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+}

@@ -1,0 +1,23 @@
+[package]
+name = "time_subsystem"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "time-subsystem"
+path = "src/main.rs"
+
+[lib]
+name = "time_subsystem"
+path = "src/lib.rs"
+
+[dependencies]
+axum = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["fs"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

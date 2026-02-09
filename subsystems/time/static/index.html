@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Time Subsystem</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="status-panel">
+      <h1>Time Subsystem</h1>
+      <div class="status-grid">
+        <div><span>Day</span><strong id="day-val">0</strong></div>
+        <div><span>Minute</span><strong id="minute-val">0</strong></div>
+        <div><span>HH:MM</span><strong id="hhmm-val">00:00</strong></div>
+        <div><span>Lightzone</span><strong id="lightzone-val" class="chip">NIGHT</strong></div>
+      </div>
+      <p id="message" class="message">Ready</p>
+    </section>
+
+    <section class="controls">
+      <div class="row">
+        <button data-min="1">+1m</button>
+        <button data-min="10">+10m</button>
+        <button data-min="60">+60m</button>
+        <button id="auto-toggle">Auto Tick: Off</button>
+        <label class="speed-control" for="tick-speed-ms">
+          Tick Speed
+          <input id="tick-speed-ms" type="number" min="1" step="10" value="1000" />
+          <span>ms</span>
+        </label>
+      </div>
+      <div class="row" id="actions-row"></div>
+      <form id="command-form" class="row">
+        <input id="command-input" type="text" placeholder="tick 60 or craft totem" />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+
+    <section class="clocks">
+      <article class="clock-card">
+        <h2>15° / hour</h2>
+        <div class="clock-15" id="clock-15">
+          <div class="dial dial-15" id="dial-15"></div>
+          <div class="hand" id="hand-15"></div>
+          <div class="center-dot"></div>
+        </div>
+      </article>
+
+      <article class="clock-card">
+        <h2>45° / hour</h2>
+        <div class="clock-45" id="clock-45">
+          <div class="dial dial-45-face rotating" id="dial-45"></div>
+          <div class="wedge-mask"></div>
+          <div class="bottom-arrow"></div>
+          <div class="center-dot"></div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
