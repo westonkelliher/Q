@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Compendium - MVP Game</title>
+    <link rel="stylesheet" href="/static/rpg-awesome/css/rpg-awesome.min.css">
+    <link rel="stylesheet" href="/static/recipes.css">
+</head>
+<body>
+    <!-- Back to Game Button -->
+    <a href="/" class="back-button" title="Back to Game">
+        <i class="ra ra-player"></i> Back to Game
+    </a>
+
+    <div class="recipe-viewer-header">
+        <div class="recipe-viewer-title">📜 Recipe Compendium</div>
+        <div class="recipe-viewer-subtitle">All registered crafting recipes in the game</div>
+    </div>
+    
+    <div class="recipe-viewer-content" id="recipe-viewer-content">
+        <div style="text-align: center; padding: 40px; color: #888;">
+            Loading recipes...
+        </div>
+    </div>
+
+    <script src="/static/recipes.js"></script>
+</body>
+</html>

@@ -25,6 +25,7 @@ pub fn create_router(game_state: SharedGameState) -> Router {
         .route("/", get(index))
         .route("/api/state", get(get_state))
         .route("/api/command", post(handle_command))
+        .route("/api/recipes", get(get_recipes))
         .nest_service("/static", ServeDir::new("static"))
         .nest_service("/assets", ServeDir::new("../../assets"))
         .with_state(game_state)
@@ -77,6 +78,70 @@ async fn handle_command(
     };
     
     Ok(Json(response))
+}
+
+/// Get all registered recipes
+async fn get_recipes(State(game_state): State<SharedGameState>) -> Result<Json<RecipesResponse>, StatusCode> {
+    let state = game_state.lock().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let simple_recipes: Vec<_> = state.crafting_registry.all_simple_recipes()
+        .map(|r| SerializableSimpleRecipe {
+            id: r.id.0.clone(),
+            name: r.name.clone(),
+            output: r.output.0.clone(),
+            output_quantity: r.output_quantity,
+            inputs: r.inputs.iter().map(|i| SerializableSimpleInput {
+                item_id: i.item_id.0.clone(),
+                quantity: i.quantity,
+            }).collect(),
+            tool: r.tool.as_ref().map(|t| SerializableToolRequirement {
+                tool_type: format!("{:?}", t.tool_type),
+                min_quality: format!("{:?}", t.min_quality),
+            }),
+            world_object: r.world_object.as_ref().map(|wo| SerializableWorldObjectRequirement {
+                kind: wo.kind.as_ref().map(|k| format!("{:?}", k)),
+                required_tags: wo.required_tags.iter().map(|t| t.0.clone()).collect(),
+            }),
+        })
+        .collect();
+    
+    let component_recipes: Vec<_> = state.crafting_registry.all_component_recipes()
+        .map(|r| SerializableComponentRecipe {
+            id: r.id.0.clone(),
+            name: r.name.clone(),
+            output: r.output.0.clone(),
+            tool: r.tool.as_ref().map(|t| SerializableToolRequirement {
+                tool_type: format!("{:?}", t.tool_type),
+                min_quality: format!("{:?}", t.min_quality),
+            }),
+            world_object: r.world_object.as_ref().map(|wo| SerializableWorldObjectRequirement {
+                kind: wo.kind.as_ref().map(|k| format!("{:?}", k)),
+                required_tags: wo.required_tags.iter().map(|t| t.0.clone()).collect(),
+            }),
+        })
+        .collect();
+    
+    let composite_recipes: Vec<_> = state.crafting_registry.all_composite_recipes()
+        .map(|r| SerializableCompositeRecipe {
+            id: r.id.0.clone(),
+            name: r.name.clone(),
+            output: r.output.0.clone(),
+            tool: r.tool.as_ref().map(|t| SerializableToolRequirement {
+                tool_type: format!("{:?}", t.tool_type),
+                min_quality: format!("{:?}", t.min_quality),
+            }),
+            world_object: r.world_object.as_ref().map(|wo| SerializableWorldObjectRequirement {
+                kind: wo.kind.as_ref().map(|k| format!("{:?}", k)),
+                required_tags: wo.required_tags.iter().map(|t| t.0.clone()).collect(),
+            }),
+        })
+        .collect();
+    
+    Ok(Json(RecipesResponse {
+        simple_recipes,
+        component_recipes,
+        composite_recipes,
+    }))
 }
 
 
