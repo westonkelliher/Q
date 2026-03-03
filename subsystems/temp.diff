@@ -1,0 +1,381 @@
+diff --git a/compact_context.py b/compact_context.py
+index a529ce6..2e7750d 100755
+--- a/compact_context.py
++++ b/compact_context.py
+@@ -15,6 +15,7 @@ Usage: compact_context.py [session.jsonl]
+ import html
+ import json
+ import os
++import re
+ import signal
+ import socket
+ import subprocess
+@@ -39,6 +40,64 @@ def find_session_file(path=None):
+     )
+     return files[0] if files else None
+ 
++
++def find_recent_sessions(n=6, all_projects=False):
++    """Return the n most recent session files, optionally across all projects."""
++    projects_root = os.path.join(os.path.expanduser("~"), ".claude", "projects")
++    if all_projects:
++        dirs = []
++        try:
++            for d in os.listdir(projects_root):
++                dp = os.path.join(projects_root, d)
++                if os.path.isdir(dp):
++                    dirs.append(dp)
++        except FileNotFoundError:
++            return []
++    else:
++        cwd = os.getcwd()
++        project_key = "-" + cwd.lstrip("/").replace("/", "-")
++        dirs = [os.path.join(projects_root, project_key)]
++    files = []
++    for project_dir in dirs:
++        try:
++            for f in os.listdir(project_dir):
++                if f.endswith(".jsonl"):
++                    files.append(os.path.join(project_dir, f))
++        except FileNotFoundError:
++            continue
++    files.sort(key=os.path.getmtime, reverse=True)
++    return files[:n]
++
++
++def session_preview(filepath):
++    """Extract a short preview from a session file: first real user message."""
++    try:
++        with open(filepath) as f:
++            for line in f:
++                obj = json.loads(line)
++                if obj.get("type") != "user":
++                    continue
++                content = obj.get("message", {}).get("content", [])
++                if isinstance(content, str):
++                    text = content.strip()
++                    if text and not text.startswith("<system-reminder>"):
++                        return text[:120]
++                elif isinstance(content, list):
++                    chars = []
++                    for block in content:
++                        if isinstance(block, str):
++                            chars.append(block)
++                        elif isinstance(block, dict) and block.get("type") == "text":
++                            t = block.get("text", "").strip()
++                            if t and not t.startswith("<system-reminder>"):
++                                return t[:120]
++                    joined = "".join(chars).strip()
++                    if joined and not joined.startswith("<system-reminder>"):
++                        return joined[:120]
++    except Exception:
++        pass
++    return "(empty session)"
++
+ # ---------------------------------------------------------------------------
+ # Artifact detection
+ # ---------------------------------------------------------------------------
+@@ -762,36 +821,218 @@ class Handler(BaseHTTPRequestHandler):
+             self.send_error(404)
+ 
+ # ---------------------------------------------------------------------------
+-# Main
++# Session chooser (browser-based)
+ # ---------------------------------------------------------------------------
+ 
+-def get_free_port():
+-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+-        s.bind(('', 0))
+-        return s.getsockname()[1]
++CHOOSER_TEMPLATE = r"""<!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Choose Session</title>
++<style>
++*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
++:root { --bg: #151515; --fg: #d4d4d4; --border: #2a2a2a; --user: #61afef; --user-bg: #1c3a5c; --hover: #1e2a3a; }
++html, body { background: var(--bg); color: var(--fg); font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 13px; min-height: 100%; }
++body { display: flex; flex-direction: column; align-items: center; padding: 40px 0; }
++.title { color: var(--user); font-weight: bold; font-size: 16px; margin-bottom: 20px; }
++.sessions { width: 700px; max-width: 90vw; }
++.session {
++  display: block; padding: 12px 16px; margin: 4px 0; border: 1px solid var(--border);
++  border-radius: 6px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit;
++  background: #1a1a1a;
++}
++.session:hover { background: var(--hover); border-color: var(--user); }
++.session .meta { display: flex; justify-content: space-between; margin-bottom: 4px; }
++.session .age { color: var(--user); font-size: 12px; font-weight: bold; }
++.session .project { color: var(--user); font-size: 11px; margin-right: 8px; opacity: 0.7; }
++.session .file { color: #555; font-size: 11px; }
++.session .preview { color: #999; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.cancel-btn {
++  margin-top: 16px; padding: 8px 24px; background: #252525; color: #888; border: 1px solid var(--border);
++  border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px;
++}
++.cancel-btn:hover { background: #333; color: #ccc; }
++</style>
++</head>
++<body>
++<div class="title">CHOOSE SESSION</div>
++<div class="sessions" id="sessions"></div>
++<button class="cancel-btn" onclick="fetch('/chooser-cancel',{method:'POST'}).then(()=>{document.body.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:#666\'>Cancelled</div>';})">Cancel</button>
++<script>
++function ago(ts) {
++  const d = (Date.now()/1000 - ts);
++  if (d < 60) return Math.floor(d) + 's ago';
++  if (d < 3600) return Math.floor(d/60) + 'm ago';
++  if (d < 86400) return Math.floor(d/3600) + 'h ago';
++  return Math.floor(d/86400) + 'd ago';
++}
++fetch('/chooser-data').then(r=>r.json()).then(data => {
++  const el = document.getElementById('sessions');
++  data.forEach((s, i) => {
++    const div = document.createElement('div');
++    div.className = 'session';
++    div.innerHTML =
++      '<div class="meta"><span class="age">' + ago(s.mtime) + '</span>' +
++      (s.project ? '<span class="project">' + s.project + '</span>' : '') +
++      '<span class="file">' + s.filename + '</span></div>' +
++      '<div class="preview">' + s.preview.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>';
++    div.addEventListener('click', () => {
++      fetch('/chooser-select', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({index: i})})
++        .then(() => { window.location.reload(); });
++    });
++    el.appendChild(div);
++  });
++});
++</script>
++</body>
++</html>"""
+ 
+-def main():
+-    session_file = find_session_file(sys.argv[1] if len(sys.argv) > 1 else None)
+-    if not session_file:
+-        print("No session file found", file=sys.stderr)
+-        sys.exit(1)
+ 
+-    sections = extract_sections(session_file)
+-    if not sections:
+-        print("No sections found", file=sys.stderr)
+-        sys.exit(1)
++class ChooserHandler(BaseHTTPRequestHandler):
++    sessions = []       # list of {"path": str, "filename": str, "mtime": float, "preview": str}
++    chosen_path = None
++    server_should_exit = threading.Event()
++    cancelled = False
+ 
+-    Handler.sections = sections
+-    Handler.cancelled = False
++    def log_message(self, format, *args):
++        pass
++
++    def do_GET(self):
++        if self.path == '/':
++            self.send_response(200)
++            self.send_header('Content-Type', 'text/html; charset=utf-8')
++            self.end_headers()
++            self.wfile.write(CHOOSER_TEMPLATE.encode('utf-8'))
++        elif self.path == '/chooser-data':
++            self.send_response(200)
++            self.send_header('Content-Type', 'application/json')
++            self.end_headers()
++            self.wfile.write(json.dumps(self.sessions).encode('utf-8'))
++        else:
++            self.send_error(404)
++
++    def do_POST(self):
++        if self.path == '/chooser-select':
++            length = int(self.headers.get('Content-Length', 0))
++            body = json.loads(self.rfile.read(length))
++            idx = body.get('index', 0)
++            if 0 <= idx < len(self.sessions):
++                ChooserHandler.chosen_path = self.sessions[idx]['path']
++            self.send_response(200)
++            self.send_header('Content-Type', 'application/json')
++            self.end_headers()
++            self.wfile.write(b'{"ok":true}')
++            ChooserHandler.server_should_exit.set()
++        elif self.path == '/chooser-cancel':
++            self.send_response(200)
++            self.send_header('Content-Type', 'application/json')
++            self.end_headers()
++            self.wfile.write(b'{"ok":true}')
++            ChooserHandler.cancelled = True
++            ChooserHandler.server_should_exit.set()
++        else:
++            self.send_error(404)
++
++
++def session_full_text(filepath):
++    """Extract all user message text from a session for pattern matching."""
++    texts = []
++    try:
++        with open(filepath) as f:
++            for line in f:
++                obj = json.loads(line)
++                if obj.get("type") != "user":
++                    continue
++                content = obj.get("message", {}).get("content", [])
++                if isinstance(content, str):
++                    text = content.strip()
++                    if text and not text.startswith("<system-reminder>"):
++                        texts.append(text)
++                elif isinstance(content, list):
++                    chars = []
++                    for block in content:
++                        if isinstance(block, str):
++                            chars.append(block)
++                        elif isinstance(block, dict) and block.get("type") == "text":
++                            t = block.get("text", "").strip()
++                            if t and not t.startswith("<system-reminder>"):
++                                texts.append(t)
++                    joined = "".join(chars).strip()
++                    if joined and not joined.startswith("<system-reminder>"):
++                        texts.append(joined)
++    except Exception:
++        pass
++    return "\n".join(texts)
++
++
++def run_chooser(n=6, include_pattern=None, exclude_pattern=None, all_projects=False):
++    """Show a browser-based session chooser. Returns chosen file path or None."""
++    # Fetch all sessions, filter, then take top n
++    all_sessions = find_recent_sessions(999, all_projects=all_projects)
++    if not all_sessions:
++        return None
++
++    sessions = []
++    for fp in all_sessions:
++        if len(sessions) >= n:
++            break
++        preview = session_preview(fp)
++        if include_pattern or exclude_pattern:
++            full_text = session_full_text(fp)
++            if include_pattern and not re.search(include_pattern, full_text, re.IGNORECASE):
++                continue
++            if exclude_pattern and re.search(exclude_pattern, full_text, re.IGNORECASE):
++                continue
++        # Decode project dir name back to a path for display
++        project_dir_name = os.path.basename(os.path.dirname(fp))
++        project_path = "/" + project_dir_name.lstrip("-").replace("-", "/") if project_dir_name.startswith("-") else project_dir_name
++        sessions.append({
++            "path": fp,
++            "filename": os.path.basename(fp),
++            "project": project_path if all_projects else "",
++            "mtime": os.path.getmtime(fp),
++            "preview": preview,
++        })
++
++    ChooserHandler.sessions = sessions
++    ChooserHandler.chosen_path = None
++    ChooserHandler.cancelled = False
++    ChooserHandler.server_should_exit.clear()
+ 
+     port = get_free_port()
+-    server = HTTPServer(('127.0.0.1', port), Handler)
++    server = HTTPServer(('127.0.0.1', port), ChooserHandler)
+     server.timeout = 0.5
+ 
+     url = f"http://localhost:{port}"
+-    print(f"Serving at {url}", file=sys.stderr)
++    print(f"Choose session at {url}", file=sys.stderr)
++    open_browser(url)
++
++    def sigint_handler(sig, frame):
++        ChooserHandler.server_should_exit.set()
++        ChooserHandler.cancelled = True
++    old_handler = signal.signal(signal.SIGINT, sigint_handler)
++
++    while not ChooserHandler.server_should_exit.is_set():
++        server.handle_request()
+ 
+-    # Open in Chrome
++    server.server_close()
++    signal.signal(signal.SIGINT, old_handler)
++
++    if ChooserHandler.cancelled:
++        return None
++    return ChooserHandler.chosen_path
++
++# ---------------------------------------------------------------------------
++# Main
++# ---------------------------------------------------------------------------
++
++def get_free_port():
++    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
++        s.bind(('', 0))
++        return s.getsockname()[1]
++
++
++def open_browser(url):
+     try:
+         subprocess.Popen(
+             ['google-chrome', url],
+@@ -807,6 +1048,65 @@ def main():
+             import webbrowser
+             webbrowser.open(url)
+ 
++
++def main():
++    args = sys.argv[1:]
++    choose_mode = False
++    choose_count = 6
++    include_pattern = None
++    exclude_pattern = None
++    all_projects = False
++    remaining = []
++    i = 0
++    while i < len(args):
++        if args[i] == '-c':
++            choose_mode = True
++            if i + 1 < len(args) and args[i + 1].isdigit():
++                choose_count = int(args[i + 1])
++                i += 1
++        elif args[i] == '-e' and i + 1 < len(args):
++            choose_mode = True
++            include_pattern = args[i + 1]
++            i += 1
++        elif args[i] == '-v' and i + 1 < len(args):
++            choose_mode = True
++            exclude_pattern = args[i + 1]
++            i += 1
++        elif args[i] in ('-a', '--all'):
++            choose_mode = True
++            all_projects = True
++        else:
++            remaining.append(args[i])
++        i += 1
++    args = remaining
++
++    if choose_mode:
++        session_file = run_chooser(choose_count, include_pattern, exclude_pattern, all_projects)
++        if not session_file:
++            print("No session selected", file=sys.stderr)
++            sys.exit(1)
++    else:
++        session_file = find_session_file(args[0] if args else None)
++        if not session_file:
++            print("No session file found", file=sys.stderr)
++            sys.exit(1)
++
++    sections = extract_sections(session_file)
++    if not sections:
++        print("No sections found", file=sys.stderr)
++        sys.exit(1)
++
++    Handler.sections = sections
++    Handler.cancelled = False
++
++    port = get_free_port()
++    server = HTTPServer(('127.0.0.1', port), Handler)
++    server.timeout = 0.5
++
++    url = f"http://localhost:{port}"
++    print(f"Serving at {url}", file=sys.stderr)
++    open_browser(url)
++
+     # Handle Ctrl+C
+     def sigint_handler(sig, frame):
+         Handler.server_should_exit.set()
