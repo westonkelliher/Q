@@ -1,0 +1,26 @@
+{
+  "name": "dark-modern-green",
+  "displayName": "Dark Modern Green",
+  "description": "Dark Modern theme with colors hue-shifted towards green",
+  "version": "1.0.0",
+  "publisher": "custom",
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Dark Modern Green",
+        "uiTheme": "vs-dark",
+        "path": "./themes/dark-modern-green.json"
+      }
+    ]
+  }
+}
