@@ -112,3 +112,64 @@ pub struct CommandResponse {
     pub message: String,
     pub game_state: GameStateResponse,
 }
+
+/// Serializable simple input
+#[derive(Debug, Serialize)]
+pub struct SerializableSimpleInput {
+    pub item_id: String,
+    pub quantity: u32,
+}
+
+/// Serializable tool requirement
+#[derive(Debug, Serialize)]
+pub struct SerializableToolRequirement {
+    pub tool_type: String,
+    pub min_quality: String,
+}
+
+/// Serializable world object requirement
+#[derive(Debug, Serialize)]
+pub struct SerializableWorldObjectRequirement {
+    pub kind: Option<String>,
+    pub required_tags: Vec<String>,
+}
+
+/// Serializable simple recipe
+#[derive(Debug, Serialize)]
+pub struct SerializableSimpleRecipe {
+    pub id: String,
+    pub name: String,
+    pub output: String,
+    pub output_quantity: u32,
+    pub inputs: Vec<SerializableSimpleInput>,
+    pub tool: Option<SerializableToolRequirement>,
+    pub world_object: Option<SerializableWorldObjectRequirement>,
+}
+
+/// Serializable component recipe
+#[derive(Debug, Serialize)]
+pub struct SerializableComponentRecipe {
+    pub id: String,
+    pub name: String,
+    pub output: String,
+    pub tool: Option<SerializableToolRequirement>,
+    pub world_object: Option<SerializableWorldObjectRequirement>,
+}
+
+/// Serializable composite recipe
+#[derive(Debug, Serialize)]
+pub struct SerializableCompositeRecipe {
+    pub id: String,
+    pub name: String,
+    pub output: String,
+    pub tool: Option<SerializableToolRequirement>,
+    pub world_object: Option<SerializableWorldObjectRequirement>,
+}
+
+/// Recipes response containing all registered recipes
+#[derive(Debug, Serialize)]
+pub struct RecipesResponse {
+    pub simple_recipes: Vec<SerializableSimpleRecipe>,
+    pub component_recipes: Vec<SerializableComponentRecipe>,
+    pub composite_recipes: Vec<SerializableCompositeRecipe>,
+}
